@@ -4,7 +4,7 @@
 | ---------------- | ------------------------------------------------- |
 | **Title**        | Find The Two That Match — UI Specification         |
 | **Status**       | Active — approved behavior                        |
-| **Version**      | 0.2.0                                             |
+| **Version**      | 0.4.0                                             |
 | **Last updated** | 2026-09-23                                        |
 | **Owner/Author** | Maria Lande (with GitHub Copilot)                 |
 
@@ -42,8 +42,20 @@
 ### 1.3 Mobile viewport containment
 - On mobile viewports, the game shell fits within the visual viewport with no
   page-level horizontal or vertical scrolling.
+- "Mobile viewport" includes short-height landscape orientations (e.g. a phone
+  turned sideways), not only narrow-width portrait viewports — containment
+  must hold whenever either dimension is phone-sized, since a landscape phone
+  can be wider than a typical narrow-width breakpoint while still having a
+  constrained height.
 - The board resizes responsively while preserving both regions and keeps every
   object's rendered bounds inside the board.
+- The board fills the full width and height of its containing play area
+  independently on each axis. Every object's visual size scales uniformly from a 
+  single scale factor derived from the more constrained axis (width or height), 
+  so objects stay visually square and never stretch, within an accessible minimum 
+  tap-target size. This keeps objects spaced consistently with their authored 
+  `pos` values so no two objects visually overlap each other or the region divider at any supported
+  viewport.
 
 ### 1.4 Celebration Overlay
 - Appears over the Match Board Screen when a pair is confirmed equivalent
@@ -141,6 +153,7 @@ Feature: Matching two equivalent objects
     When the Match Board Screen is shown
     Then the document has no horizontal or vertical page scroll
     And every object remains within the visible board bounds
+    And no two objects visually overlap each other or the region divider
 ```
 
 ## 6. Open questions (UI-specific)
@@ -154,5 +167,7 @@ Feature: Matching two equivalent objects
 
 ## Changelog
 
+2026-09-23 — Maria Lande (with GitHub Copilot) — Replaced aspect-ratio-preserving (letterboxed/pillarboxed) board scaling with independent width/height fill of the play area, and clarified that objects derive a single square scale factor from the more constrained axis rather than stretching with the board.
+2026-09-23 — Maria Lande (with GitHub Copilot) — Clarified that the board scales as a single aspect-ratio-preserving unit with proportionally sized (min-clamped) objects to prevent overlap on narrow viewports, and that mobile viewport containment applies to short-height landscape orientations too, not only narrow-width portrait viewports.
 2026-09-23 — Maria Lande (with GitHub Copilot) — Approved textless loading, missing-image placeholders, and mobile viewport containment.
 2026-09-23 — Maria Lande (with GitHub Copilot) — Initial draft, derived solely from Find-The-Two-That-Match-Spec-Brief.md and third-party-game-spec.md.

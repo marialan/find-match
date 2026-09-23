@@ -4,7 +4,7 @@
 | ---------------- | --------------------------------------------------- |
 | **Title**        | Find The Two That Match — Test Specification         |
 | **Status**       | Active — approved behavior                          |
-| **Version**      | 0.2.0                                               |
+| **Version**      | 0.3.0                                               |
 | **Last updated** | 2026-09-23                                          |
 | **Owner/Author** | Maria Lande (with GitHub Copilot)                   |
 
@@ -38,6 +38,10 @@
 ### Module 2 — Match Board Renderer
 - TC-2.1: Every object in a loaded trial renders at its authored `pos`
   (pixel-exact, within a documented tolerance for coordinate rounding).
+- TC-2.2: At a set of supported viewport widths (see UI-TC-8), the board's
+  rendered width:height ratio matches its authored 1120:650 design ratio, and
+  no two objects' rendered bounding boxes overlap each other or the region
+  divider.
 
 ### Module 3 — Drag Interaction Engine
 - TC-3.1: Dragging an object beyond the board's edge clamps its rendered
@@ -133,7 +137,8 @@ input:
 - UI-TC-7: "Loading screen clears offline within budget" — dry-run protocol,
   §4 below.
 - UI-TC-8: "Mobile layout remains contained" — run at the supported mobile
-  viewport sizes and assert no page scroll and no object overflow.
+  viewport sizes and assert no page scroll, no object overflow, and no
+  object-to-object or object-to-divider overlap (TC-2.2).
 
 ## 4. Dry-run protocol (offline verification)
 
@@ -152,8 +157,11 @@ before any release candidate is approved:
    any, are acceptable per `docs/third-party-game-spec.md` §7b).
 8. Confirm progress persists in `localStorage` across a manual reload
    (TC-8.2).
-9. Repeat the board check at supported mobile viewport sizes and confirm no
-  page-level scroll or object overflow (UI-TC-8).
+9. Repeat the board check at supported mobile viewport sizes (including
+  narrow widths such as 320px, 360px, and 414px, and short-height landscape
+  sizes such as 812x375 and 667x320) and confirm no page-level scroll, no
+  object overflow, and no object visually overlapping another object or the
+  region divider (UI-TC-8, TC-2.2).
 
 ## 5. Build-and-test sequence
 
@@ -181,5 +189,6 @@ above, every relevant UISPEC Gherkin scenario passes, and the dry-run protocol
 
 ## Changelog
 
+2026-09-23 — Maria Lande (with GitHub Copilot) — Added TC-2.2 and extended UI-TC-8/Dry-Run Protocol §4 to verify aspect-ratio-preserving board scaling and absence of object/divider overlap at narrow viewport widths, including short-height landscape sizes.
 2026-09-23 — Maria Lande (with GitHub Copilot) — Added verification for approved language fallback, tier asset degradation, exact event counts, textless loading, and mobile containment.
 2026-09-23 — Maria Lande (with GitHub Copilot) — Initial draft, derived solely from Find-The-Two-That-Match-Spec-Brief.md and third-party-game-spec.md.

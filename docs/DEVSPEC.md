@@ -4,7 +4,7 @@
 | ---------------- | ------------------------------------------------------- |
 | **Title**        | Find The Two That Match — Development Specification     |
 | **Status**       | Active — approved behavior                              |
-| **Version**      | 0.2.0                                                   |
+| **Version**      | 0.4.0                                                   |
 | **Last updated** | 2026-09-23                                              |
 | **Owner/Author** | Maria Lande (with GitHub Copilot)                       |
 
@@ -109,10 +109,23 @@ trial data.
 - Place every `left` object and every `right` object at its `pos` coordinate.
 - Constrain the render area so no object's rest position falls outside the
   playable board.
+- The board fills the full width and height of its containing play area
+  independently on each axis. Object positions are computed from the authored 
+  `pos` coordinates as percentages of the board's current width/height, so they 
+  track the stretched board exactly.
+- Derive a single object scale factor from the more constrained of the board's
+  current width or height ratios (relative to the 1120×650 design space), and
+  apply that one factor uniformly to every object's width and height so every
+  object stays visually square and never stretches, even though the board
+  itself may stretch. Clamp the resulting object size to an accessible
+  minimum and a sensible maximum so authored spacing between objects is
+  preserved and no two objects visually overlap each other or the region
+  divider at any supported board size or aspect ratio.
 
 **Exit criterion:** For every object in a loaded trial, its rendered position
 matches its authored `pos` within the tolerance used for hit-testing (Module
-3).
+3), and no two objects' rendered bounds overlap at any supported viewport
+size.
 
 ### Module 3 — Drag Interaction Engine
 **Goal:** Let the learner pick up, move, and release any object without
@@ -385,7 +398,17 @@ Functional tree (by purpose) mapped to an artifact-lifecycle classification:
   `summary_data` update.
 - Loading is a textless visual state.
 - The mobile game shell is contained in the visual viewport with no page-level
-  scroll, and object bounds remain inside the board.
+  scroll, and object bounds remain inside the board. This containment applies
+  whenever either viewport dimension is phone-sized — including a short-height
+  landscape orientation with a width above the narrow-portrait breakpoint —
+  not only a narrow-width portrait viewport.
+- The board scales as a single unit that fills the width and height of its
+  containing play area independently on each axis (not letterboxed to the
+  authored 1120×650 proportions), while object visual size scales uniformly
+  from a single scale factor derived from the more constrained axis, clamped
+  to an accessible minimum and a sensible maximum, so objects stay square and
+  never overlap each other or the region divider at any supported viewport
+  size or board aspect ratio.
 
 ## 15. Out of Scope
 
@@ -397,6 +420,8 @@ Functional tree (by purpose) mapped to an artifact-lifecycle classification:
 
 ## 16. Changelog
 
+2026-09-23 — Maria Lande (with GitHub Copilot) — Replaced aspect-ratio-preserving (letterboxed) board scaling with independent width/height fill of the play area, and clarified that object size derives from a single scale factor (based on the more constrained axis) so objects remain square without forcing the board's own aspect ratio.
+2026-09-23 — Maria Lande (with GitHub Copilot) — Documented aspect-ratio-preserving board scaling and proportional/min-size object footprint (Module 2) to prevent object overlap on narrow viewports, and clarified that mobile containment (Design Principle) applies to short-height landscape orientations too, not only narrow-width portrait viewports.
 2026-09-23 — Maria Lande (with GitHub Copilot) — Resolved approved language, tier, asset-fallback, event-count, loading-state, and mobile-containment behavior.
 2026-09-23 — Maria Lande (with GitHub Copilot) — Initial draft, derived solely from Find-The-Two-That-Match-Spec-Brief.md and third-party-game-spec.md.
 

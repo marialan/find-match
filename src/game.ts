@@ -1,8 +1,15 @@
 export const PROXIMITY_TOLERANCE = 64
 export const BOARD_OBJECT_SIZE = 84
+export const BOARD_OBJECT_MIN_SIZE = 44
 export const BOARD_WIDTH = 1120
 export const BOARD_HEIGHT = 650
 export const ENGINE_SLUG = 'ftm'
+
+// Mirrors the CSS clamp() used for .match-object sizing, so drag-clamp math always
+// matches the object's actual rendered footprint at any board scale.
+export function boardObjectSize(scale: number): number {
+  return Math.min(BOARD_OBJECT_SIZE, Math.max(BOARD_OBJECT_MIN_SIZE, BOARD_OBJECT_SIZE * scale))
+}
 
 export type Side = 'left' | 'right'
 

@@ -1,8 +1,10 @@
 import { useEffect, useRef, useState } from "react";
 import {
   BOARD_HEIGHT,
+  BOARD_OBJECT_MIN_SIZE,
   BOARD_OBJECT_SIZE,
   BOARD_WIDTH,
+  boardObjectSize,
   emitContainerEvent,
   loadTrial,
   makeBoardObjects,
@@ -29,8 +31,30 @@ function App() {
   const [candidateId, setCandidateId] = useState<string | null>(null);
   const [celebration, setCelebration] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [scale, setScale] = useState(1);
+  const playAreaRef = useRef<HTMLDivElement>(null);
   const boardRef = useRef<HTMLDivElement>(null);
   const userId = new URLSearchParams(window.location.search).get("cr_user_id");
+
+  useEffect(() => {
+    const playArea = playAreaRef.current;
+    if (!playArea) return undefined;
+    // scale is the object-only sizing factor: the more constrained of the board's
+    // width or height ratios, so square objects fit within whichever axis is
+    // tightest even though the board itself may stretch to a different aspect ratio.
+    const updateScale = (width: number, height: number) => {
+      setScale(Math.min(width / BOARD_WIDTH, height / BOARD_HEIGHT, 1));
+    };
+    updateScale(playArea.clientWidth, playArea.clientHeight);
+    const observer = new ResizeObserver(([entry]) => {
+      const { width, height } = entry.contentRect;
+      updateScale(width, height);
+    });
+    observer.observe(playArea);
+    return () => observer.disconnect();
+    // playAreaRef only attaches once the board has a trial to render, so this must
+    // re-run after that first render instead of just once on mount.
+  }, [trial]);
 
   useEffect(() => {
     loadTrial(TRIAL_PATH)
@@ -89,10 +113,10 @@ function App() {
     if (!point) return;
     const width = boardRef.current?.clientWidth ?? BOARD_WIDTH;
     const height = boardRef.current?.clientHeight ?? BOARD_HEIGHT;
-    // Object size is fixed in real pixels, so the design-space half-size must scale with
-    // the actual rendered board size to keep the object's edges inside the play area.
-    const halfWidth = (BOARD_OBJECT_SIZE / 2) * (BOARD_WIDTH / width);
-    const halfHeight = (BOARD_OBJECT_SIZE / 2) * (BOARD_HEIGHT / height);
+    // Object size follows the same clamp() the CSS uses, so the design-space half-size
+    // matches the object's actual rendered footprint at any board scale.
+    const halfWidth = (boardObjectSize(scale) / 2) * (BOARD_WIDTH / width);
+    const halfHeight = (boardObjectSize(scale) / 2) * (BOARD_HEIGHT / height);
     const x = Math.max(
       halfWidth,
       Math.min(
@@ -211,45 +235,55 @@ function App() {
           {solvedCount} / {objects.length / 2}
         </div>
       </header>
-      <section
-        className="play-area"
-        ref={boardRef}
-        onPointerMove={moveDrag}
-        onPointerUp={endDrag}
-      >
-        <div className="board-divider" />
-        {objects.map((item) => {
-          const active = drag?.id === item.object_id;
-          const highlighted =
-            candidateId === item.object_id || (active && candidateId !== null);
-          return (
-            <button
-              key={item.object_id}
-              className={`match-object ${item.side} ${active ? "is-dragging" : ""} ${highlighted ? "is-highlighted" : ""} ${item.solved ? "is-solved" : ""}`}
-              style={{
-                left: `${(item.x / BOARD_WIDTH) * 100}%`,
-                top: `${(item.y / BOARD_HEIGHT) * 100}%`,
-              }}
-              onPointerDown={(event) => startDrag(event, item)}
-              onClick={() => {
-                if (!drag && !item.solved) playTone("target");
-              }}
-              aria-label={item.target}
-              disabled={item.solved}
-            >
-              <span className="object-shadow" />
-              <span className="object-glyph">{item.target}</span>
-              {item.solved && <span className="solved-check">✓</span>}
-            </button>
-          );
-        })}
-        {celebration && (
-          <div className="celebration" aria-live="polite">
-            <span className="sparkle">✦</span>
-            <strong>Yes!</strong>
-            <span className="celebration-pair">{celebration}</span>
-          </div>
-        )}
+      <section className="play-area" ref={playAreaRef}>
+        <div
+          className="board"
+          ref={boardRef}
+          onPointerMove={moveDrag}
+          onPointerUp={endDrag}
+          style={{
+            ...({
+              "--board-scale": scale,
+              "--board-object-max": `${BOARD_OBJECT_SIZE}px`,
+              "--board-object-min": `${BOARD_OBJECT_MIN_SIZE}px`,
+            } as React.CSSProperties),
+          }}
+        >
+          <div className="board-divider" />
+          {objects.map((item) => {
+            const active = drag?.id === item.object_id;
+            const highlighted =
+              candidateId === item.object_id ||
+              (active && candidateId !== null);
+            return (
+              <button
+                key={item.object_id}
+                className={`match-object ${item.side} ${active ? "is-dragging" : ""} ${highlighted ? "is-highlighted" : ""} ${item.solved ? "is-solved" : ""}`}
+                style={{
+                  left: `${(item.x / BOARD_WIDTH) * 100}%`,
+                  top: `${(item.y / BOARD_HEIGHT) * 100}%`,
+                }}
+                onPointerDown={(event) => startDrag(event, item)}
+                onClick={() => {
+                  if (!drag && !item.solved) playTone("target");
+                }}
+                aria-label={item.target}
+                disabled={item.solved}
+              >
+                <span className="object-shadow" />
+                <span className="object-glyph">{item.target}</span>
+                {item.solved && <span className="solved-check">✓</span>}
+              </button>
+            );
+          })}
+          {celebration && (
+            <div className="celebration" aria-live="polite">
+              <span className="sparkle">✦</span>
+              <strong>Yes!</strong>
+              <span className="celebration-pair">{celebration}</span>
+            </div>
+          )}
+        </div>
       </section>
       <footer className="game-footer">
         <span className="footer-spark">✦</span>
