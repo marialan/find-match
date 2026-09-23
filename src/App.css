@@ -19,7 +19,10 @@
   justify-content: space-between;
 }
 .game-header {
-  height: 70px;
+  width: 100%;
+  max-width: none;
+  margin: 0;
+  height: auto;
 }
 .brand-lockup {
   display: flex;
@@ -78,7 +81,7 @@
   max-width: 1120px;
   height: min(72vh, 650px);
   min-height: 470px;
-  margin: 14px auto 18px;
+  margin: 5px auto 5px;
   overflow: hidden;
   border: 1px solid rgba(87, 113, 102, 0.16);
   border-radius: 28px;
@@ -317,7 +320,7 @@
     padding: 12px;
   }
   .game-header {
-    height: 58px;
+    height: auto;
   }
   .play-area {
     flex: 1 1 auto;

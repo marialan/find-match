@@ -89,18 +89,22 @@ function App() {
     if (!point) return;
     const width = boardRef.current?.clientWidth ?? BOARD_WIDTH;
     const height = boardRef.current?.clientHeight ?? BOARD_HEIGHT;
+    // Object size is fixed in real pixels, so the design-space half-size must scale with
+    // the actual rendered board size to keep the object's edges inside the play area.
+    const halfWidth = (BOARD_OBJECT_SIZE / 2) * (BOARD_WIDTH / width);
+    const halfHeight = (BOARD_OBJECT_SIZE / 2) * (BOARD_HEIGHT / height);
     const x = Math.max(
-      BOARD_OBJECT_SIZE / 2,
+      halfWidth,
       Math.min(
         (point.x / width) * BOARD_WIDTH - drag.offsetX,
-        BOARD_WIDTH - BOARD_OBJECT_SIZE / 2,
+        BOARD_WIDTH - halfWidth,
       ),
     );
     const y = Math.max(
-      BOARD_OBJECT_SIZE / 2,
+      halfHeight,
       Math.min(
         (point.y / height) * BOARD_HEIGHT - drag.offsetY,
-        BOARD_HEIGHT - BOARD_OBJECT_SIZE / 2,
+        BOARD_HEIGHT - halfHeight,
       ),
     );
     const moved = objects.find((item) => item.object_id === drag.id);
