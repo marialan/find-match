@@ -158,6 +158,9 @@
   border-radius: 23px 27px 22px 28px;
   background: #f4bf5f;
   color: #fffaf1;
+  font-size: clamp(30px, 2.4vw, 32px);
+  line-height: 1;
+  font-weight: 700;
   text-shadow: 0 2px 0 rgba(101, 72, 27, 0.15);
   box-shadow:
     0 8px 12px rgba(80, 75, 52, 0.12),
@@ -298,7 +301,6 @@
     height: 68px;
   }
   .object-glyph {
-    font-size: 30px;
     border-radius: 18px 22px 17px 21px;
   }
   .board-divider {
