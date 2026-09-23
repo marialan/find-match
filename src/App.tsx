@@ -110,11 +110,11 @@ function App() {
   return (
     <main className="game-shell">
       <header className="game-header">
-        <div className="brand-lockup"><span className="brand-mark">2</span><div><strong>Find the two</strong><span>that match</span></div></div>
+        <div className="brand-lockup"><strong>FIND THE MATCH</strong></div>
         <div className="progress-pill" aria-label={`${solvedCount} pairs found`}><span className="progress-dot" />{solvedCount} / {objects.length / 2}</div>
       </header>
       <section className="play-area" ref={boardRef} onPointerMove={moveDrag} onPointerUp={endDrag}>
-        <div className="side-label left-label"><span>LOOK</span><i /></div><div className="side-label right-label"><i /><span>MATCH</span></div><div className="board-divider" />
+        <div className="board-divider" />
         {objects.map((item) => {
           const active = drag?.id === item.object_id
           const highlighted = candidateId === item.object_id || active && candidateId !== null
@@ -124,7 +124,6 @@ function App() {
         })}
         {celebration && <div className="celebration" aria-live="polite"><span className="sparkle">✦</span><strong>Yes!</strong><span className="celebration-pair">{celebration}</span></div>}
       </section>
-      <footer className="game-footer"><span className="footer-spark">✦</span><span>Find a pair that belongs together</span><span className="footer-spark">✦</span></footer>
     </main>
   )
 }
