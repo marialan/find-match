@@ -232,25 +232,37 @@
 }
 .is-solved {
   cursor: default;
-  opacity: 0.72;
 }
 .is-solved .object-glyph {
-  filter: saturate(0.7);
+  background: var(--match-color, #78a878);
+  box-shadow:
+    0 0 0 3px rgba(255, 255, 255, 0.18),
+    0 8px 12px rgba(80, 75, 52, 0.12),
+    inset 0 2px rgba(255, 255, 255, 0.45);
 }
-.solved-check {
+.match-connections {
   position: absolute;
-  right: -4px;
-  top: -8px;
-  display: grid;
-  place-items: center;
-  line-height: 1;
-  width: 25px;
-  height: 25px;
-  border-radius: 50%;
-  background: #e36e49;
-  color: white;
-  font-weight: 800;
-  border: 3px solid #fffaf1;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+  pointer-events: none;
+  z-index: 0;
+}
+.connection-line path {
+  fill: none;
+  stroke-linecap: round;
+  opacity: 0.6;
+}
+.connection-line.is-animating path {
+  stroke-dasharray: 1;
+  stroke-dashoffset: 1;
+  animation: draw-connection 420ms ease-out forwards;
+}
+@keyframes draw-connection {
+  to {
+    stroke-dashoffset: 0;
+  }
 }
 .celebration {
   position: absolute;

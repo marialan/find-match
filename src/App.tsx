@@ -29,6 +29,74 @@ type ReturnState = {
   origin: [number, number];
 };
 
+type Connection = {
+  id: string;
+  leftId: string;
+  rightId: string;
+  animate: boolean;
+  color: string;
+};
+
+const MATCH_PALETTE = [
+  "hsl(0 62% 58%)",
+  "hsl(24 68% 58%)",
+  "hsl(48 70% 58%)",
+  "hsl(122 38% 48%)",
+  "hsl(176 48% 46%)",
+  "hsl(214 54% 56%)",
+  "hsl(282 42% 56%)",
+  "hsl(18 62% 54%)",
+] as const;
+
+function pairStrokeColor(leftId: string, rightId: string): string {
+  const ids = [leftId, rightId].sort();
+  let hash = 0;
+  for (const char of ids.join("-")) {
+    hash = (hash * 31 + char.charCodeAt(0)) >>> 0;
+  }
+  return MATCH_PALETTE[hash % MATCH_PALETTE.length];
+}
+
+function connectionStrokeColor(connection: Connection): string {
+  return connection.color;
+}
+
+function solvedObjectColor(item: BoardObject, connections: Connection[]): string {
+  const partnerId = item.pair_id.find((id) => id !== item.object_id) ?? item.object_id;
+  const matchingConnection = connections.find((connection) => {
+    const ids = [connection.leftId, connection.rightId];
+    return ids.includes(item.object_id) && ids.includes(partnerId);
+  });
+  return matchingConnection?.color ?? pairStrokeColor(item.object_id, partnerId);
+}
+
+// Groups already-solved objects into left/right pairs via pair_id, with no
+// animation flag — used on load so restored progress renders statically.
+function buildConnections(objects: BoardObject[]): Connection[] {
+  const usedRight = new Set<string>();
+  const connections: Connection[] = [];
+  for (const left of objects.filter((item) => item.side === "left" && item.solved)) {
+    const right = objects.find(
+      (item) =>
+        item.side === "right" &&
+        item.solved &&
+        !usedRight.has(item.object_id) &&
+        left.pair_id.includes(item.object_id),
+    );
+    if (right) {
+      usedRight.add(right.object_id);
+      connections.push({
+        id: `${left.object_id}-${right.object_id}`,
+        leftId: left.object_id,
+        rightId: right.object_id,
+        animate: false,
+        color: MATCH_PALETTE[connections.length % MATCH_PALETTE.length],
+      });
+    }
+  }
+  return connections;
+}
+
 function App() {
   const [trial, setTrial] = useState<Trial | null>(null);
   const [objects, setObjects] = useState<BoardObject[]>([]);
@@ -38,6 +106,8 @@ function App() {
   const [celebration, setCelebration] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [scale, setScale] = useState(1);
+  const [connections, setConnections] = useState<Connection[]>([]);
+  const [boardSize, setBoardSize] = useState({ width: BOARD_WIDTH, height: BOARD_HEIGHT });
   const playAreaRef = useRef<HTMLDivElement>(null);
   const boardRef = useRef<HTMLDivElement>(null);
   const userId = new URLSearchParams(window.location.search).get("cr_user_id");
@@ -50,6 +120,9 @@ function App() {
     // tightest even though the board itself may stretch to a different aspect ratio.
     const updateScale = (width: number, height: number) => {
       setScale(Math.min(width / BOARD_WIDTH, height / BOARD_HEIGHT, 1));
+      // The board fills the play area's content box exactly, so its rendered
+      // pixel size tracks the play area's size 1:1 — kept for connection math.
+      setBoardSize({ width, height });
     };
     updateScale(playArea.clientWidth, playArea.clientHeight);
     const observer = new ResizeObserver(([entry]) => {
@@ -66,7 +139,9 @@ function App() {
     loadTrial(TRIAL_PATH)
       .then((loaded) => {
         setTrial(loaded);
-        setObjects(makeBoardObjects(loaded, readSolvedIds(loaded.trial_num)));
+        const loadedObjects = makeBoardObjects(loaded, readSolvedIds(loaded.trial_num));
+        setObjects(loadedObjects);
+        setConnections(buildConnections(loadedObjects));
       })
       .catch((reason: unknown) =>
         setError(
@@ -164,6 +239,18 @@ function App() {
         ),
       );
       writeSolvedIds(trial?.trial_num ?? 0, solvedIds);
+      const leftObject = dragged.side === "left" ? dragged : candidate;
+      const rightObject = dragged.side === "left" ? candidate : dragged;
+      setConnections((current) => [
+        ...current,
+        {
+          id: `${leftObject.object_id}-${rightObject.object_id}`,
+          leftId: leftObject.object_id,
+          rightId: rightObject.object_id,
+          animate: true,
+          color: MATCH_PALETTE[current.length % MATCH_PALETTE.length],
+        },
+      ]);
       playTone("match");
       playTone("target");
       if (solvedIds.size === objects.length) {
@@ -210,6 +297,7 @@ function App() {
     setReturning(null);
     setCandidateId(null);
     setCelebration(null);
+    setConnections([]);
   }
 
   if (error)
@@ -229,6 +317,18 @@ function App() {
     );
 
   const solvedCount = objects.filter((item) => item.solved).length / 2;
+  const halfObjectSize = boardObjectSize(scale) / 2;
+  const connectionStrokeWidth = Math.max(5, 8 * scale);
+
+  // Anchor point a little inside the object's inner edge (not right at the
+  // boundary) so the line visually emerges from underneath the object, which
+  // sits above the connection layer in stacking order.
+  function connectionEdgePoint(item: BoardObject): { x: number; y: number } {
+    const cx = (item.x / BOARD_WIDTH) * boardSize.width;
+    const cy = (item.y / BOARD_HEIGHT) * boardSize.height;
+    const inset = halfObjectSize * 0.6;
+    return { x: cx + (item.side === "left" ? inset : -inset), y: cy };
+  }
 
   return (
     <main className="game-shell">
@@ -260,12 +360,59 @@ function App() {
           }}
         >
           <div className="board-divider" />
+          <svg
+            className="match-connections"
+            viewBox={`0 0 ${boardSize.width} ${boardSize.height}`}
+            preserveAspectRatio="none"
+            aria-hidden="true"
+          >
+            {connections.map((connection) => {
+              const left = objects.find((item) => item.object_id === connection.leftId);
+              const right = objects.find((item) => item.object_id === connection.rightId);
+              if (!left || !right) return null;
+              const p1 = connectionEdgePoint(left);
+              const p2 = connectionEdgePoint(right);
+              const curve = Math.max(24, (p2.x - p1.x) * 0.3);
+              // Bow the first control point up and the second down, so the
+              // path reads as a soft S-curve even when the two items are level.
+              const bend = Math.min(90, Math.max(50, 65 * scale));
+              const d = `M ${p1.x} ${p1.y} C ${p1.x + curve} ${p1.y - bend}, ${p2.x - curve} ${p2.y + bend}, ${p2.x} ${p2.y}`;
+              const strokeColor = connectionStrokeColor(connection);
+              return (
+                <g
+                  key={connection.id}
+                  className={`connection-line ${connection.animate ? "is-animating" : ""}`}
+                  onAnimationEnd={
+                    connection.animate
+                      ? () =>
+                          setConnections((current) =>
+                            current.map((item) =>
+                              item.id === connection.id ? { ...item, animate: false } : item,
+                            ),
+                          )
+                      : undefined
+                  }
+                >
+                  <path
+                    d={d}
+                    pathLength={1}
+                    strokeWidth={connectionStrokeWidth}
+                    stroke={strokeColor}
+                    strokeLinecap="round"
+                  />
+                </g>
+              );
+            })}
+          </svg>
           {objects.map((item) => {
             const active = drag?.id === item.object_id;
             const isReturning = returning?.id === item.object_id;
             const highlighted =
               candidateId === item.object_id ||
               (active && candidateId !== null);
+            const solvedStyle = item.solved
+              ? ({ ["--match-color" as any]: solvedObjectColor(item, connections) } as React.CSSProperties)
+              : undefined;
             return (
               <button
                 key={item.object_id}
@@ -273,6 +420,7 @@ function App() {
                 style={{
                   left: `${(item.x / BOARD_WIDTH) * 100}%`,
                   top: `${(item.y / BOARD_HEIGHT) * 100}%`,
+                  ...solvedStyle,
                 }}
                 onPointerDown={(event) => startDrag(event, item)}
                 onAnimationEnd={isReturning ? finishReturn : undefined}
@@ -284,7 +432,6 @@ function App() {
               >
                 <span className="object-shadow" />
                 <span className="object-glyph">{item.target}</span>
-                {item.solved && <span className="solved-check">✓</span>}
               </button>
             );
           })}
