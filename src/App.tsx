@@ -77,12 +77,6 @@ function App() {
       );
   }, []);
 
-  useEffect(() => {
-    if (!celebration) return undefined;
-    const timer = window.setTimeout(() => setCelebration(null), 1000);
-    return () => window.clearTimeout(timer);
-  }, [celebration]);
-
   function pointFromEvent(
     event: React.PointerEvent,
   ): { x: number; y: number } | null {
@@ -170,10 +164,10 @@ function App() {
         ),
       );
       writeSolvedIds(trial?.trial_num ?? 0, solvedIds);
-      setCelebration(`${dragged.target} + ${candidate.target}`);
       playTone("match");
       playTone("target");
       if (solvedIds.size === objects.length) {
+        setCelebration("Trial complete!");
         emitContainerEvent(userId, "trial_completed", {
           type: "trial_completed",
           trial_num: trial?.trial_num,
@@ -185,6 +179,8 @@ function App() {
           operation: "add",
           trials_completed: 1,
         });
+      } else {
+        setCelebration(null);
       }
     } else {
       playTone("miss");
@@ -252,6 +248,7 @@ function App() {
         <div
           className="board"
           ref={boardRef}
+          onPointerDown={celebration ? () => setCelebration(null) : undefined}
           onPointerMove={moveDrag}
           onPointerUp={endDrag}
           style={{
@@ -292,10 +289,8 @@ function App() {
             );
           })}
           {celebration && (
-            <div className="celebration" aria-live="polite">
-              <span className="sparkle">✦</span>
-              <strong>Yes!</strong>
-              <span className="celebration-pair">{celebration}</span>
+            <div className="celebration" aria-live="polite" aria-label="Trial complete">
+              <span className="sparkle" aria-hidden="true">🎉</span>
             </div>
           )}
         </div>
