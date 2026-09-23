@@ -2,6 +2,8 @@
   min-height: 100vh;
 }
 .game-shell {
+  display: flex;
+  flex-direction: column;
   min-height: 100vh;
   padding: 24px clamp(16px, 4vw, 68px) 20px;
   background:
@@ -49,8 +51,30 @@
   background: #78a878;
   margin-right: 8px;
 }
+.reset-button {
+  width: 42px;
+  height: 42px;
+  display: grid;
+  place-items: center;
+  border: 1px solid #d3dcd2;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.55);
+  color: #687b73;
+  font-size: 24px;
+  line-height: 1;
+  cursor: pointer;
+}
+.reset-button:hover {
+  color: #e36e49;
+  border-color: #e3b6a7;
+}
+.reset-button:focus-visible {
+  outline: 3px solid #e36e49;
+  outline-offset: 3px;
+}
 .play-area {
   position: relative;
+  width: 100%;
   max-width: 1120px;
   height: min(72vh, 650px);
   min-height: 470px;
@@ -229,6 +253,7 @@
 .game-footer {
   justify-content: center;
   gap: 12px;
+  min-height: 24px;
   color: #91a09a;
   font-size: 12px;
   letter-spacing: 0.05em;
@@ -286,14 +311,18 @@
 }
 @media (max-width: 700px) {
   .game-shell {
+    height: 100dvh;
+    min-height: 100dvh;
+    overflow: hidden;
     padding: 12px;
   }
   .game-header {
     height: 58px;
   }
   .play-area {
-    min-height: 520px;
-    height: calc(100vh - 140px);
+    flex: 1 1 auto;
+    height: auto;
+    min-height: 0;
     border-radius: 22px;
   }
   .match-object {

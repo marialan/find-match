@@ -3,8 +3,8 @@
 |                  |                                                     |
 | ---------------- | --------------------------------------------------- |
 | **Title**        | Find The Two That Match — Product Requirements Document |
-| **Status**       | Draft                                               |
-| **Version**      | 0.1.0                                               |
+| **Status**       | Active — approved behavior                          |
+| **Version**      | 0.2.0                                               |
 | **Last updated** | 2026-09-23                                          |
 | **Owner/Author** | Maria Lande (with GitHub Copilot)                   |
 
@@ -80,9 +80,9 @@ container's `cr_event` bridge.
   a full offline play session.
 - 100% of authored object pairs in a trial are matchable by the equivalence
   rule described in the JSON `pair_id` field — no orphaned objects.
-- One well-formed `cr_event` (`user_sessions_data`) is emitted per completed
-  trial, and lifetime aggregates are reflected in one `summary_data` document
-  per learner.
+- Exactly one well-formed `cr_event` (`user_sessions_data`) and exactly one
+  `summary_data` update are emitted per completed trial, with no additional
+  emissions per pair or reload.
 - A child can complete the MVP letter-matching interaction without needing an
   adult to explain the controls (informal usability signal — not
   automatically measurable, verified via manual test per TESTSPEC).
@@ -152,6 +152,10 @@ assumes the previous tier's requirements are met.
   `postMessage` bridge, never via direct network analytics.
 - The product must read `cr_lang` and `cr_user_id` from its launch URL query
   string.
+- `cr_lang` selects the language pack; absent or unsupported values fall back
+  to English.
+- The loading state is textless and the responsive game shell remains within
+  the mobile visual viewport without page-level scrolling.
 - The product must be packaged as an **engine ZIP** plus **one language ZIP
   per language** (no shared core/book unit is implied by the source brief),
   per the Layout A model in `docs/third-party-game-spec.md` §5.1.
@@ -160,4 +164,5 @@ assumes the previous tier's requirements are met.
 
 ## Changelog
 
+2026-09-23 — Maria Lande (with GitHub Copilot) — Approved language fallback, tier support, degraded asset handling, event counts, textless loading, and mobile viewport containment.
 2026-09-23 — Maria Lande (with GitHub Copilot) — Initial draft, derived solely from Find-The-Two-That-Match-Spec-Brief.md and third-party-game-spec.md.

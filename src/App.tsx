@@ -166,6 +166,15 @@ function App() {
     setCandidateId(null);
   }
 
+  function resetTrial(): void {
+    if (!trial) return;
+    writeSolvedIds(trial.trial_num, new Set());
+    setObjects(makeBoardObjects(trial, new Set()));
+    setDrag(null);
+    setCandidateId(null);
+    setCelebration(null);
+  }
+
   if (error)
     return (
       <main className="status-screen">
@@ -238,6 +247,19 @@ function App() {
           </div>
         )}
       </section>
+      <footer className="game-footer">
+        <span className="footer-spark">✦</span>
+        <button
+          className="reset-button"
+          type="button"
+          onClick={resetTrial}
+          aria-label="Reset trial"
+          title="Reset trial"
+        >
+          ↻
+        </button>
+        <span className="footer-spark">✦</span>
+      </footer>
     </main>
   );
 }

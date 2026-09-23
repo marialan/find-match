@@ -3,8 +3,8 @@
 |                  |                                                         |
 | ---------------- | ------------------------------------------------------- |
 | **Title**        | Find The Two That Match — Development Specification     |
-| **Status**       | Draft                                                   |
-| **Version**      | 0.1.0                                                   |
+| **Status**       | Active — approved behavior                              |
+| **Version**      | 0.2.0                                                   |
 | **Last updated** | 2026-09-23                                              |
 | **Owner/Author** | Maria Lande (with GitHub Copilot)                       |
 
@@ -95,7 +95,8 @@ trial data.
   trial that has an object whose `pair_id` references a non-existent
   `object_id`, or where an object has no `pair_id` entries at all.
 - Resolve every `image`/`audio` path to its full relative location under the
-  current `cr_lang`'s asset root.
+  selected language asset root. The language is read from `cr_lang`; absent or
+  unsupported values select the English pack.
 
 **Exit criterion:** Given a well-formed trial file, every object in `left` and
 `right` has a resolved, loadable image (if present) and audio path, and every
@@ -215,19 +216,22 @@ solved pair as solved and leaves unsolved pairs interactive.
 **Goal:** Comply with the Curious Reader runtime and reporting contract.
 
 **Tasks:**
-- Parse `cr_lang` and `cr_user_id` from `window.location.search` at boot.
+- Parse `cr_lang` and `cr_user_id` from `window.location.search` at boot;
+  select the requested language pack and fall back to English when `cr_lang` is
+  absent or unsupported.
 - Detect `file://` origin at boot and use the XHR-based `loadBinary()` pattern
   (per `docs/third-party-game-spec.md` §2.3) for every local binary asset
   (trial JSON, audio, fonts if any); never call `window.fetch()` or the Cache
   Storage API on a `file://` code path.
 - Preload trial assets with `Promise.allSettled`, never `Promise.all`; missing
   audio must fall back to a silent buffer rather than crash playback.
-- Emit a `cr_event` (`user_sessions_data`, `data.type: "trial_completed"`,
-  including `lang` and the trial's identifying data) when every pair in a
-  trial is solved, via `window.ReactNativeWebView.postMessage`, guarded so it
-  silently no-ops outside the container.
-- Emit/update a `summary_data` envelope for lifetime aggregates (e.g.
-  `trials_completed`) using `"add"` semantics, per
+- Emit exactly one `cr_event` (`user_sessions_data`,
+  `data.type: "trial_completed"`, including `lang` and the trial's identifying
+  data) when every pair in a trial is solved, via
+  `window.ReactNativeWebView.postMessage`, guarded so it silently no-ops
+  outside the container. Do not emit again for individual pairs or reloads.
+- Emit exactly one `summary_data` update for the completed trial's lifetime
+  aggregates (such as `trials_completed`) using `"add"` semantics, per
   `docs/third-party-game-spec.md` §6.3.
 - Never perform any network I/O anywhere in the codebase.
 
@@ -371,7 +375,17 @@ Functional tree (by purpose) mapped to an artifact-lifecycle classification:
 
 ## 14. Resolved Decisions
 
-_None yet — this is the initial draft._
+- `cr_lang` selects the language pack; absent or unsupported values fall back
+  to English.
+- Better supports image-omitted audio-only objects and tap-to-hear. Great
+  supports words, pictures, and rhymes through the existing `pair_id` schema.
+- Missing/corrupt audio uses silent/no-op playback; missing/corrupt images use
+  a neutral placeholder; `Promise.allSettled` allows loading to continue.
+- Each completed trial emits exactly one `trial_completed` event and one
+  `summary_data` update.
+- Loading is a textless visual state.
+- The mobile game shell is contained in the visual viewport with no page-level
+  scroll, and object bounds remain inside the board.
 
 ## 15. Out of Scope
 
@@ -383,6 +397,7 @@ _None yet — this is the initial draft._
 
 ## 16. Changelog
 
+2026-09-23 — Maria Lande (with GitHub Copilot) — Resolved approved language, tier, asset-fallback, event-count, loading-state, and mobile-containment behavior.
 2026-09-23 — Maria Lande (with GitHub Copilot) — Initial draft, derived solely from Find-The-Two-That-Match-Spec-Brief.md and third-party-game-spec.md.
 
 ## 17. Lessons Log

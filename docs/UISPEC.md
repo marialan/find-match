@@ -3,8 +3,8 @@
 |                  |                                                   |
 | ---------------- | ------------------------------------------------- |
 | **Title**        | Find The Two That Match — UI Specification         |
-| **Status**       | Draft                                             |
-| **Version**      | 0.1.0                                             |
+| **Status**       | Active — approved behavior                        |
+| **Version**      | 0.2.0                                             |
 | **Last updated** | 2026-09-23                                        |
 | **Owner/Author** | Maria Lande (with GitHub Copilot)                 |
 
@@ -34,10 +34,18 @@
   - **Audio-only object** (Better tier) — has no `image`; renders a distinct,
     non-text visual affordance indicating it is tappable/audible (exact
     treatment: Open Question UI-OQ-1).
+- If an image is missing or corrupt, the object renders a neutral placeholder
+  that remains available for dragging, highlighting, matching, and tap-to-hear.
 - The board's usable area never allows an object's rest or dragged position to
   extend past its visible bounds (DEVSPEC Module 3).
 
-### 1.3 Celebration Overlay
+### 1.3 Mobile viewport containment
+- On mobile viewports, the game shell fits within the visual viewport with no
+  page-level horizontal or vertical scrolling.
+- The board resizes responsively while preserving both regions and keeps every
+  object's rendered bounds inside the board.
+
+### 1.4 Celebration Overlay
 - Appears over the Match Board Screen when a pair is confirmed equivalent
   (DEVSPEC Module 5).
 - Non-blocking to the rest of the board: other unsolved pairs remain visible
@@ -127,6 +135,12 @@ Feature: Matching two equivalent objects
     When the game is launched with a valid cr_lang
     Then the Loading Screen is no longer shown within 10 seconds
     And the Match Board Screen is shown with a fully rendered trial
+
+  Scenario: Mobile layout remains contained
+    Given the game is opened on a supported mobile viewport
+    When the Match Board Screen is shown
+    Then the document has no horizontal or vertical page scroll
+    And every object remains within the visible board bounds
 ```
 
 ## 6. Open questions (UI-specific)
@@ -140,4 +154,5 @@ Feature: Matching two equivalent objects
 
 ## Changelog
 
+2026-09-23 — Maria Lande (with GitHub Copilot) — Approved textless loading, missing-image placeholders, and mobile viewport containment.
 2026-09-23 — Maria Lande (with GitHub Copilot) — Initial draft, derived solely from Find-The-Two-That-Match-Spec-Brief.md and third-party-game-spec.md.

@@ -3,8 +3,8 @@
 |                  |                                                     |
 | ---------------- | --------------------------------------------------- |
 | **Title**        | Find The Two That Match — Test Specification         |
-| **Status**       | Draft                                               |
-| **Version**      | 0.1.0                                               |
+| **Status**       | Active — approved behavior                          |
+| **Version**      | 0.2.0                                               |
 | **Last updated** | 2026-09-23                                          |
 | **Owner/Author** | Maria Lande (with GitHub Copilot)                   |
 
@@ -86,18 +86,23 @@
 
 ### Module 9 — Container Integration
 - TC-9.1: Launching with `?cr_lang=english&cr_user_id=abc123` results in the
-  game reading both values from `window.location.search`.
+  game reading both values from `window.location.search`; an absent or
+  unsupported `cr_lang` selects English.
 - TC-9.2: With `window.ReactNativeWebView.postMessage` mocked, completing a
-  trial results in exactly one `cr_event` `postMessage` call whose JSON parses
-  to a valid envelope (`payload_id`, `cr_user_id`, `sub_app_id`,
+  trial results in exactly one `cr_event` `postMessage` call and exactly one
+  `summary_data` update, with neither repeated per pair or reload. The event
+  JSON parses to a valid envelope (`payload_id`, `cr_user_id`, `sub_app_id`,
   `payload_version`, `collection`, `timestamp`, `data`) per
   `docs/third-party-game-spec.md` §6.2.
 - TC-9.3: With `window.ReactNativeWebView` undefined (plain browser), no
   `postMessage`-related error is thrown and no attempt is made to call it.
 - TC-9.4: Loading `trial-missing-asset.json` completes the loading screen
-  (does not hang) and the trial still renders every asset that did resolve.
+  (does not hang), uses silent/no-op audio and a neutral image placeholder,
+  and the trial still renders every asset that did resolve.
 - TC-9.5: A full run using `Promise.allSettled` semantics — one deliberately
   broken asset must not prevent the other assets from loading.
+- TC-9.6: The loading state exposes no text and is replaced by the board within
+  10 seconds offline.
 
 ### Module 10 — Packaging
 - TC-10.1: The built engine ZIP contains `index.html` at its root and no
@@ -127,6 +132,8 @@ input:
   reload, assert Solved/Idle states per object.
 - UI-TC-7: "Loading screen clears offline within budget" — dry-run protocol,
   §4 below.
+- UI-TC-8: "Mobile layout remains contained" — run at the supported mobile
+  viewport sizes and assert no page scroll and no object overflow.
 
 ## 4. Dry-run protocol (offline verification)
 
@@ -145,6 +152,8 @@ before any release candidate is approved:
    any, are acceptable per `docs/third-party-game-spec.md` §7b).
 8. Confirm progress persists in `localStorage` across a manual reload
    (TC-8.2).
+9. Repeat the board check at supported mobile viewport sizes and confirm no
+  page-level scroll or object overflow (UI-TC-8).
 
 ## 5. Build-and-test sequence
 
@@ -172,4 +181,5 @@ above, every relevant UISPEC Gherkin scenario passes, and the dry-run protocol
 
 ## Changelog
 
+2026-09-23 — Maria Lande (with GitHub Copilot) — Added verification for approved language fallback, tier asset degradation, exact event counts, textless loading, and mobile containment.
 2026-09-23 — Maria Lande (with GitHub Copilot) — Initial draft, derived solely from Find-The-Two-That-Match-Spec-Brief.md and third-party-game-spec.md.

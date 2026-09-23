@@ -7,7 +7,7 @@
     "dev": "vite",
     "typecheck": "tsc -b",
     "build": "tsc -b && vite build",
-    "test": "node scripts/test-engine.mjs",
+    "test": "node scripts/test-engine.mjs && node scripts/test-layout.mjs",
     "package": "npm run build && node scripts/package.mjs",
     "lint": "eslint .",
     "preview": "vite preview"
