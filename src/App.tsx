@@ -24,10 +24,16 @@ type DragState = {
   origin: [number, number];
 };
 
+type ReturnState = {
+  id: string;
+  origin: [number, number];
+};
+
 function App() {
   const [trial, setTrial] = useState<Trial | null>(null);
   const [objects, setObjects] = useState<BoardObject[]>([]);
   const [drag, setDrag] = useState<DragState | null>(null);
+  const [returning, setReturning] = useState<ReturnState | null>(null);
   const [candidateId, setCandidateId] = useState<string | null>(null);
   const [celebration, setCelebration] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -87,7 +93,7 @@ function App() {
   }
 
   function startDrag(event: React.PointerEvent, item: BoardObject): void {
-    if (item.solved || drag) return;
+    if (item.solved || drag || returning) return;
     const point = pointFromEvent(event);
     if (!point) return;
     event.currentTarget.setPointerCapture(event.pointerId);
@@ -182,16 +188,22 @@ function App() {
       }
     } else {
       playTone("miss");
-      setObjects((current) =>
-        current.map((item) =>
-          item.object_id === drag.id
-            ? { ...item, x: drag.origin[0], y: drag.origin[1] }
-            : item,
-        ),
-      );
+      setReturning({ id: drag.id, origin: drag.origin });
     }
     setDrag(null);
     setCandidateId(null);
+  }
+
+  function finishReturn(): void {
+    if (!returning) return;
+    setObjects((current) =>
+      current.map((item) =>
+        item.object_id === returning.id
+          ? { ...item, x: returning.origin[0], y: returning.origin[1] }
+          : item,
+      ),
+    );
+    setReturning(null);
   }
 
   function resetTrial(): void {
@@ -199,6 +211,7 @@ function App() {
     writeSolvedIds(trial.trial_num, new Set());
     setObjects(makeBoardObjects(trial, new Set()));
     setDrag(null);
+    setReturning(null);
     setCandidateId(null);
     setCelebration(null);
   }
@@ -252,20 +265,22 @@ function App() {
           <div className="board-divider" />
           {objects.map((item) => {
             const active = drag?.id === item.object_id;
+            const isReturning = returning?.id === item.object_id;
             const highlighted =
               candidateId === item.object_id ||
               (active && candidateId !== null);
             return (
               <button
                 key={item.object_id}
-                className={`match-object ${item.side} ${active ? "is-dragging" : ""} ${highlighted ? "is-highlighted" : ""} ${item.solved ? "is-solved" : ""}`}
+                className={`match-object ${item.side} ${active ? "is-dragging" : ""} ${isReturning ? "is-returning" : ""} ${highlighted ? "is-highlighted" : ""} ${item.solved ? "is-solved" : ""}`}
                 style={{
                   left: `${(item.x / BOARD_WIDTH) * 100}%`,
                   top: `${(item.y / BOARD_HEIGHT) * 100}%`,
                 }}
                 onPointerDown={(event) => startDrag(event, item)}
+                onAnimationEnd={isReturning ? finishReturn : undefined}
                 onClick={() => {
-                  if (!drag && !item.solved) playTone("target");
+                  if (!drag && !returning && !item.solved) playTone("target");
                 }}
                 aria-label={item.target}
                 disabled={item.solved}
