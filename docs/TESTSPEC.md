@@ -4,7 +4,7 @@
 | ---------------- | --------------------------------------------------- |
 | **Title**        | Find The Two That Match — Test Specification         |
 | **Status**       | Active — approved behavior                          |
-| **Version**      | 0.5.0                                               |
+| **Version**      | 0.6.2                                               |
 | **Last updated** | 2026-09-28                                          |
 | **Owner/Author** | Maria Lande (with GitHub Copilot)                   |
 
@@ -46,6 +46,10 @@
   rendered width:height ratio matches its authored 1120:650 design ratio, and
   no two objects' (including combined tiles') rendered bounding boxes overlap
   each other or the region divider.
+- TC-2.3: Image-trial cards render larger than the text-only baseline; text
+  card width grows with target length, a 12-character target remains fully
+  visible, and its combined tile stays within the board and its region at
+  desktop, narrow-portrait, and short-landscape viewports.
 
 ### Module 3 — Drag Interaction Engine
 - TC-3.1: Dragging an object beyond the board's edge clamps its rendered
@@ -68,6 +72,11 @@
 - TC-5.1: A match produces exactly one combined tile (the pair's two separate
   objects are no longer rendered), one match-celebration start, and one
   pronunciation play for the partner's audio.
+- TC-5.6: In a combined word/image tile, the image is clipped to the rounded
+  outer corners of its segment and remains above the play-area decorations.
+- TC-5.7: Standalone image cards and image segments in combined cards have no
+  colored surface behind the image, while the paired text segment retains its
+  side color.
 - TC-5.3: Solving the last pair triggers the trial-complete celebration,
   which is distinguishable from the match celebration.
 - TC-5.4: Pointer down/move on a combined tile does not start a drag or change
@@ -217,6 +226,9 @@ above, every relevant UISPEC Gherkin scenario passes, and the dry-run protocol
 
 ## Changelog
 
+2026-09-28 — Maria Lande (with GitHub Copilot) — Added coverage for transparent image surfaces in standalone and combined cards.
+2026-09-28 — Maria Lande (with GitHub Copilot) — Added regression coverage for clipped combined-image corners and board/decorative stacking.
+2026-09-28 — Maria Lande (with GitHub Copilot) — Added coverage for larger image cards, long target text, and bounded combined-tile layout across viewport sizes.
 2026-09-28 — Maria Lande (with GitHub Copilot) — Mapped the audio-only fixture to trial-2 and added verification for object `type` validation, `trial` parameter selection, and audio-only rendering and combined tiles (TC-1.4, TC-1.5, TC-6.1, TC-6.8, UI-TC-5).
 2026-09-28 — Maria Lande (with GitHub Copilot) — Added verification for combined tiles, distinct match and trial-complete celebrations, non-draggable solved tiles, reduced motion, combined-tile reload, and the audio file → offline voice → tone fallback (TC-5.3–5.5, TC-6.4–6.7, UI-TC-9–12).
 2026-09-23 — Maria Lande (with GitHub Copilot) — Added TC-2.2 and extended UI-TC-8/Dry-Run Protocol §4 to verify aspect-ratio-preserving board scaling and absence of object/divider overlap at narrow viewport widths, including short-height landscape sizes.

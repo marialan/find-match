@@ -4,7 +4,7 @@
 | ---------------- | ------------------------------------------------------- |
 | **Title**        | Find The Two That Match — Development Specification     |
 | **Status**       | Active — approved behavior                              |
-| **Version**      | 0.6.0                                                   |
+| **Version**      | 0.7.0                                                   |
 | **Last updated** | 2026-09-28                                              |
 | **Owner/Author** | Maria Lande (with GitHub Copilot)                       |
 
@@ -121,17 +121,18 @@ trial data.
   track the stretched board exactly.
 - Derive a single object scale factor from the more constrained of the board's
   current width or height ratios (relative to the 1120×650 design space), and
-  apply that one factor uniformly to every object's width and height so every
-  object stays visually square and never stretches, even though the board
-  itself may stretch. Clamp the resulting object size to an accessible
-  minimum and a sensible maximum so authored spacing between objects is
-  preserved and no two objects visually overlap each other or the region
-  divider at any supported board size or aspect ratio.
+  apply that factor to a consistent card height. Trials containing images use
+  a larger card-size ceiling than text-only trials. Text cards widen with the
+  rendered target length, up to the available region width; labels may wrap
+  within that width. Image cards remain square. Clamp card dimensions to an
+  accessible minimum and a sensible maximum so authored spacing is preserved
+  and no objects, combined tiles, or cards overlap the region divider at any
+  supported board size or aspect ratio.
 
 **Exit criterion:** For every object in a loaded trial, its rendered position
 matches its authored `pos` within the tolerance used for hit-testing (Module
-3), and no two objects' rendered bounds overlap at any supported viewport
-size.
+3); target text is fully visible; and no two objects' rendered bounds overlap
+at any supported viewport size.
 
 ### Module 3 — Drag Interaction Engine
 **Goal:** Let the learner pick up, move, and release any object without
@@ -447,6 +448,7 @@ Functional tree (by purpose) mapped to an artifact-lifecycle classification:
 
 ## 16. Changelog
 
+2026-09-28 — Maria Lande (with GitHub Copilot) — Defined larger image-trial cards and target-length-aware text widths with wrapping and collision constraints.
 2026-09-28 — Maria Lande (with GitHub Copilot) — Added the optional `type` (`letter`/`audio`) object field to mark audio-only objects, made `image` optional for all objects, added `trial` query-parameter trial selection with default 1, and added OQ-7 for a future trial selector screen.
 2026-09-28 — Maria Lande (with GitHub Copilot) — Added combined-tile matching with per-match and distinct trial-complete celebrations, non-draggable tap-to-hear solved tiles, reduced-motion support, combined-tile restore on reload, and an authored-audio → offline on-device voice → tone pronunciation fallback in the learning language.
 2026-09-23 — Maria Lande (with GitHub Copilot) — Replaced aspect-ratio-preserving (letterboxed) board scaling with independent width/height fill of the play area, and clarified that object size derives from a single scale factor (based on the more constrained axis) so objects remain square without forcing the board's own aspect ratio.
