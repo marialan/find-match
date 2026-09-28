@@ -4,7 +4,7 @@
 | ---------------- | ------------------------------------------------- |
 | **Title**        | Find The Two That Match — UI Specification         |
 | **Status**       | Active — approved behavior                        |
-| **Version**      | 0.5.0                                             |
+| **Version**      | 0.6.0                                             |
 | **Last updated** | 2026-09-28                                        |
 | **Owner/Author** | Maria Lande (with GitHub Copilot)                 |
 
@@ -30,10 +30,11 @@
   authored `pos`; every object from `right` renders in the right region at its
   authored `pos` (DEVSPEC Module 2).
 - Objects render as one of:
+  - **Letter object** — `type` absent or `"letter"`; renders its `target`.
   - **Image object** — has an `image`; renders that image.
-  - **Audio-only object** (Better tier) — has no `image`; renders a distinct,
-    non-text visual affordance indicating it is tappable/audible (exact
-    treatment: Open Question UI-OQ-1).
+  - **Audio-only object** (Better tier) — `type: "audio"`; renders a speaker
+    emoji (🔊) as an interim icon and never shows its `target`. Its accessible
+    name is "Play sound" so it does not reveal the answer.
 - If an image is missing or corrupt, the object renders a neutral placeholder
   that remains available for dragging, highlighting, matching, and tap-to-hear.
 - The board's usable area never allows an object's rest or dragged position to
@@ -75,7 +76,7 @@ Two distinct celebrations exist (DEVSPEC Module 5):
 | **Idle** | Object at rest, not being dragged, not highlighted | Rendered at its authored `pos` |
 | **Dragging** | Learner has an active pointer/touch drag on the object | Object follows pointer; constrained within board bounds |
 | **Highlighted** | A dragged object is within tolerance of a candidate partner (or vice versa) | Both the dragged object and the candidate show a highlight treatment (exact visual: Open Question UI-OQ-3) |
-| **Solved** | The pair has been confirmed equivalent | The two objects are shown as one combined tile at the partner's position, displaying both matched targets; fixed in place, not draggable, tappable to hear |
+| **Solved** | The pair has been confirmed equivalent | The two objects are shown as one combined tile at the partner's position, displaying both matched objects (an audio-only part shows 🔊, a letter part shows its `target`); fixed in place, not draggable, tappable to hear |
 | **Returning** | A mismatched drag has ended and the object is animating back | Object animates from drop point to its exact pre-drag `pos` |
 
 ## 3. Status-dependent visibility rules
@@ -166,6 +167,12 @@ Feature: Matching two equivalent objects
     Then the object's pronunciation audio plays exactly once
     And the object's state does not change
 
+  Scenario: Matching an audio-only object to its letter (Better tier)
+    Given a trial has an audio-only object A whose pair_id includes letter object B
+    Then object A shows the speaker icon and not its target
+    When the learner drags object A within tolerance of object B and releases
+    Then object A and object B combine into one Solved tile showing the speaker icon and B's letter
+
   Scenario: Reloading mid-trial preserves solved pairs
     Given a trial has at least one Solved pair and at least one Idle pair
     When the game reloads
@@ -190,11 +197,12 @@ Feature: Matching two equivalent objects
 
 | ID | Question |
 |---|---|
-| UI-OQ-1 | Exact visual affordance for an audio-only object (icon, waveform glyph, speaker icon, etc.)? |
+| UI-OQ-1 | Final audio-only icon artwork to replace the interim 🔊 emoji? |
 | UI-OQ-3 | Exact highlight treatment (color, glow, scale) for Highlighted state? |
 
 ## Changelog
 
+2026-09-28 — Maria Lande (with GitHub Copilot) — Added letter objects and the interim 🔊 audio-only treatment with a non-revealing accessible name, defined the 🔊 + letter combined tile, added the audio-to-letter matching scenario, and narrowed UI-OQ-1 to final icon artwork.
 2026-09-28 — Maria Lande (with GitHub Copilot) — Defined the Solved state as a fixed, tappable combined tile, split celebrations into a per-match and a distinct trial-complete celebration, added matching Gherkin scenarios including the generated-voice fallback, and resolved UI-OQ-2 and UI-OQ-4.
 2026-09-23 — Maria Lande (with GitHub Copilot) — Replaced aspect-ratio-preserving (letterboxed/pillarboxed) board scaling with independent width/height fill of the play area, and clarified that objects derive a single square scale factor from the more constrained axis rather than stretching with the board.
 2026-09-23 — Maria Lande (with GitHub Copilot) — Clarified that the board scales as a single aspect-ratio-preserving unit with proportionally sized (min-clamped) objects to prevent overlap on narrow viewports, and that mobile viewport containment applies to short-height landscape orientations too, not only narrow-width portrait viewports.

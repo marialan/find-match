@@ -4,7 +4,7 @@
 | ---------------- | --------------------------------------------------- |
 | **Title**        | Find The Two That Match — Test Specification         |
 | **Status**       | Active — approved behavior                          |
-| **Version**      | 0.4.0                                               |
+| **Version**      | 0.5.0                                               |
 | **Last updated** | 2026-09-28                                          |
 | **Owner/Author** | Maria Lande (with GitHub Copilot)                   |
 
@@ -20,7 +20,7 @@
 |---|---|
 | `trial-letters-basic.json` | 2 objects per side, lowercase/uppercase letter pairs only (MVP) — covers Module 1–5 |
 | `trial-letters-orphan.json` | Contains one object whose `pair_id` references a non-existent `object_id` — negative test for Module 1 validation |
-| `trial-audio-only.json` | Includes at least one object with no `image` field (Better tier) — covers Module 6 |
+| `trial-audio-only.json` | Includes at least one `type: "audio"` object (Better tier) — covers Module 6. Shipped as `lang/english/trials/trial-2.json` (audio a/m/s left, lowercase letters right) |
 | `trial-mixed-great.json` | Includes word, picture, and rhyme objects (Great tier) — covers Module 7 |
 | `trial-missing-asset.json` | References an audio/image path that does not exist on disk — covers DEVSPEC §5 error handling |
 | Sample audio/image files under `lang/english/audios/` and `lang/english/images/` matching the fixtures above | Referenced by the fixtures |
@@ -34,6 +34,10 @@
   and does not crash the loader.
 - TC-1.3: Loader never calls `window.fetch()` when `window.location.protocol
   === 'file:'` (assert via spy/mock).
+- TC-1.4: An object with no `type` loads as `"letter"`; an object with an
+  unknown `type` makes the trial invalid.
+- TC-1.5: `?trial=2` selects `trial-2.json`; an absent or invalid `trial`
+  value selects trial 1.
 
 ### Module 2 — Match Board Renderer
 - TC-2.1: Every object in a loaded trial renders at its authored `pos`
@@ -75,8 +79,10 @@
   pre-drag position exactly.
 
 ### Module 6 — Tap-to-Hear & Audio-Only Objects (Better tier)
-- TC-6.1: An object with no `image` field renders without error and responds
-  to drag/highlight/match identically to an image object.
+- TC-6.1: An object with `type: "audio"` renders without error, shows 🔊 and
+  not its `target`, and responds to drag/highlight/match identically to a
+  letter object.
+- TC-6.8: A combined tile for an audio ↔ letter pair shows 🔊 and the letter.
 - TC-6.2: A tap (down+up with no intervening move) on any object plays that
   object's `audio` exactly once and produces no state change.
 - TC-6.3: A letter object matched against its corresponding letter-audio
@@ -146,7 +152,8 @@ input:
 - UI-TC-4: "Dragging never leaves the board" — drag pointer coordinates
   beyond the board's rendered bounding box; assert clamped rendering.
 - UI-TC-5: "Tap-to-hear on an audio-only object" — fixture
-  `trial-audio-only.json`; simulate tap (no movement between down/up).
+  `trial-audio-only.json`; simulate tap (no movement between down/up). Also
+  covers "Matching an audio-only object to its letter" via `?trial=2`.
 - UI-TC-6: "Reloading mid-trial preserves solved pairs" — solve one pair,
   reload, assert Solved/Idle states per object.
 - UI-TC-7: "Loading screen clears offline within budget" — dry-run protocol,
@@ -210,6 +217,7 @@ above, every relevant UISPEC Gherkin scenario passes, and the dry-run protocol
 
 ## Changelog
 
+2026-09-28 — Maria Lande (with GitHub Copilot) — Mapped the audio-only fixture to trial-2 and added verification for object `type` validation, `trial` parameter selection, and audio-only rendering and combined tiles (TC-1.4, TC-1.5, TC-6.1, TC-6.8, UI-TC-5).
 2026-09-28 — Maria Lande (with GitHub Copilot) — Added verification for combined tiles, distinct match and trial-complete celebrations, non-draggable solved tiles, reduced motion, combined-tile reload, and the audio file → offline voice → tone fallback (TC-5.3–5.5, TC-6.4–6.7, UI-TC-9–12).
 2026-09-23 — Maria Lande (with GitHub Copilot) — Added TC-2.2 and extended UI-TC-8/Dry-Run Protocol §4 to verify aspect-ratio-preserving board scaling and absence of object/divider overlap at narrow viewport widths, including short-height landscape sizes.
 2026-09-23 — Maria Lande (with GitHub Copilot) — Added verification for approved language fallback, tier asset degradation, exact event counts, textless loading, and mobile containment.

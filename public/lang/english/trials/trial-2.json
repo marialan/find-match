@@ -1,0 +1,13 @@
+{
+  "trial_num": 2,
+  "left": [
+    { "object_id": "left-a-audio", "pos": [190, 190], "target": "a", "type": "audio", "pair_id": ["right-a-lower"], "audio": "lang/english/audios/a.wav" },
+    { "object_id": "left-m-audio", "pos": [190, 400], "target": "m", "type": "audio", "pair_id": ["right-m-lower"], "audio": "lang/english/audios/m.wav" },
+    { "object_id": "left-s-audio", "pos": [390, 295], "target": "s", "type": "audio", "pair_id": ["right-s-lower"], "audio": "lang/english/audios/s.wav" }
+  ],
+  "right": [
+    { "object_id": "right-a-lower", "pos": [870, 400], "target": "a", "type": "letter", "pair_id": ["left-a-audio"], "audio": "lang/english/audios/a.wav" },
+    { "object_id": "right-m-lower", "pos": [670, 295], "target": "m", "type": "letter", "pair_id": ["left-m-audio"], "audio": "lang/english/audios/m.wav" },
+    { "object_id": "right-s-lower", "pos": [870, 190], "target": "s", "type": "letter", "pair_id": ["left-s-audio"], "audio": "lang/english/audios/s.wav" }
+  ]
+}
