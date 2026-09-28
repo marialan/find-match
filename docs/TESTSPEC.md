@@ -4,8 +4,8 @@
 | ---------------- | --------------------------------------------------- |
 | **Title**        | Find The Two That Match — Test Specification         |
 | **Status**       | Active — approved behavior                          |
-| **Version**      | 0.3.0                                               |
-| **Last updated** | 2026-09-23                                          |
+| **Version**      | 0.4.0                                               |
+| **Last updated** | 2026-09-28                                          |
 | **Owner/Author** | Maria Lande (with GitHub Copilot)                   |
 
 > This TESTSPEC is derived solely from `docs/Find-The-Two-That-Match-Spec-Brief.md`
@@ -40,8 +40,8 @@
   (pixel-exact, within a documented tolerance for coordinate rounding).
 - TC-2.2: At a set of supported viewport widths (see UI-TC-8), the board's
   rendered width:height ratio matches its authored 1120:650 design ratio, and
-  no two objects' rendered bounding boxes overlap each other or the region
-  divider.
+  no two objects' (including combined tiles') rendered bounding boxes overlap
+  each other or the region divider.
 
 ### Module 3 — Drag Interaction Engine
 - TC-3.1: Dragging an object beyond the board's edge clamps its rendered
@@ -61,8 +61,15 @@
   in-tolerance candidates and assert the documented tie-break rule.
 
 ### Module 5 — Feedback & Celebration
-- TC-5.1: A match triggers exactly one celebration animation start and one
-  audio-play call for the target's pronunciation audio.
+- TC-5.1: A match produces exactly one combined tile (the pair's two separate
+  objects are no longer rendered), one match-celebration start, and one
+  pronunciation play for the partner's audio.
+- TC-5.3: Solving the last pair triggers the trial-complete celebration,
+  which is distinguishable from the match celebration.
+- TC-5.4: Pointer down/move on a combined tile does not start a drag or change
+  its position.
+- TC-5.5: Under reduced motion, a match still produces the combined tile
+  without motion-heavy animation.
 - TC-5.2: A mismatch triggers exactly one negative-feedback audio-play call
   and the dragged object's final on-screen position equals its recorded
   pre-drag position exactly.
@@ -74,6 +81,14 @@
   object's `audio` exactly once and produces no state change.
 - TC-6.3: A letter object matched against its corresponding letter-audio
   object (via `pair_id`) reports a match (Better-tier equivalence).
+- TC-6.4: Tapping a combined tile plays the partner's pronunciation exactly
+  once and produces no state change.
+- TC-6.5: An object with a loadable `audio` file plays that file.
+- TC-6.6: An object with missing or broken `audio` speaks its `target` with an
+  on-device voice in the learning language; network-backed voices are never
+  used.
+- TC-6.7: With no on-device voice for the learning language (or no speech
+  support), the synthesized tone plays instead.
 
 ### Module 7 — Words, Pictures, and Rhymes (Great tier)
 - TC-7.1: Loading `trial-mixed-great.json` renders and plays through Modules
@@ -85,8 +100,8 @@
 
 ### Module 8 — Progress & Session State
 - TC-8.1: Completing a pair persists its solved state to `localStorage`.
-- TC-8.2: Reloading the page restores every previously solved pair to the
-  Solved state and leaves other pairs Idle.
+- TC-8.2: Reloading the page restores every previously solved pair as a
+  combined tile with no celebration and leaves other pairs Idle.
 
 ### Module 9 — Container Integration
 - TC-9.1: Launching with `?cr_lang=english&cr_user_id=abc123` results in the
@@ -101,7 +116,7 @@
 - TC-9.3: With `window.ReactNativeWebView` undefined (plain browser), no
   `postMessage`-related error is thrown and no attempt is made to call it.
 - TC-9.4: Loading `trial-missing-asset.json` completes the loading screen
-  (does not hang), uses silent/no-op audio and a neutral image placeholder,
+  (does not hang), uses the auto-generated voice fallback for audio and a neutral image placeholder,
   and the trial still renders every asset that did resolve.
 - TC-9.5: A full run using `Promise.allSettled` semantics — one deliberately
   broken asset must not prevent the other assets from loading.
@@ -139,6 +154,10 @@ input:
 - UI-TC-8: "Mobile layout remains contained" — run at the supported mobile
   viewport sizes and assert no page scroll, no object overflow, and no
   object-to-object or object-to-divider overlap (TC-2.2).
+- UI-TC-9 through UI-TC-12: "A combined tile cannot be dragged", "Tapping a
+  combined tile replays its pronunciation", "Completing the trial shows a
+  distinct celebration", and "Pronunciation falls back to a generated voice" — same
+  fixtures as UI-TC-1.
 
 ## 4. Dry-run protocol (offline verification)
 
@@ -151,7 +170,9 @@ before any release candidate is approved:
 3. Set the browser's network condition to **Offline** before navigation.
 4. Confirm the Loading Screen clears within 10 seconds (UI-TC-7).
 5. Play through at least one full trial per tier fixture (letters, audio-only,
-   mixed) confirming match, mismatch, tap-to-hear, and reload behaviors.
+   mixed) confirming match (combined tile + match celebration), trial-complete
+   celebration, mismatch, tap-to-hear (including combined tiles), audio file vs.
+   generated-voice fallback (while offline), and reload behaviors.
 6. Inspect the Network tab: zero requests must appear.
 7. Inspect the console: zero uncaught errors (analytics-failure warnings, if
    any, are acceptable per `docs/third-party-game-spec.md` §7b).
@@ -189,6 +210,7 @@ above, every relevant UISPEC Gherkin scenario passes, and the dry-run protocol
 
 ## Changelog
 
+2026-09-28 — Maria Lande (with GitHub Copilot) — Added verification for combined tiles, distinct match and trial-complete celebrations, non-draggable solved tiles, reduced motion, combined-tile reload, and the audio file → offline voice → tone fallback (TC-5.3–5.5, TC-6.4–6.7, UI-TC-9–12).
 2026-09-23 — Maria Lande (with GitHub Copilot) — Added TC-2.2 and extended UI-TC-8/Dry-Run Protocol §4 to verify aspect-ratio-preserving board scaling and absence of object/divider overlap at narrow viewport widths, including short-height landscape sizes.
 2026-09-23 — Maria Lande (with GitHub Copilot) — Added verification for approved language fallback, tier asset degradation, exact event counts, textless loading, and mobile containment.
 2026-09-23 — Maria Lande (with GitHub Copilot) — Initial draft, derived solely from Find-The-Two-That-Match-Spec-Brief.md and third-party-game-spec.md.

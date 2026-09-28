@@ -4,8 +4,8 @@
 | ---------------- | --------------------------------------------------- |
 | **Title**        | Find The Two That Match — Product Requirements Document |
 | **Status**       | Active — approved behavior                          |
-| **Version**      | 0.2.0                                               |
-| **Last updated** | 2026-09-23                                          |
+| **Version**      | 0.3.0                                               |
+| **Last updated** | 2026-09-28                                          |
 | **Owner/Author** | Maria Lande (with GitHub Copilot)                   |
 
 > This PRD is derived exclusively from two source-of-truth documents:
@@ -99,7 +99,12 @@ assumes the previous tier's requirements are met.
   another object, both highlight.
 - On release: if within tolerance of another object, check equivalence via the
   JSON `pair_id` relationship.
-  - Match: celebration animation + audio pronunciation of the target.
+  - Match: the two objects combine into one tile that gives clear visual
+    feedback that the match is correct, and the target's pronunciation plays.
+    The combined tile stays on the board, cannot be dragged, and can be
+    tapped to replay its pronunciation.
+  - When every pair is matched, a trial-complete celebration plays that is
+    distinct from the per-match feedback.
   - No match: negative feedback sound + the dragged object animates back to
     its exact pre-drag position.
 - An object cannot be dragged off-screen.
@@ -164,5 +169,6 @@ assumes the previous tier's requirements are met.
 
 ## Changelog
 
+2026-09-28 — Maria Lande (with GitHub Copilot) — Specified that a correct match combines the pair into one tappable, non-draggable tile with match feedback, and that trial completion has its own distinct celebration.
 2026-09-23 — Maria Lande (with GitHub Copilot) — Approved language fallback, tier support, degraded asset handling, event counts, textless loading, and mobile viewport containment.
 2026-09-23 — Maria Lande (with GitHub Copilot) — Initial draft, derived solely from Find-The-Two-That-Match-Spec-Brief.md and third-party-game-spec.md.

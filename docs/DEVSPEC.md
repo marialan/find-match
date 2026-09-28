@@ -4,8 +4,8 @@
 | ---------------- | ------------------------------------------------------- |
 | **Title**        | Find The Two That Match — Development Specification     |
 | **Status**       | Active — approved behavior                              |
-| **Version**      | 0.4.0                                                   |
-| **Last updated** | 2026-09-23                                              |
+| **Version**      | 0.5.0                                                   |
+| **Last updated** | 2026-09-28                                              |
 | **Owner/Author** | Maria Lande (with GitHub Copilot)                       |
 
 > This DEVSPEC is derived solely from `docs/Find-The-Two-That-Match-Spec-Brief.md`
@@ -143,6 +143,7 @@ losing it off-screen.
   object off the screen.
 - Record the object's pre-drag position so it can be restored exactly on a
   mismatch.
+- Never start a drag on a solved (combined) tile.
 
 **Exit criterion:** Dragging an object to any point on the board keeps it
 fully within the visible board bounds at every frame, and releasing it always
@@ -169,16 +170,28 @@ any non-equivalent object and releasing always reports no match.
 **Goal:** Give immediate, unambiguous feedback for match and mismatch.
 
 **Tasks:**
-- On match: play a celebration animation, play the audio file pronouncing the
-  matched target (use the target object's `audio`), and mark the pair as
-  solved.
+- On match: mark the pair as solved and merge the two objects into a single
+  combined tile at the partner (drop target) object's position. The combined
+  tile plays a per-match celebration and the partner's pronunciation plays
+  once.
+- When the last pair in a trial is solved, play a trial-complete celebration
+  that is visually distinct from the per-match celebration.
+- Pronunciation audio rule: play the object's `audio` file when one is
+  provided and loads; otherwise speak the object's `target` with an
+  auto-generated voice in the learning language (`cr_lang`; English only for
+  MVP). Only on-device voices are used so speech works offline; if no
+  on-device voice for the learning language is available, fall back to a
+  synthesized tone. Feedback sounds with no authored audio (e.g., mismatch)
+  use synthesized tones.
+- Celebrations respect the user's reduced-motion preference.
 - On mismatch: play a negative feedback sound and animate the dragged object
   back to the exact pre-drag position recorded by Module 3.
 
-**Exit criterion:** Every match plays exactly one celebration + one audio
-pronunciation; every mismatch plays exactly one negative sound and ends with
-the dragged object's on-screen position equal (pixel-exact) to its pre-drag
-position.
+**Exit criterion:** Every match produces exactly one combined tile, one
+per-match celebration, and one pronunciation; completing a trial additionally
+produces one trial-complete celebration; every mismatch plays exactly one
+negative sound and ends with the dragged object's on-screen position equal
+(pixel-exact) to its pre-drag position.
 
 ### Module 6 — Tap-to-Hear & Audio-Only Objects (Better tier)
 **Goal:** Support objects that have no visual glyph and support tap-to-hear on
@@ -187,7 +200,9 @@ any object.
 **Tasks:**
 - Render objects that omit `image` as an audio-only affordance (see UISPEC for
   the visual treatment).
-- On tap (not drag) of any object, play that object's `audio`.
+- On tap (not drag) of any object, play that object's `audio`, following the
+  Module 5 pronunciation audio rule. Tapping a combined tile plays the
+  partner object's pronunciation.
 - Extend Module 4's equivalence check so a letter object and a letter-audio
   object are treated as equivalent purely via the existing `pair_id`
   mechanism — no schema change is required beyond allowing `image` to be
@@ -220,7 +235,8 @@ on the learner.
 - Persist per-trial completion state to `localStorage` (per
   `docs/third-party-game-spec.md` §2.2 — no IndexedDB-backed network-sync
   libraries).
-- On reload, restore already-solved pairs as solved.
+- On reload, restore already-solved pairs as combined tiles without replaying
+  any celebration.
 
 **Exit criterion:** Reloading the game mid-trial restores every previously
 solved pair as solved and leaves unsolved pairs interactive.
@@ -237,7 +253,8 @@ solved pair as solved and leaves unsolved pairs interactive.
   (trial JSON, audio, fonts if any); never call `window.fetch()` or the Cache
   Storage API on a `file://` code path.
 - Preload trial assets with `Promise.allSettled`, never `Promise.all`; missing
-  audio must fall back to a silent buffer rather than crash playback.
+  pronunciation audio must fall back to the auto-generated voice (Module 5) rather
+  than crash playback.
 - Emit exactly one `cr_event` (`user_sessions_data`,
   `data.type: "trial_completed"`, including `lang` and the trial's identifying
   data) when every pair in a trial is solved, via
@@ -287,7 +304,7 @@ trial offline with no missing assets.
 - A malformed trial file (schema violation per §2.1) must be rejected with a
   logged error and must not crash the board renderer for other, valid trials.
 - A missing or corrupt audio/image asset must not stop the trial from loading;
-  substitute a silent audio buffer (audio) and skip rendering (image), per
+  substitute the auto-generated voice (audio, Module 5) and skip rendering (image), per
   `docs/third-party-game-spec.md` §2.3.
 - `cr_event` emission failures must never affect gameplay — every emission
   call is wrapped in try/catch and is fire-and-forget.
@@ -392,7 +409,7 @@ Functional tree (by purpose) mapped to an artifact-lifecycle classification:
   to English.
 - Better supports image-omitted audio-only objects and tap-to-hear. Great
   supports words, pictures, and rhymes through the existing `pair_id` schema.
-- Missing/corrupt audio uses silent/no-op playback; missing/corrupt images use
+- Missing/corrupt audio falls back to an offline auto-generated voice in the learning language (tone if no on-device voice); missing/corrupt images use
   a neutral placeholder; `Promise.allSettled` allows loading to continue.
 - Each completed trial emits exactly one `trial_completed` event and one
   `summary_data` update.
@@ -420,6 +437,7 @@ Functional tree (by purpose) mapped to an artifact-lifecycle classification:
 
 ## 16. Changelog
 
+2026-09-28 — Maria Lande (with GitHub Copilot) — Added combined-tile matching with per-match and distinct trial-complete celebrations, non-draggable tap-to-hear solved tiles, reduced-motion support, combined-tile restore on reload, and an authored-audio → offline on-device voice → tone pronunciation fallback in the learning language.
 2026-09-23 — Maria Lande (with GitHub Copilot) — Replaced aspect-ratio-preserving (letterboxed) board scaling with independent width/height fill of the play area, and clarified that object size derives from a single scale factor (based on the more constrained axis) so objects remain square without forcing the board's own aspect ratio.
 2026-09-23 — Maria Lande (with GitHub Copilot) — Documented aspect-ratio-preserving board scaling and proportional/min-size object footprint (Module 2) to prevent object overlap on narrow viewports, and clarified that mobile containment (Design Principle) applies to short-height landscape orientations too, not only narrow-width portrait viewports.
 2026-09-23 — Maria Lande (with GitHub Copilot) — Resolved approved language, tier, asset-fallback, event-count, loading-state, and mobile-containment behavior.

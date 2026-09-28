@@ -9,14 +9,17 @@ import {
   loadTrial,
   makeBoardObjects,
   nearestCandidate,
+  playPronunciation,
   playTone,
+  preloadAudio,
   readSolvedIds,
   writeSolvedIds,
 } from "./game";
 import type { Trial, BoardObject } from "./game";
 import "./App.css";
 
-const TRIAL_PATH = "lang/english/trials/trial-1.json";
+const LEARNING_LANG = "english";
+const TRIAL_PATH = `lang/${LEARNING_LANG}/trials/trial-1.json`;
 type DragState = {
   id: string;
   offsetX: number;
@@ -36,10 +39,12 @@ function App() {
   const [returning, setReturning] = useState<ReturnState | null>(null);
   const [candidateId, setCandidateId] = useState<string | null>(null);
   const [celebration, setCelebration] = useState<string | null>(null);
+  const [celebratingId, setCelebratingId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [scale, setScale] = useState(1);
   const playAreaRef = useRef<HTMLDivElement>(null);
   const boardRef = useRef<HTMLDivElement>(null);
+  const movedRef = useRef(false);
   const userId = new URLSearchParams(window.location.search).get("cr_user_id");
 
   useEffect(() => {
@@ -64,7 +69,8 @@ function App() {
 
   useEffect(() => {
     loadTrial(TRIAL_PATH)
-      .then((loaded) => {
+      .then(async (loaded) => {
+        await preloadAudio(loaded);
         setTrial(loaded);
         setObjects(makeBoardObjects(loaded, readSolvedIds(loaded.trial_num)));
       })
@@ -87,6 +93,7 @@ function App() {
   }
 
   function startDrag(event: React.PointerEvent, item: BoardObject): void {
+    movedRef.current = false;
     if (item.solved || drag || returning) return;
     const point = pointFromEvent(event);
     if (!point) return;
@@ -109,6 +116,7 @@ function App() {
 
   function moveDrag(event: React.PointerEvent): void {
     if (!drag) return;
+    movedRef.current = true;
     const point = pointFromEvent(event);
     if (!point) return;
     const width = boardRef.current?.clientWidth ?? BOARD_WIDTH;
@@ -158,20 +166,29 @@ function App() {
       solvedIds.add(candidate.object_id);
       setObjects((current) =>
         current.map((item) =>
-          solvedIds.has(item.object_id)
-            ? { ...item, solved: true, x: item.pos[0], y: item.pos[1] }
-            : item,
+          item.object_id === dragged.object_id
+            ? {
+                ...item,
+                solved: true,
+                mergedInto: candidate.object_id,
+                x: candidate.pos[0],
+                y: candidate.pos[1],
+              }
+            : solvedIds.has(item.object_id)
+              ? { ...item, solved: true, x: item.pos[0], y: item.pos[1] }
+              : item,
         ),
       );
       writeSolvedIds(trial?.trial_num ?? 0, solvedIds);
       playTone("match");
-      playTone("target");
+      playPronunciation(candidate, LEARNING_LANG);
+      setCelebration(null);
+      setCelebratingId(candidate.object_id);
       if (solvedIds.size === objects.length) {
-        setCelebration("Trial complete!");
         emitContainerEvent(userId, "trial_completed", {
           type: "trial_completed",
           trial_num: trial?.trial_num,
-          lang: "english",
+          lang: LEARNING_LANG,
           pairs_completed: objects.length / 2,
         });
         emitContainerEvent(userId, "summary_data", {
@@ -179,8 +196,6 @@ function App() {
           operation: "add",
           trials_completed: 1,
         });
-      } else {
-        setCelebration(null);
       }
     } else {
       playTone("miss");
@@ -202,6 +217,11 @@ function App() {
     setReturning(null);
   }
 
+  function finishCelebration(): void {
+    setCelebratingId(null);
+    if (objects.every((item) => item.solved)) setCelebration("Trial complete!");
+  }
+
   function resetTrial(): void {
     if (!trial) return;
     writeSolvedIds(trial.trial_num, new Set());
@@ -210,6 +230,7 @@ function App() {
     setReturning(null);
     setCandidateId(null);
     setCelebration(null);
+    setCelebratingId(null);
   }
 
   if (error)
@@ -260,30 +281,65 @@ function App() {
           }}
         >
           <div className="board-divider" />
-          {objects.map((item) => {
+          {objects.filter((item) => !item.mergedInto).map((item) => {
             const active = drag?.id === item.object_id;
             const isReturning = returning?.id === item.object_id;
             const highlighted =
               candidateId === item.object_id ||
               (active && candidateId !== null);
+            const merged = objects.find(
+              (other) => other.mergedInto === item.object_id,
+            );
+            const pair = merged
+              ? item.side === "left"
+                ? [item, merged]
+                : [merged, item]
+              : null;
+            const isCelebrating = celebratingId === item.object_id;
             return (
               <button
                 key={item.object_id}
-                className={`match-object ${item.side} ${active ? "is-dragging" : ""} ${isReturning ? "is-returning" : ""} ${highlighted ? "is-highlighted" : ""} ${item.solved ? "is-solved" : ""}`}
+                className={`match-object ${item.side} ${active ? "is-dragging" : ""} ${isReturning ? "is-returning" : ""} ${highlighted ? "is-highlighted" : ""} ${item.solved ? "is-solved" : ""} ${pair ? "is-combined" : ""} ${isCelebrating ? "is-celebrating" : ""}`}
                 style={{
                   left: `${(item.x / BOARD_WIDTH) * 100}%`,
                   top: `${(item.y / BOARD_HEIGHT) * 100}%`,
                 }}
                 onPointerDown={(event) => startDrag(event, item)}
-                onAnimationEnd={isReturning ? finishReturn : undefined}
-                onClick={() => {
-                  if (!drag && !returning && !item.solved) playTone("target");
+                onAnimationEnd={(event) => {
+                  if (event.target !== event.currentTarget) return;
+                  if (isReturning) finishReturn();
+                  else if (isCelebrating) finishCelebration();
                 }}
-                aria-label={item.target}
-                disabled={item.solved}
+                onClick={() => {
+                  if (!drag && !returning && !movedRef.current)
+                    playPronunciation(item, LEARNING_LANG);
+                }}
+                aria-label={
+                  pair
+                    ? `${pair.map((part) => part.target).join(" ")} matched`
+                    : item.target
+                }
               >
                 <span className="object-shadow" />
-                <span className="object-glyph">{item.target}</span>
+                <span className="object-glyph">
+                  {pair
+                    ? pair.map((part) => (
+                        <span key={part.object_id} className={`glyph-part ${part.side}`}>
+                          {part.target}
+                        </span>
+                      ))
+                    : item.target}
+                </span>
+                {isCelebrating && (
+                  <span className="match-sparkles" aria-hidden="true">
+                    <i />
+                    <i />
+                    <i />
+                    <i />
+                    <i />
+                    <i />
+                  </span>
+                )}
                 {item.solved && <span className="solved-check">✓</span>}
               </button>
             );
