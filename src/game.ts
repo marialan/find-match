@@ -13,11 +13,14 @@ export function boardObjectSize(scale: number): number {
 }
 
 export type Side = 'left' | 'right'
+export type ObjectType = 'letter' | 'audio'
+const OBJECT_TYPES: readonly string[] = ['letter', 'audio']
 
 export interface TrialObject {
   object_id: string
   pos: [number, number]
   target: string
+  type: ObjectType
   pair_id: string[]
   image?: string
   audio?: string
@@ -56,6 +59,15 @@ export async function loadTrial(url: string): Promise<Trial> {
   return validateTrial(JSON.parse(new TextDecoder().decode(buffer)) as unknown)
 }
 
+export function trialNumberFromSearch(search: string): number {
+  const value = new URLSearchParams(search).get('trial') ?? ''
+  return /^[1-9]\d*$/.test(value) ? Number(value) : 1
+}
+
+export function trialPath(langCode: string, trialNum: number): string {
+  return `lang/${langCode}/trials/trial-${trialNum}.json`
+}
+
 function isObject(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null
 }
@@ -71,11 +83,15 @@ function validateObject(value: unknown, ids: Set<string>): TrialObject {
     throw new Error(`Invalid pair_id for ${value.object_id}`)
   }
   if (ids.has(value.object_id)) throw new Error(`Duplicate object_id ${value.object_id}`)
+  if (value.type !== undefined && (typeof value.type !== 'string' || !OBJECT_TYPES.includes(value.type))) {
+    throw new Error(`Invalid type for ${value.object_id}`)
+  }
   ids.add(value.object_id)
   return {
     object_id: value.object_id,
     pos: [value.pos[0] as number, value.pos[1] as number],
     target: value.target,
+    type: (value.type as ObjectType | undefined) ?? 'letter',
     pair_id: value.pair_id as string[],
     ...(typeof value.image === 'string' ? { image: value.image } : {}),
     ...(typeof value.audio === 'string' ? { audio: value.audio } : {}),

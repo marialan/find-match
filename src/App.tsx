@@ -13,13 +13,27 @@ import {
   playTone,
   preloadAudio,
   readSolvedIds,
+  trialNumberFromSearch,
+  trialPath,
   writeSolvedIds,
 } from "./game";
 import type { Trial, BoardObject } from "./game";
 import "./App.css";
 
 const LEARNING_LANG = "english";
-const TRIAL_PATH = `lang/${LEARNING_LANG}/trials/trial-1.json`;
+const TRIAL_PATH = trialPath(
+  LEARNING_LANG,
+  trialNumberFromSearch(window.location.search),
+);
+const AUDIO_ICON = "🔊";
+
+function glyphFor(item: BoardObject): string {
+  return item.type === "audio" ? AUDIO_ICON : item.target;
+}
+
+function labelFor(item: BoardObject): string {
+  return item.type === "audio" ? "Play sound" : item.target;
+}
 type DragState = {
   id: string;
   offsetX: number;
@@ -320,8 +334,8 @@ function App() {
                 }}
                 aria-label={
                   pair
-                    ? `${pair.map((part) => part.target).join(" ")} matched`
-                    : item.target
+                    ? `${pair.map((part) => (part.type === "audio" ? "sound" : part.target)).join(" ")} matched`
+                    : labelFor(item)
                 }
               >
                 <span className="object-shadow" />
@@ -329,10 +343,10 @@ function App() {
                   {pair
                     ? pair.map((part) => (
                         <span key={part.object_id} className={`glyph-part ${part.side}`}>
-                          {part.target}
+                          {glyphFor(part)}
                         </span>
                       ))
-                    : item.target}
+                    : glyphFor(item)}
                 </span>
                 {isCelebrating && (
                   <span className="match-sparkles" aria-hidden="true">

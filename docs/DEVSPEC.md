@@ -4,7 +4,7 @@
 | ---------------- | ------------------------------------------------------- |
 | **Title**        | Find The Two That Match — Development Specification     |
 | **Status**       | Active — approved behavior                              |
-| **Version**      | 0.5.0                                                   |
+| **Version**      | 0.6.0                                                   |
 | **Last updated** | 2026-09-28                                              |
 | **Owner/Author** | Maria Lande (with GitHub Copilot)                       |
 
@@ -68,8 +68,9 @@ One trial file describes one playable board.
 | `object_id` | string | Unique within the trial; referenced by other objects' `pair_id` |
 | `pos` | `[x, y]` number pair | Screen placement of the object at rest |
 | `target` | string | The name/value of the object's target concept (letter, word, etc.) |
+| `type` | `"letter"` \| `"audio"` | Optional; defaults to `"letter"`. A `"letter"` object displays its `target`; an `"audio"` object is audio-only (Better tier) and never displays its `target`. Any other value makes the trial invalid |
 | `pair_id` | string[] | `object_id`s (typically on the opposite side) that are equivalent to this object. May contain more than one id (e.g., a rhyme family) |
-| `image` | string (relative path) | Optional for audio-only objects (Better tier); required otherwise. Relative to the trial's language asset root |
+| `image` | string (relative path) | Optional; not used by `"audio"` objects. Relative to the trial's language asset root |
 | `audio` | string (relative path) | Path to the object's pronunciation audio, relative to the trial's language asset root |
 
 Equivalence rule: two objects A and B are equivalent if `B.object_id` appears
@@ -91,9 +92,14 @@ trial data.
 **Tasks:**
 - Fetch the trial JSON for the requested `trial_num` using the `file://`-safe
   binary loader pattern (§9.3), never `window.fetch()` for local files.
+- Select the trial from the `trial` launch query parameter (positive integer)
+  and load `lang/<langCode>/trials/trial-<n>.json`; an absent or invalid value
+  selects trial 1. This is a testing aid until a trial selector screen exists
+  (OQ-7).
 - Validate required fields (§2.1) are present on every object; reject/report a
   trial that has an object whose `pair_id` references a non-existent
-  `object_id`, or where an object has no `pair_id` entries at all.
+  `object_id`, where an object has no `pair_id` entries at all, or where an
+  object's `type` is not an allowed value.
 - Resolve every `image`/`audio` path to its full relative location under the
   selected language asset root. The language is read from `cr_lang`; absent or
   unsupported values select the English pack.
@@ -198,17 +204,16 @@ negative sound and ends with the dragged object's on-screen position equal
 any object.
 
 **Tasks:**
-- Render objects that omit `image` as an audio-only affordance (see UISPEC for
-  the visual treatment).
+- Render objects with `type: "audio"` as an audio-only affordance (see UISPEC
+  for the visual treatment); their `target` is never displayed.
 - On tap (not drag) of any object, play that object's `audio`, following the
   Module 5 pronunciation audio rule. Tapping a combined tile plays the
   partner object's pronunciation.
 - Extend Module 4's equivalence check so a letter object and a letter-audio
   object are treated as equivalent purely via the existing `pair_id`
-  mechanism — no schema change is required beyond allowing `image` to be
-  omitted.
+  mechanism — the only schema addition is the optional `type` field.
 
-**Exit criterion:** Every object without an `image` field renders and behaves
+**Exit criterion:** Every object with `type: "audio"` renders and behaves
 identically to an image object for drag, drop, highlight, and equivalence
 purposes, differing only in its visual presentation and in supporting
 tap-to-hear.
@@ -245,7 +250,8 @@ solved pair as solved and leaves unsolved pairs interactive.
 **Goal:** Comply with the Curious Reader runtime and reporting contract.
 
 **Tasks:**
-- Parse `cr_lang` and `cr_user_id` from `window.location.search` at boot;
+- Parse `cr_lang`, `cr_user_id`, and `trial` (Module 1) from
+  `window.location.search` at boot;
   select the requested language pack and fall back to English when `cr_lang` is
   absent or unsupported.
 - Detect `file://` origin at boot and use the XHR-based `loadBinary()` pattern
@@ -402,13 +408,17 @@ Functional tree (by purpose) mapped to an artifact-lifecycle classification:
 | OQ-4 | When a drag ends within tolerance of more than one candidate, is nearest-distance the correct tie-break, or should the first-encountered candidate win? | Module 4 |
 | OQ-5 | What technology stack/bundler will be used for the standalone build? | Part III §10 |
 | OQ-6 | What is the `engineSlug` / `sub_app_id` to register with the Curious Learning team? | Module 9, Module 10 |
+| OQ-7 | What does the trial selector screen look like, and does it replace the `trial` query parameter? | Module 1 |
 
 ## 14. Resolved Decisions
 
 - `cr_lang` selects the language pack; absent or unsupported values fall back
   to English.
-- Better supports image-omitted audio-only objects and tap-to-hear. Great
-  supports words, pictures, and rhymes through the existing `pair_id` schema.
+- Better supports audio-only objects, marked with `type: "audio"`, and
+  tap-to-hear. Objects without `type` default to `"letter"`. Great supports
+  words, pictures, and rhymes through the existing `pair_id` schema.
+- The trial to play is chosen with the `trial` query parameter (default 1)
+  until a trial selector screen is specified (OQ-7).
 - Missing/corrupt audio falls back to an offline auto-generated voice in the learning language (tone if no on-device voice); missing/corrupt images use
   a neutral placeholder; `Promise.allSettled` allows loading to continue.
 - Each completed trial emits exactly one `trial_completed` event and one
@@ -437,6 +447,7 @@ Functional tree (by purpose) mapped to an artifact-lifecycle classification:
 
 ## 16. Changelog
 
+2026-09-28 — Maria Lande (with GitHub Copilot) — Added the optional `type` (`letter`/`audio`) object field to mark audio-only objects, made `image` optional for all objects, added `trial` query-parameter trial selection with default 1, and added OQ-7 for a future trial selector screen.
 2026-09-28 — Maria Lande (with GitHub Copilot) — Added combined-tile matching with per-match and distinct trial-complete celebrations, non-draggable tap-to-hear solved tiles, reduced-motion support, combined-tile restore on reload, and an authored-audio → offline on-device voice → tone pronunciation fallback in the learning language.
 2026-09-23 — Maria Lande (with GitHub Copilot) — Replaced aspect-ratio-preserving (letterboxed) board scaling with independent width/height fill of the play area, and clarified that object size derives from a single scale factor (based on the more constrained axis) so objects remain square without forcing the board's own aspect ratio.
 2026-09-23 — Maria Lande (with GitHub Copilot) — Documented aspect-ratio-preserving board scaling and proportional/min-size object footprint (Module 2) to prevent object overlap on narrow viewports, and clarified that mobile containment (Design Principle) applies to short-height landscape orientations too, not only narrow-width portrait viewports.

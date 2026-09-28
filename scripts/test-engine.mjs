@@ -49,7 +49,32 @@ globalThis.window = {
 globalThis.SpeechSynthesisUtterance = class { constructor(text) { this.text = text } }
 globalThis.XMLHttpRequest = FakeXHR
 
-const { makeBoardObjects, playPronunciation, preloadAudio, validateTrial } = await import('../src/game.ts')
+const { makeBoardObjects, playPronunciation, preloadAudio, trialNumberFromSearch, trialPath: buildTrialPath, validateTrial } = await import('../src/game.ts')
+
+// TC-1.4: type defaults to letter; unknown types are rejected.
+assert.ok(validateTrial(trial).left.every((item) => item.type === 'letter'))
+assert.throws(() => validateTrial({ ...trial, left: [{ ...trial.left[0], type: 'video' }, ...trial.left.slice(1)] }), /Invalid type/)
+console.log('object type validation: ok')
+
+// TC-1.5: trial query parameter selects the trial file, falling back to 1.
+assert.equal(trialNumberFromSearch('?trial=2'), 2)
+for (const search of ['', '?trial=0', '?trial=-1', '?trial=abc', '?trial=2.5']) assert.equal(trialNumberFromSearch(search), 1)
+assert.equal(buildTrialPath('english', 2), 'lang/english/trials/trial-2.json')
+console.log('trial selection: ok')
+
+// TC-6.1 / TC-6.3: trial-2 pairs every audio-only object with a letter on the other side.
+const trial2 = validateTrial(JSON.parse(fs.readFileSync(path.join(root, 'public', 'lang', 'english', 'trials', 'trial-2.json'), 'utf8')))
+const trial2Objects = [...trial2.left, ...trial2.right]
+assert.ok(trial2.left.every((item) => item.type === 'audio' && item.audio))
+assert.ok(trial2.right.every((item) => item.type === 'letter'))
+for (const item of trial2.left) {
+  const partner = trial2Objects.find((other) => other.object_id === item.pair_id[0])
+  assert.equal(partner.type, 'letter')
+  assert.equal(partner.target, item.target)
+  assert.ok(partner.pair_id.includes(item.object_id))
+  assert.ok(fs.existsSync(path.join(root, 'public', item.audio)), `Missing audio ${item.audio}`)
+}
+console.log('audio-only trial: ok')
 
 // TC-8.2: solved pairs restore as one combined tile hosted by the partner (later id).
 const board = makeBoardObjects(validateTrial(trial), new Set(['left-a-lower', 'right-a-upper']))
