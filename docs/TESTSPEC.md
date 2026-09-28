@@ -4,7 +4,7 @@
 | ---------------- | --------------------------------------------------- |
 | **Title**        | Find The Two That Match — Test Specification         |
 | **Status**       | Active — approved behavior                          |
-| **Version**      | 0.7.0                                               |
+| **Version**      | 0.7.1                                               |
 | **Last updated** | 2026-09-28                                          |
 | **Owner/Author** | Maria Lande (with GitHub Copilot)                   |
 
@@ -162,6 +162,9 @@
   the last indexed trial has none.
 - TC-11.4: Selecting a trial sets the `trial` query parameter and returning to
   the selector clears it, with no network request in either direction.
+- TC-11.5: At every viewport size used by UI-TC-8 (including 320×568,
+  360×640, 414×896, 812×375, and 568×320), all 12 tiles of a full selector
+  page render inside the selector panel with no page-level or panel scroll.
 
 ## 3. UI acceptance test cases (per UISPEC Gherkin scenarios)
 
@@ -253,6 +256,7 @@ above, every relevant UISPEC Gherkin scenario passes, and the dry-run protocol
 
 ## Changelog
 
+2026-09-28 — Maria Lande (with GitHub Copilot) — Added TC-11.5 verifying that a full page of selector tiles stays visible and scroll-free at every supported viewport size.
 2026-09-28 — Maria Lande (with GitHub Copilot) — Added trial-index fixtures and coverage for trial-index parsing and fallback, persisted trial size for completion marking, selector pagination and navigation (TC-1.6, TC-8.3, TC-11.1–11.4, UI-TC-13–14), and updated TC-1.5 for selector-first launch.
 2026-09-28 — Maria Lande (with GitHub Copilot) — Added coverage for transparent image surfaces in standalone and combined cards.
 2026-09-28 — Maria Lande (with GitHub Copilot) — Added regression coverage for clipped combined-image corners and board/decorative stacking.

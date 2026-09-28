@@ -111,12 +111,27 @@
   box-shadow:
     0 18px 45px rgba(62, 76, 61, 0.11),
     inset 0 1px rgba(255, 255, 255, 0.9);
-  overflow: auto;
+  overflow: hidden;
 }
 .trial-grid {
+  /* Tiles are sized from the space left by the shell padding, header, and footer
+     on both axes, so a full page of 12 always fits without scrolling. */
+  --columns: 4;
+  --rows: 3;
+  --gap: clamp(6px, 1.6vmin, 18px);
+  --chrome: 210px;
+  --available-width: calc(
+    min(100vw, 1120px) - 2 * clamp(12px, 4vw, 68px) - 2 * clamp(10px, 3vh, 26px)
+  );
+  --tile: min(
+    132px,
+    calc((var(--available-width) - (var(--columns) - 1) * var(--gap)) / var(--columns)),
+    calc((100dvh - var(--chrome) - (var(--rows) - 1) * var(--gap)) / var(--rows))
+  );
   display: grid;
-  grid-template-columns: repeat(4, minmax(72px, 132px));
-  gap: clamp(8px, 2vh, 18px);
+  grid-template-columns: repeat(var(--columns), var(--tile));
+  grid-auto-rows: var(--tile);
+  gap: var(--gap);
   margin: 0;
   padding: 0;
   list-style: none;
@@ -124,15 +139,15 @@
 .trial-tile {
   position: relative;
   width: 100%;
-  aspect-ratio: 1;
+  height: 100%;
   display: grid;
   place-items: center;
   border: 1px solid #d3dcd2;
-  border-radius: 22px;
+  border-radius: min(22px, calc(var(--tile) * 0.22));
   background: rgba(255, 255, 255, 0.72);
   color: #203036;
   font-weight: 800;
-  font-size: clamp(20px, 4vh, 34px);
+  font-size: min(34px, calc(var(--tile) * 0.42));
   cursor: pointer;
 }
 .trial-tile:hover {
@@ -149,22 +164,23 @@
 }
 .trial-check {
   position: absolute;
-  right: -6px;
-  top: -8px;
+  right: 2px;
+  top: 2px;
   display: grid;
   place-items: center;
-  width: 25px;
-  height: 25px;
+  width: min(25px, calc(var(--tile) * 0.3));
+  height: min(25px, calc(var(--tile) * 0.3));
   border-radius: 50%;
   background: #78a878;
-  border: 3px solid #fffaf1;
+  border: 2px solid #fffaf1;
   color: white;
-  font-size: 14px;
+  font-size: min(14px, calc(var(--tile) * 0.18));
   line-height: 1;
 }
 @media (max-width: 520px) {
   .trial-grid {
-    grid-template-columns: repeat(3, minmax(64px, 110px));
+    --columns: 3;
+    --rows: 4;
   }
 }
 .play-area {
@@ -610,6 +626,12 @@
     height: auto;
     min-height: 0;
     border-radius: 22px;
+  }
+  .selector-area {
+    border-radius: 22px;
+  }
+  .trial-grid {
+    --chrome: 150px;
   }
 }
 @media (max-width: 700px) {

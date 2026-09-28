@@ -4,7 +4,7 @@
 | ---------------- | ------------------------------------------------- |
 | **Title**        | Find The Two That Match — UI Specification         |
 | **Status**       | Active — approved behavior                        |
-| **Version**      | 0.8.0                                             |
+| **Version**      | 0.8.1                                             |
 | **Last updated** | 2026-09-28                                        |
 | **Owner/Author** | Maria Lande (with GitHub Copilot)                 |
 
@@ -87,6 +87,10 @@ Two distinct celebrations exist (DEVSPEC Module 5):
   in green with a checkmark; its accessible name states that it is completed.
   An uncompleted tile uses the neutral tile treatment.
 - Selecting a tile opens that trial's Match Board Screen.
+- The selector obeys the same containment rule as the board (§1.3): tiles
+  shrink with the available width *and* height so a full page of 12 is fully
+  visible at every supported viewport size, with no page-level or in-panel
+  scrolling. Narrow viewports use fewer columns.
 
 ### 1.6 Board navigation controls
 - The Match Board Screen shows a **back control** (return-arrow icon) that
@@ -271,6 +275,7 @@ Feature: Matching two equivalent objects
 
 ## Changelog
 
+2026-09-28 — Maria Lande (with GitHub Copilot) — Clarified that the Trial Selector Screen is contained at every supported viewport size, sizing tiles from both axes with fewer columns on narrow viewports.
 2026-09-28 — Maria Lande (with GitHub Copilot) — Added the paginated Trial Selector Screen with completed-trial marking, board back and next-trial controls, their visibility rules, interactions, and acceptance scenarios.
 2026-09-28 — Maria Lande (with GitHub Copilot) — Specified transparent surfaces for image cards and combined image segments.
 2026-09-28 — Maria Lande (with GitHub Copilot) — Specified larger image-trial cards and text cards that grow and wrap to fit longer targets.
