@@ -1,0 +1,13 @@
+{
+  "trial_num": 12,
+  "left": [
+    { "object_id": "audio-hat", "pos": [190, 170], "target": "hat", "type": "audio", "pair_id": ["word-hat"], "audio": "lang/english/audios/hat.wav" },
+    { "object_id": "audio-bat", "pos": [390, 320], "target": "bat", "type": "audio", "pair_id": ["word-bat"], "audio": "lang/english/audios/bat.wav" },
+    { "object_id": "audio-cat", "pos": [190, 470], "target": "cat", "type": "audio", "pair_id": ["word-cat"], "audio": "lang/english/audios/cat.wav" }
+  ],
+  "right": [
+    { "object_id": "word-cat", "pos": [730, 170], "target": "cat", "pair_id": ["audio-cat"], "audio": "lang/english/audios/cat.wav" },
+    { "object_id": "word-hat", "pos": [930, 320], "target": "hat", "pair_id": ["audio-hat"], "audio": "lang/english/audios/hat.wav" },
+    { "object_id": "word-bat", "pos": [730, 470], "target": "bat", "pair_id": ["audio-bat"], "audio": "lang/english/audios/bat.wav" }
+  ]
+}

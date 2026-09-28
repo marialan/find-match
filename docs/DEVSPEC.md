@@ -4,7 +4,7 @@
 | ---------------- | ------------------------------------------------------- |
 | **Title**        | Find The Two That Match — Development Specification     |
 | **Status**       | Active — approved behavior                              |
-| **Version**      | 0.7.0                                                   |
+| **Version**      | 0.8.0                                                   |
 | **Last updated** | 2026-09-28                                              |
 | **Owner/Author** | Maria Lande (with GitHub Copilot)                       |
 
@@ -84,6 +84,24 @@ trial's language root (`lang/<langCode>/...`), consistent with
 `docs/third-party-game-spec.md` §4. No absolute or CDN URLs are permitted in
 trial data.
 
+### 2.3 Trial index file
+
+One index file per language pack lists the trials that pack ships. A
+`file://` runtime cannot enumerate a directory, so the index is the only
+source of truth for which trials exist.
+
+```json
+{ "trials": [1, 2, 3] }
+```
+
+| Field | Type | Rules |
+|---|---|---|
+| `trials` | number[] | Non-empty list of positive integers, each the `trial_num` of a `trial-<n>.json` in the same directory. Duplicates are ignored; the list is presented in ascending order |
+
+The index lives at `lang/<langCode>/trials/index.json`. A missing or invalid
+index is not a fatal error: the game falls back to the single-trial list
+`[1]` so a minimal language pack still plays.
+
 ## 3. Modules
 
 ### Module 1 — Trial Loader
@@ -94,8 +112,7 @@ trial data.
   binary loader pattern (§9.3), never `window.fetch()` for local files.
 - Select the trial from the `trial` launch query parameter (positive integer)
   and load `lang/<langCode>/trials/trial-<n>.json`; an absent or invalid value
-  selects trial 1. This is a testing aid until a trial selector screen exists
-  (OQ-7).
+  shows the Trial Selector screen instead (Module 11).
 - Validate required fields (§2.1) are present on every object; reject/report a
   trial that has an object whose `pair_id` references a non-existent
   `object_id`, where an object has no `pair_id` entries at all, or where an
@@ -241,6 +258,9 @@ on the learner.
 - Persist per-trial completion state to `localStorage` (per
   `docs/third-party-game-spec.md` §2.2 — no IndexedDB-backed network-sync
   libraries).
+- Persist each played trial's total object count alongside its solved ids, so
+  a trial's completion can be derived (solved count equals total count)
+  without loading that trial's JSON.
 - On reload, restore already-solved pairs as combined tiles without replaying
   any celebration.
 
@@ -291,6 +311,29 @@ well-formed `cr_event` per completed trial.
 single directory and opening
 `file://…/index.html?cr_lang=<code>&cr_user_id=<id>` plays at least one full
 trial offline with no missing assets.
+
+### Module 11 — Trial Selector & Navigation
+**Goal:** Let a learner choose any trial in the language pack and move between
+trials without editing the URL.
+
+**Tasks:**
+- Load the trial index (§2.3) with the `file://`-safe binary loader and show
+  the Trial Selector screen at launch when no valid `trial` parameter is
+  present; a valid `trial` parameter opens that trial's board directly.
+- Paginate the selector at a maximum of 12 trials per page, in ascending
+  trial order. Show page navigation only when more than one page exists.
+- Mark a trial as completed when its persisted progress (Module 8) shows
+  every object in that trial solved.
+- From the board, a back control returns to the selector, and a next-trial
+  control appears once the trial is complete and a following trial exists in
+  the index.
+- Keep the selected trial reflected in the `trial` query parameter so a
+  reload resumes the same trial, and clear it when returning to the selector.
+
+**Exit criterion:** With an index of more than 12 trials, every trial is
+reachable from the selector, completed trials are visibly marked, the board's
+back control returns to the selector, and the next-trial control advances to
+the next indexed trial only after the current trial is complete.
 
 ---
 
@@ -390,7 +433,7 @@ Functional tree (by purpose) mapped to an artifact-lifecycle classification:
 
 | Milestone (PRD §8) | Devspec modules covered |
 |---|---|
-| M1 — MVP interaction | Modules 1–5, 8 |
+| M1 — MVP interaction | Modules 1–5, 8, 11 |
 | M2 — Better interaction | Module 6 |
 | M3 — Great interaction | Module 7 |
 | M4 — Container compliance | Modules 9–10 |
@@ -409,7 +452,6 @@ Functional tree (by purpose) mapped to an artifact-lifecycle classification:
 | OQ-4 | When a drag ends within tolerance of more than one candidate, is nearest-distance the correct tie-break, or should the first-encountered candidate win? | Module 4 |
 | OQ-5 | What technology stack/bundler will be used for the standalone build? | Part III §10 |
 | OQ-6 | What is the `engineSlug` / `sub_app_id` to register with the Curious Learning team? | Module 9, Module 10 |
-| OQ-7 | What does the trial selector screen look like, and does it replace the `trial` query parameter? | Module 1 |
 
 ## 14. Resolved Decisions
 
@@ -418,8 +460,10 @@ Functional tree (by purpose) mapped to an artifact-lifecycle classification:
 - Better supports audio-only objects, marked with `type: "audio"`, and
   tap-to-hear. Objects without `type` default to `"letter"`. Great supports
   words, pictures, and rhymes through the existing `pair_id` schema.
-- The trial to play is chosen with the `trial` query parameter (default 1)
-  until a trial selector screen is specified (OQ-7).
+- The trial to play is chosen on the Trial Selector screen (Module 11), which
+  lists the trials named by the language pack's trial index (§2.3), 12 per
+  page. The `trial` query parameter still opens one trial directly and is
+  kept in sync with the learner's selection (resolves OQ-7).
 - Missing/corrupt audio falls back to an offline auto-generated voice in the learning language (tone if no on-device voice); missing/corrupt images use
   a neutral placeholder; `Promise.allSettled` allows loading to continue.
 - Each completed trial emits exactly one `trial_completed` event and one
@@ -448,6 +492,7 @@ Functional tree (by purpose) mapped to an artifact-lifecycle classification:
 
 ## 16. Changelog
 
+2026-09-28 — Maria Lande (with GitHub Copilot) — Added the per-language trial index file (§2.3) and Module 11 (Trial Selector & Navigation) with paginated trial selection, persisted trial size for completion marking, back and next-trial navigation, and resolved OQ-7.
 2026-09-28 — Maria Lande (with GitHub Copilot) — Defined larger image-trial cards and target-length-aware text widths with wrapping and collision constraints.
 2026-09-28 — Maria Lande (with GitHub Copilot) — Added the optional `type` (`letter`/`audio`) object field to mark audio-only objects, made `image` optional for all objects, added `trial` query-parameter trial selection with default 1, and added OQ-7 for a future trial selector screen.
 2026-09-28 — Maria Lande (with GitHub Copilot) — Added combined-tile matching with per-match and distinct trial-complete celebrations, non-draggable tap-to-hear solved tiles, reduced-motion support, combined-tile restore on reload, and an authored-audio → offline on-device voice → tone pronunciation fallback in the learning language.

@@ -4,7 +4,7 @@
 | ---------------- | ------------------------------------------------- |
 | **Title**        | Find The Two That Match — UI Specification         |
 | **Status**       | Active — approved behavior                        |
-| **Version**      | 0.7.1                                             |
+| **Version**      | 0.8.1                                             |
 | **Last updated** | 2026-09-28                                        |
 | **Owner/Author** | Maria Lande (with GitHub Copilot)                 |
 
@@ -74,6 +74,34 @@ Two distinct celebrations exist (DEVSPEC Module 5):
 - Both respect the user's reduced-motion preference and require no learner
   action to continue.
 
+### 1.5 Trial Selector Screen
+- Shown at launch when the launch URL names no valid trial (DEVSPEC Module
+  11), and whenever the learner uses the board's back control.
+- Lists the language pack's trials (DEVSPEC §2.3) in ascending order as a grid
+  of tiles, each labelled with its trial number.
+- Shows a maximum of **12 tiles per page**. When more trials exist, a bottom
+  navigation row shows a previous-page control, the current page position
+  ("Page X of Y"), and a next-page control; the control for a non-existent
+  page is disabled. With 12 or fewer trials, no page navigation is shown.
+- A **completed** trial tile (all its pairs solved, DEVSPEC Module 8) is shown
+  in green with a checkmark; its accessible name states that it is completed.
+  An uncompleted tile uses the neutral tile treatment.
+- Selecting a tile opens that trial's Match Board Screen.
+- The selector obeys the same containment rule as the board (§1.3): tiles
+  shrink with the available width *and* height so a full page of 12 is fully
+  visible at every supported viewport size, with no page-level or in-panel
+  scrolling. Narrow viewports use fewer columns.
+
+### 1.6 Board navigation controls
+- The Match Board Screen shows a **back control** (return-arrow icon) that
+  returns to the Trial Selector Screen. It is available at all times, has the
+  accessible name "Back to trial selector", and discards no progress.
+- The board shows a **next-trial control** (forward-arrow icon) only once the
+  current trial is complete and a following trial exists in the index. It
+  opens that next trial.
+- Both controls sit in the board footer alongside the existing reset control
+  and are icon-only, consistent with the textless design goal.
+
 ## 2. States
 
 | State | Entry condition | Visible characteristics |
@@ -97,6 +125,10 @@ Two distinct celebrations exist (DEVSPEC Module 5):
 - On reload mid-trial (DEVSPEC Module 8), objects previously in the Solved
   state render directly as combined tiles with no celebration; all other
   objects render Idle.
+- The next-trial control is hidden until every pair in the current trial is
+  solved, and stays hidden on the last trial in the index.
+- Trial-selector page navigation is hidden when the pack has 12 or fewer
+  trials.
 
 ## 4. Commands / interactions
 
@@ -108,6 +140,10 @@ Two distinct celebrations exist (DEVSPEC Module 5):
 | Drag release — mismatch | Pointer/touch up while Highlighted and the candidate is not equivalent | Negative feedback sound plays; object enters Returning state, then Idle at its original `pos` |
 | Tap (no drag) | Pointer/touch down+up on an object without intervening drag movement, Better tier+ | That object's pronunciation audio plays; no state change |
 | Tap Solved tile | Pointer/touch down+up on a combined tile | The partner's pronunciation plays; no state change |
+| Select a trial | Tap a tile on the Trial Selector Screen | That trial's Match Board Screen is shown |
+| Change selector page | Tap the previous/next page control | The selector shows the adjacent page of up to 12 trials |
+| Back to selector | Tap the board's back control | The Trial Selector Screen is shown with the just-played trial's progress reflected |
+| Next trial | Tap the board's next-trial control (visible only when the trial is complete and a next trial exists) | The next indexed trial's Match Board Screen is shown |
 
 ## 5. Acceptance criteria (Gherkin)
 
@@ -196,6 +232,38 @@ Feature: Matching two equivalent objects
     Then the document has no horizontal or vertical page scroll
     And every object remains within the visible board bounds
     And no two objects visually overlap each other or the region divider
+
+  Scenario: Choosing a trial from the selector
+    Given the game is launched with no trial in the URL
+    Then the Trial Selector Screen is shown with at most 12 tiles
+    When the learner taps the tile for trial 2
+    Then the Match Board Screen for trial 2 is shown
+
+  Scenario: Paging through more than 12 trials
+    Given the language pack lists 13 trials
+    Then the Trial Selector Screen shows trials 1 to 12 and "Page 1 of 2"
+    And the previous-page control is disabled
+    When the learner taps the next-page control
+    Then the selector shows trial 13 and "Page 2 of 2"
+
+  Scenario: A completed trial is marked in the selector
+    Given every pair of trial 1 has been solved
+    When the Trial Selector Screen is shown
+    Then the tile for trial 1 is green with a checkmark
+    And its accessible name states that the trial is completed
+
+  Scenario: Returning to the selector from a trial
+    Given a trial is being played
+    When the learner taps the back control
+    Then the Trial Selector Screen is shown
+    And the trial's solved pairs are still solved when it is reopened
+
+  Scenario: Advancing to the next trial
+    Given a trial that is not the last in the index is being played
+    Then the next-trial control is not shown
+    When the learner solves the last remaining pair
+    Then the next-trial control is shown
+    And tapping it shows the Match Board Screen for the next indexed trial
 ```
 
 ## 6. Open questions (UI-specific)
@@ -207,6 +275,8 @@ Feature: Matching two equivalent objects
 
 ## Changelog
 
+2026-09-28 — Maria Lande (with GitHub Copilot) — Clarified that the Trial Selector Screen is contained at every supported viewport size, sizing tiles from both axes with fewer columns on narrow viewports.
+2026-09-28 — Maria Lande (with GitHub Copilot) — Added the paginated Trial Selector Screen with completed-trial marking, board back and next-trial controls, their visibility rules, interactions, and acceptance scenarios.
 2026-09-28 — Maria Lande (with GitHub Copilot) — Specified transparent surfaces for image cards and combined image segments.
 2026-09-28 — Maria Lande (with GitHub Copilot) — Specified larger image-trial cards and text cards that grow and wrap to fit longer targets.
 2026-09-28 — Maria Lande (with GitHub Copilot) — Added letter objects and the interim 🔊 audio-only treatment with a non-revealing accessible name, defined the 🔊 + letter combined tile, added the audio-to-letter matching scenario, and narrowed UI-OQ-1 to final icon artwork.

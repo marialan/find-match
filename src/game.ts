@@ -12,6 +12,7 @@ const WORD_INSET = 22
 const BOARD_CENTER = BOARD_WIDTH / 2
 const DIVIDER_CLEARANCE = 12
 export const ENGINE_SLUG = 'ftm'
+export const TRIALS_PER_PAGE = 12
 export const SPEECH_LANGS: Record<string, string> = { english: 'en' }
 
 // Mirrors the CSS clamp() used for .match-object sizing, so drag-clamp math always
@@ -112,13 +113,51 @@ export async function loadTrial(url: string): Promise<Trial> {
   return validateTrial(JSON.parse(new TextDecoder().decode(buffer)) as unknown)
 }
 
-export function trialNumberFromSearch(search: string): number {
+export function trialNumberFromSearch(search: string): number | null {
   const value = new URLSearchParams(search).get('trial') ?? ''
-  return /^[1-9]\d*$/.test(value) ? Number(value) : 1
+  return /^[1-9]\d*$/.test(value) ? Number(value) : null
 }
 
 export function trialPath(langCode: string, trialNum: number): string {
   return `lang/${langCode}/trials/trial-${trialNum}.json`
+}
+
+export function trialIndexPath(langCode: string): string {
+  return `lang/${langCode}/trials/index.json`
+}
+
+export function validateTrialIndex(value: unknown): number[] {
+  const trials = isObject(value) ? value.trials : undefined
+  if (
+    !Array.isArray(trials) ||
+    trials.length === 0 ||
+    !trials.every((num) => typeof num === 'number' && Number.isInteger(num) && num > 0)
+  ) {
+    throw new Error('Trial index must list positive trial numbers')
+  }
+  return [...new Set(trials as number[])].sort((a, b) => a - b)
+}
+
+// A pack without a readable index still plays its single default trial.
+export async function loadTrialIndex(url: string): Promise<number[]> {
+  try {
+    const buffer = await loadBinary(url)
+    return validateTrialIndex(JSON.parse(new TextDecoder().decode(buffer)) as unknown)
+  } catch {
+    return [1]
+  }
+}
+
+export function pageCount(trialCount: number): number {
+  return Math.max(1, Math.ceil(trialCount / TRIALS_PER_PAGE))
+}
+
+export function trialsForPage(trials: number[], page: number): number[] {
+  return trials.slice(page * TRIALS_PER_PAGE, (page + 1) * TRIALS_PER_PAGE)
+}
+
+export function nextTrialNumber(trials: number[], trialNum: number): number | null {
+  return trials[trials.indexOf(trialNum) + 1] ?? null
 }
 
 function isObject(value: unknown): value is Record<string, unknown> {
@@ -327,6 +366,25 @@ export function readSolvedIds(trialNum: number): Set<string> {
 
 export function writeSolvedIds(trialNum: number, ids: Set<string>): void {
   try { localStorage.setItem(progressKey(trialNum), JSON.stringify([...ids])) } catch { /* restricted WebView */ }
+}
+
+export function totalKey(trialNum: number): string { return `ftm:trial:${trialNum}:total` }
+
+// Stored while playing so the selector can mark completion without loading every trial.
+export function readTrialTotal(trialNum: number): number {
+  try {
+    const total = Number(localStorage.getItem(totalKey(trialNum)))
+    return Number.isInteger(total) && total > 0 ? total : 0
+  } catch { return 0 }
+}
+
+export function writeTrialTotal(trialNum: number, total: number): void {
+  try { localStorage.setItem(totalKey(trialNum), String(total)) } catch { /* restricted WebView */ }
+}
+
+export function isTrialCompleted(trialNum: number): boolean {
+  const total = readTrialTotal(trialNum)
+  return total > 0 && readSolvedIds(trialNum).size >= total
 }
 
 export function emitContainerEvent(userId: string | null, type: 'trial_completed' | 'summary_data', data: Record<string, unknown>): void {

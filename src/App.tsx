@@ -11,27 +11,30 @@ import {
   boardScale,
   emitContainerEvent,
   fitsHalf,
+  isTrialCompleted,
   loadTrial,
+  loadTrialIndex,
   makeBoardObjects,
   nearestCandidate,
+  nextTrialNumber,
+  pageCount,
   playPronunciation,
   playTone,
   preloadAudio,
   readSolvedIds,
   resolveOverlaps,
+  trialIndexPath,
   trialNumberFromSearch,
   trialPath,
+  trialsForPage,
   writeSolvedIds,
+  writeTrialTotal,
   wordFontSize,
 } from "./game";
 import type { Trial, BoardObject, LayoutMetrics } from "./game";
 import "./App.css";
 
 const LEARNING_LANG = "english";
-const TRIAL_PATH = trialPath(
-  LEARNING_LANG,
-  trialNumberFromSearch(window.location.search),
-);
 const AUDIO_ICON = "🔊";
 
 function labelFor(item: BoardObject): string {
@@ -50,7 +53,13 @@ type ReturnState = {
   origin: [number, number];
 };
 
-function App() {
+type TrialBoardProps = {
+  trialNum: number;
+  onBack: () => void;
+  onNext: (() => void) | null;
+};
+
+function TrialBoard({ trialNum, onBack, onNext }: TrialBoardProps) {
   const [trial, setTrial] = useState<Trial | null>(null);
   const [objects, setObjects] = useState<BoardObject[]>([]);
   const [drag, setDrag] = useState<DragState | null>(null);
@@ -103,10 +112,11 @@ function App() {
   }, [trial]);
 
   useEffect(() => {
-    loadTrial(TRIAL_PATH)
+    loadTrial(trialPath(LEARNING_LANG, trialNum))
       .then(async (loaded) => {
         await preloadAudio(loaded);
         setTrial(loaded);
+        writeTrialTotal(loaded.trial_num, loaded.left.length + loaded.right.length);
         setObjects(makeBoardObjects(loaded, readSolvedIds(loaded.trial_num)));
       })
       .catch((reason: unknown) =>
@@ -116,7 +126,7 @@ function App() {
             : "Unable to load this trial",
         ),
       );
-  }, []);
+  }, [trialNum]);
 
   function layoutMetrics(): LayoutMetrics {
     const board = boardRef.current;
@@ -466,9 +476,18 @@ function App() {
         </div>
       </section>
       <footer className="game-footer">
+        <button
+          className="icon-button"
+          type="button"
+          onClick={onBack}
+          aria-label="Back to trial selector"
+          title="Back to trial selector"
+        >
+          ↩
+        </button>
         <span className="footer-spark">✦</span>
         <button
-          className="reset-button"
+          className="icon-button"
           type="button"
           onClick={resetTrial}
           aria-label="Reset trial"
@@ -477,8 +496,151 @@ function App() {
           ↻
         </button>
         <span className="footer-spark">✦</span>
+        {onNext && objects.length > 0 && objects.every((item) => item.solved) ? (
+          <button
+            className="icon-button is-next"
+            type="button"
+            onClick={onNext}
+            aria-label="Next trial"
+            title="Next trial"
+          >
+            →
+          </button>
+        ) : (
+          <span className="icon-button-placeholder" aria-hidden="true" />
+        )}
       </footer>
     </main>
+  );
+}
+
+function TrialSelector({
+  trials,
+  onSelect,
+}: {
+  trials: number[];
+  onSelect: (trialNum: number) => void;
+}) {
+  const [page, setPage] = useState(0);
+  const pages = pageCount(trials.length);
+  const visible = trialsForPage(trials, page);
+  const completedCount = trials.filter((trialNum) => isTrialCompleted(trialNum)).length;
+
+  return (
+    <main className="game-shell">
+      <header className="game-header">
+        <div className="brand-lockup">
+          <strong>FIND THE MATCH</strong>
+        </div>
+        <div
+          className="progress-pill"
+          aria-label={`${completedCount} of ${trials.length} trials completed`}
+        >
+          <span className="progress-dot" />
+          {completedCount} / {trials.length}
+        </div>
+      </header>
+      <section className="selector-area">
+        <ul className="trial-grid">
+          {visible.map((trialNum) => {
+            const completed = isTrialCompleted(trialNum);
+            return (
+              <li key={trialNum}>
+                <button
+                  className={`trial-tile ${completed ? "is-complete" : ""}`}
+                  type="button"
+                  onClick={() => onSelect(trialNum)}
+                  aria-label={`Trial ${trialNum}${completed ? ", completed" : ""}`}
+                >
+                  <span className="trial-number">{trialNum}</span>
+                  {completed && (
+                    <span className="trial-check" aria-hidden="true">
+                      ✓
+                    </span>
+                  )}
+                </button>
+              </li>
+            );
+          })}
+        </ul>
+      </section>
+      {pages > 1 && (
+        <footer className="game-footer">
+          <button
+            className="icon-button"
+            type="button"
+            onClick={() => setPage((current) => Math.max(0, current - 1))}
+            disabled={page === 0}
+            aria-label="Previous page"
+            title="Previous page"
+          >
+            ‹
+          </button>
+          <span className="page-status" aria-live="polite">
+            Page {page + 1} of {pages}
+          </span>
+          <button
+            className="icon-button"
+            type="button"
+            onClick={() => setPage((current) => Math.min(pages - 1, current + 1))}
+            disabled={page === pages - 1}
+            aria-label="Next page"
+            title="Next page"
+          >
+            ›
+          </button>
+        </footer>
+      )}
+    </main>
+  );
+}
+
+// Keeps a reload on the same trial and makes the selector the URL's resting state.
+function syncTrialParam(trialNum: number | null): void {
+  try {
+    const url = new URL(window.location.href);
+    if (trialNum === null) url.searchParams.delete("trial");
+    else url.searchParams.set("trial", String(trialNum));
+    window.history.replaceState(null, "", url.toString());
+  } catch {
+    /* file:// origins may reject history updates */
+  }
+}
+
+function App() {
+  const [trials, setTrials] = useState<number[] | null>(null);
+  const [selected, setSelected] = useState<number | null>(() =>
+    trialNumberFromSearch(window.location.search),
+  );
+
+  useEffect(() => {
+    void loadTrialIndex(trialIndexPath(LEARNING_LANG)).then(setTrials);
+  }, []);
+
+  function select(trialNum: number | null): void {
+    syncTrialParam(trialNum);
+    setSelected(trialNum);
+  }
+
+  if (!trials)
+    return (
+      <main className="status-screen">
+        <div className="loader-orbit" />
+        <p>Getting your matching game ready</p>
+      </main>
+    );
+
+  if (selected === null)
+    return <TrialSelector trials={trials} onSelect={select} />;
+
+  const next = nextTrialNumber(trials, selected);
+  return (
+    <TrialBoard
+      key={selected}
+      trialNum={selected}
+      onBack={() => select(null)}
+      onNext={next === null ? null : () => select(next)}
+    />
   );
 }
 

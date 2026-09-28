@@ -57,7 +57,7 @@
   background: #78a878;
   margin-right: 8px;
 }
-.reset-button {
+.icon-button {
   width: 42px;
   height: 42px;
   display: grid;
@@ -70,13 +70,118 @@
   line-height: 1;
   cursor: pointer;
 }
-.reset-button:hover {
+.icon-button-placeholder {
+  width: 42px;
+  height: 42px;
+}
+.icon-button:hover:not(:disabled) {
   color: #e36e49;
   border-color: #e3b6a7;
 }
-.reset-button:focus-visible {
+.icon-button:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+.icon-button.is-next {
+  background: #78a878;
+  border-color: #78a878;
+  color: #fffdf7;
+}
+.icon-button:focus-visible {
   outline: 3px solid #e36e49;
   outline-offset: 3px;
+}
+.page-status {
+  font-weight: 700;
+  color: #687b73;
+}
+.selector-area {
+  display: flex;
+  flex: 1 1 auto;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  max-width: 1120px;
+  min-height: 0;
+  margin: 0 auto;
+  padding: clamp(10px, 3vh, 26px);
+  border: 1px solid rgba(87, 113, 102, 0.16);
+  border-radius: 28px;
+  background: rgba(255, 253, 247, 0.64);
+  box-shadow:
+    0 18px 45px rgba(62, 76, 61, 0.11),
+    inset 0 1px rgba(255, 255, 255, 0.9);
+  overflow: hidden;
+}
+.trial-grid {
+  /* Tiles are sized from the space left by the shell padding, header, and footer
+     on both axes, so a full page of 12 always fits without scrolling. */
+  --columns: 4;
+  --rows: 3;
+  --gap: clamp(6px, 1.6vmin, 18px);
+  --chrome: 210px;
+  --available-width: calc(
+    min(100vw, 1120px) - 2 * clamp(12px, 4vw, 68px) - 2 * clamp(10px, 3vh, 26px)
+  );
+  --tile: min(
+    132px,
+    calc((var(--available-width) - (var(--columns) - 1) * var(--gap)) / var(--columns)),
+    calc((100dvh - var(--chrome) - (var(--rows) - 1) * var(--gap)) / var(--rows))
+  );
+  display: grid;
+  grid-template-columns: repeat(var(--columns), var(--tile));
+  grid-auto-rows: var(--tile);
+  gap: var(--gap);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.trial-tile {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  display: grid;
+  place-items: center;
+  border: 1px solid #d3dcd2;
+  border-radius: min(22px, calc(var(--tile) * 0.22));
+  background: rgba(255, 255, 255, 0.72);
+  color: #203036;
+  font-weight: 800;
+  font-size: min(34px, calc(var(--tile) * 0.42));
+  cursor: pointer;
+}
+.trial-tile:hover {
+  border-color: #e3b6a7;
+}
+.trial-tile:focus-visible {
+  outline: 3px solid #e36e49;
+  outline-offset: 3px;
+}
+.trial-tile.is-complete {
+  border-color: #78a878;
+  background: #dff0d8;
+  color: #35603a;
+}
+.trial-check {
+  position: absolute;
+  right: 2px;
+  top: 2px;
+  display: grid;
+  place-items: center;
+  width: min(25px, calc(var(--tile) * 0.3));
+  height: min(25px, calc(var(--tile) * 0.3));
+  border-radius: 50%;
+  background: #78a878;
+  border: 2px solid #fffaf1;
+  color: white;
+  font-size: min(14px, calc(var(--tile) * 0.18));
+  line-height: 1;
+}
+@media (max-width: 520px) {
+  .trial-grid {
+    --columns: 3;
+    --rows: 4;
+  }
 }
 .play-area {
   position: relative;
@@ -521,6 +626,12 @@
     height: auto;
     min-height: 0;
     border-radius: 22px;
+  }
+  .selector-area {
+    border-radius: 22px;
+  }
+  .trial-grid {
+    --chrome: 150px;
   }
 }
 @media (max-width: 700px) {
