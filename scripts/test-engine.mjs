@@ -49,7 +49,7 @@ globalThis.window = {
 globalThis.SpeechSynthesisUtterance = class { constructor(text) { this.text = text } }
 globalThis.XMLHttpRequest = FakeXHR
 
-const { boardObjectSize, boardObjectWidth, makeBoardObjects, nearestCandidate, playPronunciation, preloadAudio, trialNumberFromSearch, trialPath: buildTrialPath, validateTrial } = await import('../src/game.ts')
+const { MIN_WORD_FONT_SIZE, boardObjectSize, boardObjectWidth, boardScale, makeBoardObjects, nearestCandidate, playPronunciation, preloadAudio, resolveOverlaps, trialNumberFromSearch, trialPath: buildTrialPath, validateTrial, wordFontSize } = await import('../src/game.ts')
 
 // TC-1.4: type defaults to letter; unknown types are rejected.
 assert.ok(validateTrial(trial).left.every((item) => item.type === 'letter'))
@@ -118,10 +118,31 @@ for (const scale of [1, 0.409, 0.325]) {
   const shortWidth = boardObjectWidth(shortWord, longWordObjects, scale, 176)
   const longWidth = boardObjectWidth(longWord, longWordObjects, scale, 176)
   assert.ok(longWidth > shortWidth)
-  assert.ok(longWidth + boardObjectWidth(longPicture, longWordObjects, scale, 176) <= 496 * size / 176)
+  // The unsplit word at the minimum font takes priority over staying inside one region.
+  const combinedWidth = longWidth + boardObjectWidth(longPicture, longWordObjects, scale, 176)
+  assert.ok(combinedWidth <= Math.max(496 * size / 176, 12 * 0.62 * MIN_WORD_FONT_SIZE + 22 + size))
+  assert.ok(combinedWidth <= 1120 * scale || scale < 0.2)
+  const font = wordFontSize(longWidth, 12, size)
+  assert.ok(font >= MIN_WORD_FONT_SIZE)
+  assert.ok(12 * 0.62 * font + 22 <= longWidth + 0.01, `hippopotamus does not fit at scale ${scale}`)
   assert.equal(boardObjectWidth(longPicture, longWordObjects, scale, 176), size)
 }
+for (const length of [1, 3, 8, 12, 20]) {
+  const width = boardObjectWidth({ ...shortWord, target: 'x'.repeat(length) }, [], 0.2, 84)
+  assert.ok(wordFontSize(width, length, 56) >= MIN_WORD_FONT_SIZE)
+  assert.ok(length * 0.62 * MIN_WORD_FONT_SIZE + 22 <= width + 0.01)
+}
 console.log('long target tile sizing: ok')
+
+// TC-2.5: portrait image boards grow cards until a combined pair fills half the board width.
+for (const [w, h] of [[320, 568], [360, 740], [390, 844], [414, 896]]) {
+  const size = boardObjectSize(boardScale(w, h, true), 176)
+  assert.ok(size > boardObjectSize(boardScale(w, h, false), 176), `${w}x${h} image cards did not grow`)
+  assert.ok(size * 2 <= w / 2, `${w}x${h} combined pair crosses the divider`)
+}
+assert.equal(boardScale(1118, 743, true), boardScale(1118, 743, false))
+assert.equal(boardScale(812, 375, true), boardScale(812, 375, false))
+console.log('portrait image sizing: ok')
 
 // TC-8.2: solved pairs restore as one combined tile hosted by the partner (later id).
 const board = makeBoardObjects(validateTrial(trial), new Set(['left-a-lower', 'right-a-upper']))
@@ -130,6 +151,51 @@ assert.equal(board.find((item) => item.object_id === 'right-a-upper').mergedInto
 assert.equal(board.filter((item) => !item.mergedInto).length, objects.length - 1)
 assert.ok(board.filter((item) => !item.solved).every((item) => !item.mergedInto))
 console.log('combined tile restore: ok')
+
+// TC-2.4: a drop or a new combined tile pushes overlapping tiles aside without moving the anchor.
+{
+  const metrics = { scale: 1, maxSize: 84, unitsPerPx: [1, 1] }
+  const tileRect = (item, all) => {
+    const merged = all.find((other) => other.mergedInto === item.object_id)
+    const w = boardObjectWidth(item, all, 1, 84) + (merged ? boardObjectWidth(merged, all, 1, 84) : 0)
+    const x = merged
+      ? item.x < 560 ? Math.min(Math.max(item.x, w / 2), 560 - w / 2) : Math.min(Math.max(item.x, 560 + w / 2), 1120 - w / 2)
+      : item.x
+    return { x, y: item.y, w, h: 84 }
+  }
+  const assertNoOverlap = (all) => {
+    const tiles = all.filter((item) => !item.mergedInto).map((item) => ({ item, rect: tileRect(item, all) }))
+    for (const [i, a] of tiles.entries()) {
+      assert.ok(a.rect.x - a.rect.w / 2 >= 0 && a.rect.x + a.rect.w / 2 <= 1120, `${a.item.object_id} leaves board`)
+      assert.ok(a.rect.y - a.rect.h / 2 >= 0 && a.rect.y + a.rect.h / 2 <= 650, `${a.item.object_id} leaves board`)
+      for (const b of tiles.slice(i + 1)) {
+        const apart = Math.abs(a.rect.x - b.rect.x) >= (a.rect.w + b.rect.w) / 2 || Math.abs(a.rect.y - b.rect.y) >= (a.rect.h + b.rect.h) / 2
+        assert.ok(apart, `${a.item.object_id} overlaps ${b.item.object_id}`)
+      }
+    }
+  }
+  const start = makeBoardObjects(validateTrial(trial), new Set())
+  const [first, second] = start.filter((item) => item.side === 'left')
+  const dropped = start.map((item) => (item.object_id === first.object_id ? { ...item, x: second.x + 10, y: second.y + 10 } : item))
+  const resolved = resolveOverlaps(dropped, first.object_id, metrics)
+  const anchor = resolved.find((item) => item.object_id === first.object_id)
+  assert.deepEqual([anchor.x, anchor.y], [second.x + 10, second.y + 10])
+  assert.notDeepEqual(resolved.find((item) => item.object_id === second.object_id), dropped.find((item) => item.object_id === second.object_id))
+  assertNoOverlap(resolved)
+
+  const partner = start.find((item) => item.object_id === first.pair_id[0])
+  const neighbour = start.find((item) => item.side === partner.side && item.object_id !== partner.object_id)
+  const crowded = start.map((item) =>
+    item.object_id === first.object_id ? { ...item, solved: true, mergedInto: partner.object_id, x: partner.x, y: partner.y }
+      : item.object_id === partner.object_id ? { ...item, solved: true }
+        : item.object_id === neighbour.object_id ? { ...item, x: partner.x + 90, y: partner.y }
+          : item)
+  const merged = resolveOverlaps(crowded, partner.object_id, metrics)
+  assert.deepEqual(merged.find((item) => item.object_id === partner.object_id), crowded.find((item) => item.object_id === partner.object_id))
+  assertNoOverlap(merged)
+  assert.equal(resolveOverlaps(merged, null, metrics), merged)
+}
+console.log('overlap resolution: ok')
 
 // TC-6.5 / TC-6.6 / TC-6.7: authored audio, then on-device voice in the learning language, then tone.
 await preloadAudio({ trial_num: 0, left: [{ object_id: 'g', pos: [0, 0], target: 'g', pair_id: ['b'], audio: 'good.wav' }], right: [{ object_id: 'b', pos: [0, 0], target: 'b', pair_id: ['g'], audio: 'missing.wav' }] })

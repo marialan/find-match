@@ -23,11 +23,13 @@ assert.doesNotMatch(mobile, /\.match-object \{[\s\S]*width: 68px;/)
 assert.match(css, /\.play-area \{[\s\S]*?display: flex;/)
 assert.match(css, /\.play-area \{[\s\S]*?align-items: center;/)
 assert.match(css, /\.play-area \{[\s\S]*?justify-content: center;/)
-assert.match(css, /\.play-area:before,[\s\S]*?z-index: 0;/)
+assert.match(css, /\.play-area \{[^}]*z-index: 1;[^}]*overflow: visible;/)
+assert.doesNotMatch(css, /\.play-area:(?:before|after)/)
 assert.match(css, /\.board \{[\s\S]*?z-index: 1;/)
 assert.match(css, /\.match-object \{[\s\S]*?width: var\(--object-width, var\(--object-size\)\);/)
 assert.match(css, /\.match-object \{[\s\S]*?height: var\(--object-size\);/)
-assert.match(css, /\.word-target \{[\s\S]*?overflow-wrap: anywhere;/)
+assert.match(css, /\.word-target \{[\s\S]*?white-space: nowrap;/)
+assert.doesNotMatch(css, /\.word-target \{[^}]*overflow-wrap: anywhere;/)
 assert.match(css, /\.word-target \{[\s\S]*?font-size: var\(--word-font-size, inherit\);/)
 assert.match(css, /\.word-target \{[\s\S]*?line-height: 1\.5;/)
 
@@ -45,6 +47,7 @@ assert.match(css, /\.is-combined \.glyph-part\.right:not\(\.has-image\) \{\s*bac
 assert.match(css, /\.is-combined \.glyph-part\.has-image \{\s*background: transparent;/)
 assert.doesNotMatch(combinedRules, /font-size:/)
 assert.match(css, /\.is-combined \.glyph-part \{\s*display: grid;[\s\S]*?place-items: center;/)
+assert.match(css, /\.match-object\.is-combined\.is-celebrating \{\s*transform-origin: var\(--celebration-origin-x\) var\(--celebration-origin-y\);/)
 
 // TC-5.5: reduced motion swaps the scale celebration for a non-motion one.
 const reduced = css.match(/@media \(prefers-reduced-motion: reduce\) \{([\s\S]*?)\n\}/)?.[1]

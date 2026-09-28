@@ -80,6 +80,7 @@
 }
 .play-area {
   position: relative;
+  z-index: 1;
   display: flex;
   flex: 1 1 auto;
   align-items: center;
@@ -88,7 +89,7 @@
   max-width: 1120px;
   min-height: 0;
   margin: 0 auto;
-  overflow: hidden;
+  overflow: visible;
   border: 1px solid rgba(87, 113, 102, 0.16);
   border-radius: 28px;
   background: rgba(255, 253, 247, 0.64);
@@ -96,28 +97,6 @@
     0 18px 45px rgba(62, 76, 61, 0.11),
     inset 0 1px rgba(255, 255, 255, 0.9);
   touch-action: none;
-}
-.play-area:before,
-.play-area:after {
-  content: "";
-  position: absolute;
-  border-radius: 50%;
-  z-index: 0;
-  pointer-events: none;
-}
-.play-area:before {
-  width: 300px;
-  height: 300px;
-  left: -120px;
-  bottom: -170px;
-  background: rgba(235, 191, 105, 0.13);
-}
-.play-area:after {
-  width: 240px;
-  height: 240px;
-  right: -100px;
-  top: -120px;
-  background: rgba(121, 177, 160, 0.13);
 }
 .board-divider {
   position: absolute;
@@ -239,7 +218,7 @@
   max-width: 100%;
   padding: 0 8px;
   font-size: var(--word-font-size, inherit);
-  overflow-wrap: anywhere;
+  white-space: nowrap;
   text-align: center;
   line-height: 1.5;
 }
@@ -346,6 +325,9 @@
 .match-object.is-celebrating {
   z-index: 4;
   animation: match-celebrate 900ms ease-in-out;
+}
+.match-object.is-combined.is-celebrating {
+  transform-origin: var(--celebration-origin-x) var(--celebration-origin-y);
 }
 .match-sparkles {
   position: absolute;
