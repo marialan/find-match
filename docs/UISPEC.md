@@ -4,8 +4,8 @@
 | ---------------- | ------------------------------------------------- |
 | **Title**        | Find The Two That Match — UI Specification         |
 | **Status**       | Active — approved behavior                        |
-| **Version**      | 0.4.0                                             |
-| **Last updated** | 2026-09-23                                        |
+| **Version**      | 0.5.0                                             |
+| **Last updated** | 2026-09-28                                        |
 | **Owner/Author** | Maria Lande (with GitHub Copilot)                 |
 
 > This UISPEC is derived solely from `docs/Find-The-Two-That-Match-Spec-Brief.md`
@@ -57,13 +57,16 @@
   `pos` values so no two objects visually overlap each other or the region divider at any supported
   viewport.
 
-### 1.4 Celebration Overlay
-- Appears over the Match Board Screen when a pair is confirmed equivalent
-  (DEVSPEC Module 5).
-- Non-blocking to the rest of the board: other unsolved pairs remain visible
-  and interactive during/after the overlay (state detail: Open Question
-  UI-OQ-2).
-- Dismisses automatically; no learner action is required to continue.
+### 1.4 Celebrations
+Two distinct celebrations exist (DEVSPEC Module 5):
+- **Match celebration** — plays on the combined tile when a pair is confirmed
+  equivalent. Brief, clearly communicates that the match is correct,
+  non-blocking (other unsolved pairs remain interactive), and ends
+  automatically.
+- **Trial-complete celebration** — a board-level overlay shown after the last
+  pair is solved; visually distinct from the match celebration.
+- Both respect the user's reduced-motion preference and require no learner
+  action to continue.
 
 ## 2. States
 
@@ -72,30 +75,33 @@
 | **Idle** | Object at rest, not being dragged, not highlighted | Rendered at its authored `pos` |
 | **Dragging** | Learner has an active pointer/touch drag on the object | Object follows pointer; constrained within board bounds |
 | **Highlighted** | A dragged object is within tolerance of a candidate partner (or vice versa) | Both the dragged object and the candidate show a highlight treatment (exact visual: Open Question UI-OQ-3) |
-| **Solved** | The pair has been confirmed equivalent | Both objects show a persisted "solved" treatment; celebration overlay has played at least once |
+| **Solved** | The pair has been confirmed equivalent | The two objects are shown as one combined tile at the partner's position, displaying both matched targets; fixed in place, not draggable, tappable to hear |
 | **Returning** | A mismatched drag has ended and the object is animating back | Object animates from drop point to its exact pre-drag `pos` |
 
 ## 3. Status-dependent visibility rules
 
-- An object in the **Solved** state remains visible on the board (per DEVSPEC
-  Module 8, progress persists) — it is not removed or hidden after being
-  solved, per the source brief's "no reading is required, nothing is lost"
-  intent. (Confirm exact post-solve treatment: Open Question UI-OQ-4.)
+- A **Solved** pair remains visible on the board as a combined tile (per
+  DEVSPEC Module 8, progress persists) — it is not removed or hidden, per the
+  source brief's "no reading is required, nothing is lost" intent.
+- A combined tile stays within the board and does not overlap other objects
+  or the region divider.
 - Audio-only objects (Better tier, §1.2) are visually distinguishable from
   image objects at all times, including while Idle, Dragging, Highlighted, and
   Solved.
 - On reload mid-trial (DEVSPEC Module 8), objects previously in the Solved
-  state render directly in Solved state; all other objects render Idle.
+  state render directly as combined tiles with no celebration; all other
+  objects render Idle.
 
 ## 4. Commands / interactions
 
 | Interaction | Trigger | Result |
 |---|---|---|
-| Drag start | Pointer/touch down on an Idle or Returning-complete object | Object enters Dragging state |
+| Drag start | Pointer/touch down on an Idle or Returning-complete object (never a Solved tile) | Object enters Dragging state |
 | Drag move | Pointer/touch move while Dragging | Object follows pointer, constrained to board bounds; Highlighted state toggles based on proximity to candidates |
-| Drag release — match | Pointer/touch up while Highlighted and the candidate is equivalent (DEVSPEC Module 4) | Celebration Overlay shown; audio pronunciation plays; both objects enter Solved state |
+| Drag release — match | Pointer/touch up while Highlighted and the candidate is equivalent (DEVSPEC Module 4) | Both objects combine into one Solved tile; match celebration plays; pronunciation plays; trial-complete celebration follows if this was the last pair |
 | Drag release — mismatch | Pointer/touch up while Highlighted and the candidate is not equivalent | Negative feedback sound plays; object enters Returning state, then Idle at its original `pos` |
 | Tap (no drag) | Pointer/touch down+up on an object without intervening drag movement, Better tier+ | That object's pronunciation audio plays; no state change |
+| Tap Solved tile | Pointer/touch down+up on a combined tile | The partner's pronunciation plays; no state change |
 
 ## 5. Acceptance criteria (Gherkin)
 
@@ -106,9 +112,33 @@ Feature: Matching two equivalent objects
     Given a trial is loaded with an object A whose pair_id includes object B
     And object A is in the Idle state
     When the learner drags object A within tolerance of object B and releases
-    Then object A and object B both enter the Solved state
-    And the Celebration Overlay is shown
+    Then object A and object B combine into one Solved tile at B's position
+    And the match celebration plays on the combined tile
     And the target's pronunciation audio plays exactly once
+
+  Scenario: A combined tile cannot be dragged
+    Given a pair is shown as a combined Solved tile
+    When the learner tries to drag the tile
+    Then the tile does not move
+
+  Scenario: Tapping a combined tile replays its pronunciation
+    Given a pair is shown as a combined Solved tile
+    When the learner taps the tile
+    Then the partner's pronunciation plays exactly once
+    And the tile's state does not change
+
+  Scenario: Completing the trial shows a distinct celebration
+    Given exactly one pair remains unsolved
+    When the learner matches that pair
+    Then the match celebration plays on the combined tile
+    And the trial-complete celebration is shown and is visually distinct
+
+  Scenario: Pronunciation falls back to a generated voice
+    Given the device is offline
+    And an object's audio is missing or fails to load
+    When its pronunciation should play
+    Then an auto-generated voice speaks the object's target in the learning language
+    And if no on-device voice is available, a synthesized tone plays instead
 
   Scenario: Dragging an object onto a non-equivalent object
     Given a trial is loaded with an object A whose pair_id does not include object C
@@ -139,7 +169,7 @@ Feature: Matching two equivalent objects
   Scenario: Reloading mid-trial preserves solved pairs
     Given a trial has at least one Solved pair and at least one Idle pair
     When the game reloads
-    Then the previously Solved pair renders in the Solved state
+    Then the previously Solved pair renders as a combined tile with no celebration
     And the previously Idle pair renders in the Idle state
 
   Scenario: Loading screen clears offline within budget
@@ -161,12 +191,11 @@ Feature: Matching two equivalent objects
 | ID | Question |
 |---|---|
 | UI-OQ-1 | Exact visual affordance for an audio-only object (icon, waveform glyph, speaker icon, etc.)? |
-| UI-OQ-2 | Does the Celebration Overlay block interaction with other pairs while shown, or is it purely decorative and non-blocking? |
 | UI-OQ-3 | Exact highlight treatment (color, glow, scale) for Highlighted state? |
-| UI-OQ-4 | Does a Solved object remain interactive (draggable) afterward, or become fixed/locked in place? |
 
 ## Changelog
 
+2026-09-28 — Maria Lande (with GitHub Copilot) — Defined the Solved state as a fixed, tappable combined tile, split celebrations into a per-match and a distinct trial-complete celebration, added matching Gherkin scenarios including the generated-voice fallback, and resolved UI-OQ-2 and UI-OQ-4.
 2026-09-23 — Maria Lande (with GitHub Copilot) — Replaced aspect-ratio-preserving (letterboxed/pillarboxed) board scaling with independent width/height fill of the play area, and clarified that objects derive a single square scale factor from the more constrained axis rather than stretching with the board.
 2026-09-23 — Maria Lande (with GitHub Copilot) — Clarified that the board scales as a single aspect-ratio-preserving unit with proportionally sized (min-clamped) objects to prevent overlap on narrow viewports, and that mobile viewport containment applies to short-height landscape orientations too, not only narrow-width portrait viewports.
 2026-09-23 — Maria Lande (with GitHub Copilot) — Approved textless loading, missing-image placeholders, and mobile viewport containment.

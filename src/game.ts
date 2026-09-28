@@ -1,9 +1,10 @@
 export const PROXIMITY_TOLERANCE = 64
 export const BOARD_OBJECT_SIZE = 84
-export const BOARD_OBJECT_MIN_SIZE = 44
+export const BOARD_OBJECT_MIN_SIZE = 56
 export const BOARD_WIDTH = 1120
 export const BOARD_HEIGHT = 650
 export const ENGINE_SLUG = 'ftm'
+export const SPEECH_LANGS: Record<string, string> = { english: 'en' }
 
 // Mirrors the CSS clamp() used for .match-object sizing, so drag-clamp math always
 // matches the object's actual rendered footprint at any board scale.
@@ -33,6 +34,7 @@ export interface BoardObject extends TrialObject {
   x: number
   y: number
   solved: boolean
+  mergedInto?: string
 }
 
 export function loadBinary(url: string): Promise<ArrayBuffer> {
@@ -95,10 +97,17 @@ export function validateTrial(value: unknown): Trial {
 }
 
 export function makeBoardObjects(trial: Trial, solvedIds: Set<string>): BoardObject[] {
-  return [
+  const order = [...solvedIds]
+  const all: BoardObject[] = [
     ...trial.left.map((item) => ({ ...item, side: 'left' as const, x: item.pos[0], y: item.pos[1], solved: solvedIds.has(item.object_id) })),
     ...trial.right.map((item) => ({ ...item, side: 'right' as const, x: item.pos[0], y: item.pos[1], solved: solvedIds.has(item.object_id) })),
   ]
+  return all.map((item) => {
+    if (!item.solved) return item
+    // Pairs persist as [dragged, partner], so the later id hosts the combined tile.
+    const host = item.pair_id.find((id) => solvedIds.has(id) && order.indexOf(id) > order.indexOf(item.object_id))
+    return host ? { ...item, mergedInto: host } : item
+  })
 }
 
 export function nearestCandidate(dragged: BoardObject, objects: BoardObject[]): BoardObject | null {
@@ -134,10 +143,68 @@ export function emitContainerEvent(userId: string | null, type: 'trial_completed
   } catch { /* reporting never affects gameplay */ }
 }
 
+let audioContext: AudioContext | null = null
+const audioBuffers = new Map<string, AudioBuffer>()
+
+function getAudioContext(): AudioContext | null {
+  try {
+    if (!audioContext) {
+      const AudioContextClass = window.AudioContext || window.webkitAudioContext
+      audioContext = new AudioContextClass()
+    }
+    if (audioContext.state === 'suspended') void audioContext.resume()
+    return audioContext
+  } catch { return null }
+}
+
+export async function preloadAudio(trial: Trial): Promise<void> {
+  // Some browsers populate the voice list lazily; asking early warms it up.
+  try { window.speechSynthesis?.getVoices() } catch { /* no speech support */ }
+  const context = getAudioContext()
+  if (!context) return
+  const paths = new Set([...trial.left, ...trial.right].flatMap((item) => (item.audio ? [item.audio] : [])))
+  await Promise.allSettled([...paths].map(async (path) => {
+    audioBuffers.set(path, await context.decodeAudioData(await loadBinary(path)))
+  }))
+}
+
+// Only on-device voices, since network voices fail offline.
+function speak(text: string, langCode: string): boolean {
+  try {
+    if (!('speechSynthesis' in window)) return false
+    const lang = SPEECH_LANGS[langCode] ?? SPEECH_LANGS.english
+    const voice = window.speechSynthesis
+      .getVoices()
+      .find((candidate) => candidate.localService && candidate.lang.toLowerCase().startsWith(lang))
+    if (!voice) return false
+    const utterance = new SpeechSynthesisUtterance(text)
+    utterance.voice = voice
+    utterance.lang = voice.lang
+    window.speechSynthesis.cancel()
+    window.speechSynthesis.speak(utterance)
+    return true
+  } catch { return false }
+}
+
+export function playPronunciation(item: Pick<TrialObject, 'audio' | 'target'>, langCode: string): void {
+  const buffer = item.audio ? audioBuffers.get(item.audio) : undefined
+  const context = getAudioContext()
+  if (buffer && context) {
+    try {
+      const source = context.createBufferSource()
+      source.buffer = buffer
+      source.connect(context.destination)
+      source.start()
+      return
+    } catch { /* fall through to generated voice */ }
+  }
+  if (!speak(item.target, langCode)) playTone('target')
+}
+
 export function playTone(kind: 'match' | 'miss' | 'target'): void {
   try {
-    const AudioContextClass = window.AudioContext || window.webkitAudioContext
-    const context = new AudioContextClass()
+    const context = getAudioContext()
+    if (!context) return
     const oscillator = context.createOscillator()
     const gain = context.createGain()
     const notes = kind === 'match' ? [523, 659, 784] : kind === 'miss' ? [180, 130] : [440]
