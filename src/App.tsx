@@ -1,10 +1,13 @@
 import { useEffect, useRef, useState } from "react";
+import type { ReactNode } from "react";
 import {
   BOARD_HEIGHT,
+  BOARD_IMAGE_OBJECT_SIZE,
   BOARD_OBJECT_MIN_SIZE,
   BOARD_OBJECT_SIZE,
   BOARD_WIDTH,
   boardObjectSize,
+  boardObjectWidth,
   emitContainerEvent,
   loadTrial,
   makeBoardObjects,
@@ -27,13 +30,14 @@ const TRIAL_PATH = trialPath(
 );
 const AUDIO_ICON = "🔊";
 
-function glyphFor(item: BoardObject): string {
-  return item.type === "audio" ? AUDIO_ICON : item.target;
-}
-
 function labelFor(item: BoardObject): string {
   return item.type === "audio" ? "Play sound" : item.target;
 }
+
+function targetFontSize(width: number, targetLength: number, height: number): number {
+  return Math.min(54, height * 0.5, Math.max(12, (width - 20) / (targetLength * 0.7)));
+}
+
 type DragState = {
   id: string;
   offsetX: number;
@@ -54,6 +58,7 @@ function App() {
   const [candidateId, setCandidateId] = useState<string | null>(null);
   const [celebration, setCelebration] = useState<string | null>(null);
   const [celebratingId, setCelebratingId] = useState<string | null>(null);
+  const [missingImages, setMissingImages] = useState<Set<string>>(() => new Set());
   const [error, setError] = useState<string | null>(null);
   const [scale, setScale] = useState(1);
   const playAreaRef = useRef<HTMLDivElement>(null);
@@ -135,10 +140,13 @@ function App() {
     if (!point) return;
     const width = boardRef.current?.clientWidth ?? BOARD_WIDTH;
     const height = boardRef.current?.clientHeight ?? BOARD_HEIGHT;
-    // Object size follows the same clamp() the CSS uses, so the design-space half-size
-    // matches the object's actual rendered footprint at any board scale.
-    const halfWidth = (boardObjectSize(scale) / 2) * (BOARD_WIDTH / width);
-    const halfHeight = (boardObjectSize(scale) / 2) * (BOARD_HEIGHT / height);
+    const maxSize = objects.some((item) => item.image)
+      ? BOARD_IMAGE_OBJECT_SIZE
+      : BOARD_OBJECT_SIZE;
+    const moved = objects.find((item) => item.object_id === drag.id);
+    if (!moved) return;
+    const halfWidth = (boardObjectWidth(moved, objects, scale, maxSize) / 2) * (BOARD_WIDTH / width);
+    const halfHeight = (boardObjectSize(scale, maxSize) / 2) * (BOARD_HEIGHT / height);
     const x = Math.max(
       halfWidth,
       Math.min(
@@ -153,8 +161,6 @@ function App() {
         BOARD_HEIGHT - halfHeight,
       ),
     );
-    const moved = objects.find((item) => item.object_id === drag.id);
-    if (!moved) return;
     const next = { ...moved, x, y };
     setObjects((current) =>
       current.map((item) => (item.object_id === drag.id ? next : item)),
@@ -247,6 +253,24 @@ function App() {
     setCelebratingId(null);
   }
 
+  function contentFor(item: BoardObject): ReactNode {
+    if (item.type === "audio") return AUDIO_ICON;
+    if (!item.image) return <span className="word-target">{item.target}</span>;
+    if (missingImages.has(item.object_id))
+      return <span className="image-placeholder" aria-hidden="true" />;
+    return (
+      <img
+        className="object-image"
+        src={item.image}
+        alt=""
+        draggable={false}
+        onError={() =>
+          setMissingImages((current) => new Set(current).add(item.object_id))
+        }
+      />
+    );
+  }
+
   if (error)
     return (
       <main className="status-screen">
@@ -264,6 +288,9 @@ function App() {
     );
 
   const solvedCount = objects.filter((item) => item.solved).length / 2;
+  const maxObjectSize = objects.some((item) => item.image)
+    ? BOARD_IMAGE_OBJECT_SIZE
+    : BOARD_OBJECT_SIZE;
 
   return (
     <main className="game-shell">
@@ -289,7 +316,7 @@ function App() {
           style={{
             ...({
               "--board-scale": scale,
-              "--board-object-max": `${BOARD_OBJECT_SIZE}px`,
+              "--board-object-max": `${maxObjectSize}px`,
               "--board-object-min": `${BOARD_OBJECT_MIN_SIZE}px`,
             } as React.CSSProperties),
           }}
@@ -309,18 +336,34 @@ function App() {
                 ? [item, merged]
                 : [merged, item]
               : null;
+            const itemWidth = boardObjectWidth(item, objects, scale, maxObjectSize);
+            const itemHeight = boardObjectSize(scale, maxObjectSize);
+            const pairWidths = pair?.map((part) => boardObjectWidth(part, objects, scale, maxObjectSize));
+            const combinedWidth = pairWidths?.reduce((total, width) => total + width, 0) ?? 0;
             const isCelebrating = celebratingId === item.object_id;
             return (
               <button
                 key={item.object_id}
-                className={`match-object ${item.side} ${active ? "is-dragging" : ""} ${isReturning ? "is-returning" : ""} ${highlighted ? "is-highlighted" : ""} ${item.solved ? "is-solved" : ""} ${pair ? "is-combined" : ""} ${isCelebrating ? "is-celebrating" : ""}`}
+                className={`match-object ${item.side} ${item.image ? "has-image" : ""} ${active ? "is-dragging" : ""} ${isReturning ? "is-returning" : ""} ${highlighted ? "is-highlighted" : ""} ${item.solved ? "is-solved" : ""} ${pair ? "is-combined" : ""} ${isCelebrating ? "is-celebrating" : ""}`}
                 style={{
                   left: pair
                     ? item.side === "left"
-                      ? `clamp(var(--object-size), ${(item.x / BOARD_WIDTH) * 100}%, calc(50% - var(--object-size)))`
-                      : `clamp(calc(50% + var(--object-size)), ${(item.x / BOARD_WIDTH) * 100}%, calc(100% - var(--object-size)))`
+                      ? `clamp(var(--combined-half-width), ${(item.x / BOARD_WIDTH) * 100}%, calc(50% - var(--combined-half-width)))`
+                      : `clamp(calc(50% + var(--combined-half-width)), ${(item.x / BOARD_WIDTH) * 100}%, calc(100% - var(--combined-half-width)))`
                     : `${(item.x / BOARD_WIDTH) * 100}%`,
                   top: `${(item.y / BOARD_HEIGHT) * 100}%`,
+                  ...({
+                    "--object-width": `${itemWidth}px`,
+                    "--word-font-size": `${targetFontSize(itemWidth, item.target.length, itemHeight)}px`,
+                    ...(pair && pairWidths
+                      ? {
+                          "--combined-width": `${combinedWidth}px`,
+                          "--combined-half-width": `${combinedWidth / 2}px`,
+                          "--combined-first-width": `${pairWidths[0]}px`,
+                          "--combined-second-width": `${pairWidths[1]}px`,
+                        }
+                      : {}),
+                  } as React.CSSProperties),
                 }}
                 onPointerDown={(event) => startDrag(event, item)}
                 onAnimationEnd={(event) => {
@@ -342,11 +385,22 @@ function App() {
                 <span className="object-glyph">
                   {pair
                     ? pair.map((part) => (
-                        <span key={part.object_id} className={`glyph-part ${part.side}`}>
-                          {glyphFor(part)}
+                        <span key={part.object_id} className={`glyph-part ${part.side} ${part.image ? "has-image" : ""}`}>
+                          <span
+                            className="glyph-content"
+                            style={{
+                              "--word-font-size": `${targetFontSize(
+                                pairWidths?.[pair.indexOf(part)] ?? itemHeight,
+                                part.target.length,
+                                itemHeight,
+                              )}px`,
+                            } as React.CSSProperties}
+                          >
+                            {contentFor(part)}
+                          </span>
                         </span>
                       ))
-                    : glyphFor(item)}
+                    : contentFor(item)}
                 </span>
                 {isCelebrating && (
                   <span className="match-sparkles" aria-hidden="true">

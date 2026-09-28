@@ -49,7 +49,7 @@ globalThis.window = {
 globalThis.SpeechSynthesisUtterance = class { constructor(text) { this.text = text } }
 globalThis.XMLHttpRequest = FakeXHR
 
-const { makeBoardObjects, playPronunciation, preloadAudio, trialNumberFromSearch, trialPath: buildTrialPath, validateTrial } = await import('../src/game.ts')
+const { boardObjectSize, boardObjectWidth, makeBoardObjects, nearestCandidate, playPronunciation, preloadAudio, trialNumberFromSearch, trialPath: buildTrialPath, validateTrial } = await import('../src/game.ts')
 
 // TC-1.4: type defaults to letter; unknown types are rejected.
 assert.ok(validateTrial(trial).left.every((item) => item.type === 'letter'))
@@ -75,6 +75,53 @@ for (const item of trial2.left) {
   assert.ok(fs.existsSync(path.join(root, 'public', item.audio)), `Missing audio ${item.audio}`)
 }
 console.log('audio-only trial: ok')
+
+// TC-7.1 / TC-7.2: trial 3 loads real word/image pairs and their language assets.
+const trial3 = validateTrial(JSON.parse(fs.readFileSync(path.join(root, 'public', 'lang', 'english', 'trials', 'trial-3.json'), 'utf8')))
+const trial3Objects = makeBoardObjects(trial3, new Set())
+assert.equal(trial3.trial_num, 3)
+assert.deepEqual(trial3.left.map((item) => item.target), ['bat', 'cat', 'hat', 'hippopotamus'])
+for (const word of trial3.left) {
+  const picture = trial3Objects.find((item) => item.object_id === word.pair_id[0])
+  const wordObject = trial3Objects.find((item) => item.object_id === word.object_id)
+  assert.ok(picture?.image, `Missing picture pair for ${word.target}`)
+  assert.ok(picture.pair_id.includes(word.object_id), `Pair is not reciprocal for ${word.target}`)
+  assert.equal(picture.target, word.target)
+  assert.ok(fs.existsSync(path.join(root, 'public', picture.image)), `Missing image ${picture.image}`)
+  assert.ok(fs.existsSync(path.join(root, 'public', word.audio)), `Missing pronunciation ${word.audio}`)
+  assert.equal(nearestCandidate({ ...wordObject, x: picture.x, y: picture.y }, trial3Objects)?.object_id, picture.object_id)
+}
+assert.ok(fs.existsSync(path.join(root, 'public', 'lang/english/images/hippopotamus.png')))
+assert.ok(fs.existsSync(path.join(root, 'public', 'lang/english/audios/hippopotamus.wav')))
+console.log('word-image trial and media: ok')
+
+// TC-2.3: long text cards grow while the combined word/image card stays in its region.
+const longWordTrial = validateTrial({
+  trial_num: 4,
+  left: [
+    { object_id: 'word-cat-short', pos: [250, 190], target: 'cat', pair_id: ['picture-cat-short'] },
+    { object_id: 'word-hippopotamus', pos: [250, 460], target: 'hippopotamus', pair_id: ['picture-hippopotamus'] },
+  ],
+  right: [
+    { object_id: 'picture-cat-short', pos: [820, 190], target: 'cat', image: 'cat.png', pair_id: ['word-cat-short'] },
+    { object_id: 'picture-hippopotamus', pos: [820, 460], target: 'hippopotamus', image: 'hippopotamus.png', pair_id: ['word-hippopotamus'] },
+  ],
+})
+const longWordObjects = makeBoardObjects(longWordTrial, new Set())
+const shortWord = longWordObjects.find((item) => item.object_id === 'word-cat-short')
+const longWord = longWordObjects.find((item) => item.object_id === 'word-hippopotamus')
+const shortPicture = longWordObjects.find((item) => item.object_id === 'picture-cat-short')
+const longPicture = longWordObjects.find((item) => item.object_id === 'picture-hippopotamus')
+assert.ok(shortWord && longWord && shortPicture && longPicture)
+for (const scale of [1, 0.409, 0.325]) {
+  const size = boardObjectSize(scale, 176)
+  const shortWidth = boardObjectWidth(shortWord, longWordObjects, scale, 176)
+  const longWidth = boardObjectWidth(longWord, longWordObjects, scale, 176)
+  assert.ok(longWidth > shortWidth)
+  assert.ok(longWidth + boardObjectWidth(longPicture, longWordObjects, scale, 176) <= 496 * size / 176)
+  assert.equal(boardObjectWidth(longPicture, longWordObjects, scale, 176), size)
+}
+console.log('long target tile sizing: ok')
 
 // TC-8.2: solved pairs restore as one combined tile hosted by the partner (later id).
 const board = makeBoardObjects(validateTrial(trial), new Set(['left-a-lower', 'right-a-upper']))

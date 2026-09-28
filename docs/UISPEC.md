@@ -4,7 +4,7 @@
 | ---------------- | ------------------------------------------------- |
 | **Title**        | Find The Two That Match — UI Specification         |
 | **Status**       | Active — approved behavior                        |
-| **Version**      | 0.6.0                                             |
+| **Version**      | 0.7.1                                             |
 | **Last updated** | 2026-09-28                                        |
 | **Owner/Author** | Maria Lande (with GitHub Copilot)                 |
 
@@ -37,6 +37,12 @@
     name is "Play sound" so it does not reveal the answer.
 - If an image is missing or corrupt, the object renders a neutral placeholder
   that remains available for dragging, highlighting, matching, and tap-to-hear.
+- Image-containing trials use larger cards. Text cards widen with their target
+  text, and long targets wrap within the available region width; image cards
+  remain square. Combined cards allocate room for both contents without
+  crossing the region divider.
+- Image-backed cards and image segments in combined cards have a transparent
+  surface; text segments retain their side color.
 - The board's usable area never allows an object's rest or dragged position to
   extend past its visible bounds (DEVSPEC Module 3).
 
@@ -51,12 +57,11 @@
 - The board resizes responsively while preserving both regions and keeps every
   object's rendered bounds inside the board.
 - The board fills the full width and height of its containing play area
-  independently on each axis. Every object's visual size scales uniformly from a 
-  single scale factor derived from the more constrained axis (width or height), 
-  so objects stay visually square and never stretch, within an accessible minimum 
-  tap-target size. This keeps objects spaced consistently with their authored 
-  `pos` values so no two objects visually overlap each other or the region divider at any supported
-  viewport.
+  independently on each axis. Card height scales uniformly from a single scale
+  factor derived from the more constrained axis (width or height). Text-card
+  width may grow with target length, bounded by available region space; image
+  cards stay square. This keeps authored positions usable without object or
+  divider overlap at supported viewport sizes.
 
 ### 1.4 Celebrations
 Two distinct celebrations exist (DEVSPEC Module 5):
@@ -202,6 +207,8 @@ Feature: Matching two equivalent objects
 
 ## Changelog
 
+2026-09-28 — Maria Lande (with GitHub Copilot) — Specified transparent surfaces for image cards and combined image segments.
+2026-09-28 — Maria Lande (with GitHub Copilot) — Specified larger image-trial cards and text cards that grow and wrap to fit longer targets.
 2026-09-28 — Maria Lande (with GitHub Copilot) — Added letter objects and the interim 🔊 audio-only treatment with a non-revealing accessible name, defined the 🔊 + letter combined tile, added the audio-to-letter matching scenario, and narrowed UI-OQ-1 to final icon artwork.
 2026-09-28 — Maria Lande (with GitHub Copilot) — Defined the Solved state as a fixed, tappable combined tile, split celebrations into a per-match and a distinct trial-complete celebration, added matching Gherkin scenarios including the generated-voice fallback, and resolved UI-OQ-2 and UI-OQ-4.
 2026-09-23 — Maria Lande (with GitHub Copilot) — Replaced aspect-ratio-preserving (letterboxed/pillarboxed) board scaling with independent width/height fill of the play area, and clarified that objects derive a single square scale factor from the more constrained axis rather than stretching with the board.

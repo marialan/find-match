@@ -1,15 +1,47 @@
 export const PROXIMITY_TOLERANCE = 64
 export const BOARD_OBJECT_SIZE = 84
+export const BOARD_IMAGE_OBJECT_SIZE = 176
 export const BOARD_OBJECT_MIN_SIZE = 56
 export const BOARD_WIDTH = 1120
 export const BOARD_HEIGHT = 650
+const BOARD_CENTER = BOARD_WIDTH / 2
+const DIVIDER_CLEARANCE = 12
 export const ENGINE_SLUG = 'ftm'
 export const SPEECH_LANGS: Record<string, string> = { english: 'en' }
 
 // Mirrors the CSS clamp() used for .match-object sizing, so drag-clamp math always
 // matches the object's actual rendered footprint at any board scale.
-export function boardObjectSize(scale: number): number {
-  return Math.min(BOARD_OBJECT_SIZE, Math.max(BOARD_OBJECT_MIN_SIZE, BOARD_OBJECT_SIZE * scale))
+export function boardObjectSize(scale: number, maxSize = BOARD_OBJECT_SIZE): number {
+  return Math.min(maxSize, Math.max(BOARD_OBJECT_MIN_SIZE, maxSize * scale))
+}
+
+export function boardObjectWidth(
+  item: BoardObject,
+  objects: BoardObject[],
+  scale: number,
+  maxSize = BOARD_OBJECT_SIZE,
+): number {
+  const size = boardObjectSize(scale, maxSize)
+  if (item.type === 'audio' || item.image) return size
+
+  const scaleFactor = size / maxSize
+  const desiredWidth = size + Math.max(0, item.target.length - 3) * size * 0.3
+  const sideWidth = (x: number) =>
+    Math.max(0, 2 * Math.min(x, BOARD_WIDTH - x, Math.abs(x - BOARD_CENTER) - DIVIDER_CLEARANCE) * scaleFactor)
+  const ownLimit = sideWidth(item.pos[0])
+  const partnerLimit = item.pair_id
+    .map((id) => objects.find((candidate) => candidate.object_id === id))
+    .filter((candidate): candidate is BoardObject => candidate !== undefined)
+    .map((candidate) => {
+      const candidateDesiredWidth = candidate.type === 'audio' || candidate.image
+        ? size
+        : size + Math.max(0, candidate.target.length - 3) * size * 0.3
+      const candidateWidth = Math.min(candidateDesiredWidth, sideWidth(candidate.pos[0]))
+      return sideWidth(candidate.pos[0]) - candidateWidth
+    })
+    .reduce((widest, limit) => Math.max(widest, limit), 0)
+  const maxWidth = Math.min(ownLimit, partnerLimit || ownLimit)
+  return Math.max(size, Math.min(desiredWidth, maxWidth))
 }
 
 export type Side = 'left' | 'right'
