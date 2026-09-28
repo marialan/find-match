@@ -49,18 +49,65 @@ globalThis.window = {
 globalThis.SpeechSynthesisUtterance = class { constructor(text) { this.text = text } }
 globalThis.XMLHttpRequest = FakeXHR
 
-const { MIN_WORD_FONT_SIZE, boardObjectSize, boardObjectWidth, boardScale, makeBoardObjects, nearestCandidate, playPronunciation, preloadAudio, resolveOverlaps, trialNumberFromSearch, trialPath: buildTrialPath, validateTrial, wordFontSize } = await import('../src/game.ts')
+const { MIN_WORD_FONT_SIZE, boardObjectSize, boardObjectWidth, boardScale, isTrialCompleted, loadTrialIndex, makeBoardObjects, nearestCandidate, nextTrialNumber, pageCount, playPronunciation, preloadAudio, resolveOverlaps, trialIndexPath: buildTrialIndexPath, trialNumberFromSearch, trialPath: buildTrialPath, trialsForPage, validateTrial, validateTrialIndex, wordFontSize, writeSolvedIds, writeTrialTotal } = await import('../src/game.ts')
 
 // TC-1.4: type defaults to letter; unknown types are rejected.
 assert.ok(validateTrial(trial).left.every((item) => item.type === 'letter'))
 assert.throws(() => validateTrial({ ...trial, left: [{ ...trial.left[0], type: 'video' }, ...trial.left.slice(1)] }), /Invalid type/)
 console.log('object type validation: ok')
 
-// TC-1.5: trial query parameter selects the trial file, falling back to 1.
+// TC-1.5: trial query parameter selects the trial file; anything else shows the selector.
 assert.equal(trialNumberFromSearch('?trial=2'), 2)
-for (const search of ['', '?trial=0', '?trial=-1', '?trial=abc', '?trial=2.5']) assert.equal(trialNumberFromSearch(search), 1)
+for (const search of ['', '?trial=0', '?trial=-1', '?trial=abc', '?trial=2.5']) assert.equal(trialNumberFromSearch(search), null)
 assert.equal(buildTrialPath('english', 2), 'lang/english/trials/trial-2.json')
 console.log('trial selection: ok')
+
+// TC-1.6 / TC-11.1 / TC-11.3: trial index parsing, pagination, and next-trial lookup.
+const shippedIndex = JSON.parse(fs.readFileSync(path.join(root, 'public', 'lang', 'english', 'trials', 'index.json'), 'utf8'))
+assert.deepEqual(validateTrialIndex(shippedIndex), shippedIndex.trials)
+for (const trialNum of shippedIndex.trials) {
+  const file = path.join(root, 'public', buildTrialPath('english', trialNum))
+  assert.ok(fs.existsSync(file), `Missing trial-${trialNum}.json`)
+  const shipped = validateTrial(JSON.parse(fs.readFileSync(file, 'utf8')))
+  assert.equal(shipped.trial_num, trialNum)
+  for (const item of [...shipped.left, ...shipped.right]) {
+    for (const asset of [item.image, item.audio].filter(Boolean)) {
+      assert.ok(fs.existsSync(path.join(root, 'public', asset)), `Missing ${asset} in trial-${trialNum}.json`)
+    }
+  }
+}
+assert.deepEqual(validateTrialIndex({ trials: [3, 1, 1, 2] }), [1, 2, 3])
+for (const bad of [{}, { trials: [] }, { trials: [0] }, { trials: [1.5] }, { trials: ['1'] }]) {
+  assert.throws(() => validateTrialIndex(bad), /Trial index/)
+}
+assert.deepEqual(await loadTrialIndex('missing-index.json'), [1])
+assert.equal(buildTrialIndexPath('english'), 'lang/english/trials/index.json')
+
+const thirteen = Array.from({ length: 13 }, (_, index) => index + 1)
+assert.equal(pageCount(thirteen.length), 2)
+assert.equal(pageCount(12), 1)
+assert.equal(pageCount(0), 1)
+assert.deepEqual(trialsForPage(thirteen, 0), thirteen.slice(0, 12))
+assert.deepEqual(trialsForPage(thirteen, 1), [13])
+assert.equal(nextTrialNumber([1, 2, 3], 2), 3)
+assert.equal(nextTrialNumber([1, 2, 3], 3), null)
+console.log('trial index and pagination: ok')
+
+// TC-8.3: completion is derived from the persisted solved ids and trial size.
+const store = new Map()
+globalThis.localStorage = {
+  getItem: (key) => (store.has(key) ? store.get(key) : null),
+  setItem: (key, value) => store.set(key, String(value)),
+}
+assert.equal(isTrialCompleted(1), false)
+writeTrialTotal(1, 6)
+writeSolvedIds(1, new Set(['a', 'b', 'c', 'd']))
+assert.equal(isTrialCompleted(1), false)
+writeSolvedIds(1, new Set(['a', 'b', 'c', 'd', 'e', 'f']))
+assert.equal(isTrialCompleted(1), true)
+writeSolvedIds(1, new Set())
+assert.equal(isTrialCompleted(1), false)
+console.log('trial completion marking: ok')
 
 // TC-6.1 / TC-6.3: trial-2 pairs every audio-only object with a letter on the other side.
 const trial2 = validateTrial(JSON.parse(fs.readFileSync(path.join(root, 'public', 'lang', 'english', 'trials', 'trial-2.json'), 'utf8')))

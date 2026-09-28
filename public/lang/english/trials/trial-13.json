@@ -1,0 +1,13 @@
+{
+  "trial_num": 13,
+  "left": [
+    { "object_id": "word-hippopotamus", "pos": [300, 160], "target": "hippopotamus", "pair_id": ["picture-hippopotamus"], "audio": "lang/english/audios/hippopotamus.wav" },
+    { "object_id": "word-hat", "pos": [250, 350], "target": "hat", "pair_id": ["picture-hat"], "audio": "lang/english/audios/hat.wav" },
+    { "object_id": "left-m-lower", "pos": [250, 540], "target": "m", "pair_id": ["right-m-upper"], "audio": "lang/english/audios/m.wav" }
+  ],
+  "right": [
+    { "object_id": "right-m-upper", "pos": [880, 160], "target": "M", "pair_id": ["left-m-lower"], "audio": "lang/english/audios/m.wav" },
+    { "object_id": "picture-hippopotamus", "pos": [880, 350], "target": "hippopotamus", "pair_id": ["word-hippopotamus"], "image": "lang/english/images/hippopotamus.png", "audio": "lang/english/audios/hippopotamus.wav" },
+    { "object_id": "picture-hat", "pos": [880, 540], "target": "hat", "pair_id": ["word-hat"], "image": "lang/english/images/hat.png", "audio": "lang/english/audios/hat.wav" }
+  ]
+}

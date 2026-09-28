@@ -1,0 +1,15 @@
+{
+  "trial_num": 5,
+  "left": [
+    { "object_id": "left-n-lower", "pos": [190, 170], "target": "n", "pair_id": ["right-n-upper"] },
+    { "object_id": "left-p-lower", "pos": [190, 430], "target": "p", "pair_id": ["right-p-upper"] },
+    { "object_id": "left-r-lower", "pos": [410, 170], "target": "r", "pair_id": ["right-r-upper"] },
+    { "object_id": "left-d-lower", "pos": [410, 430], "target": "d", "pair_id": ["right-d-upper"] }
+  ],
+  "right": [
+    { "object_id": "right-d-upper", "pos": [710, 170], "target": "D", "pair_id": ["left-d-lower"] },
+    { "object_id": "right-r-upper", "pos": [710, 430], "target": "R", "pair_id": ["left-r-lower"] },
+    { "object_id": "right-n-upper", "pos": [930, 170], "target": "N", "pair_id": ["left-n-lower"] },
+    { "object_id": "right-p-upper", "pos": [930, 430], "target": "P", "pair_id": ["left-p-lower"] }
+  ]
+}

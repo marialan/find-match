@@ -4,7 +4,7 @@
 | ---------------- | --------------------------------------------------- |
 | **Title**        | Find The Two That Match — Test Specification         |
 | **Status**       | Active — approved behavior                          |
-| **Version**      | 0.6.2                                               |
+| **Version**      | 0.7.0                                               |
 | **Last updated** | 2026-09-28                                          |
 | **Owner/Author** | Maria Lande (with GitHub Copilot)                   |
 
@@ -24,6 +24,8 @@
 | `trial-mixed-great.json` | Includes word, picture, and rhyme objects (Great tier) — covers Module 7 |
 | `trial-missing-asset.json` | References an audio/image path that does not exist on disk — covers DEVSPEC §5 error handling |
 | Sample audio/image files under `lang/english/audios/` and `lang/english/images/` matching the fixtures above | Referenced by the fixtures |
+| `trials-index.json` | Trial index listing the shipped trials (DEVSPEC §2.3). Shipped as `lang/english/trials/index.json` — covers Module 11 |
+| `trials-index-13.json` | Index listing 13 trials — pagination test input for Module 11 |
 
 ## 2. Unit test cases (per DEVSPEC module)
 
@@ -37,7 +39,10 @@
 - TC-1.4: An object with no `type` loads as `"letter"`; an object with an
   unknown `type` makes the trial invalid.
 - TC-1.5: `?trial=2` selects `trial-2.json`; an absent or invalid `trial`
-  value selects trial 1.
+  value selects no trial and the Trial Selector screen is shown instead.
+- TC-1.6: A valid trial index parses to an ascending, de-duplicated list of
+  trial numbers; an index that is missing, unparsable, empty, or contains a
+  non-positive/non-integer entry falls back to `[1]` without throwing.
 
 ### Module 2 — Match Board Renderer
 - TC-2.1: Every object in a loaded trial renders at its authored `pos`
@@ -117,6 +122,9 @@
 - TC-8.1: Completing a pair persists its solved state to `localStorage`.
 - TC-8.2: Reloading the page restores every previously solved pair as a
   combined tile with no celebration and leaves other pairs Idle.
+- TC-8.3: Playing a trial persists its total object count, so a trial reports
+  completed only when its persisted solved count equals that total; resetting
+  a trial makes it report not completed again.
 
 ### Module 9 — Container Integration
 - TC-9.1: Launching with `?cr_lang=english&cr_user_id=abc123` results in the
@@ -144,6 +152,16 @@
 - TC-10.2: The built language ZIP contains only `lang/<langCode>/...` paths.
 - TC-10.3: Extracting the engine ZIP and one language ZIP into a single
   directory produces no overwritten files.
+
+### Module 11 — Trial Selector & Navigation
+- TC-11.1: With 13 indexed trials, page 1 yields trials 1–12 and page 2
+  yields trial 13; page count is 2. With 12 or fewer trials, page count is 1.
+- TC-11.2: A trial whose persisted progress marks every object solved reports
+  completed; a partially solved and an unplayed trial do not.
+- TC-11.3: The next trial for a given trial is the next number in the index;
+  the last indexed trial has none.
+- TC-11.4: Selecting a trial sets the `trial` query parameter and returning to
+  the selector clears it, with no network request in either direction.
 
 ## 3. UI acceptance test cases (per UISPEC Gherkin scenarios)
 
@@ -174,6 +192,15 @@ input:
   combined tile replays its pronunciation", "Completing the trial shows a
   distinct celebration", and "Pronunciation falls back to a generated voice" — same
   fixtures as UI-TC-1.
+- UI-TC-13: "Choosing a trial from the selector" and "Paging through more than
+  12 trials" — launch with no `trial` parameter; assert at most 12 tiles, the
+  page indicator, disabled edge controls, and that tapping a tile opens that
+  trial.
+- UI-TC-14: "A completed trial is marked in the selector", "Returning to the
+  selector from a trial", and "Advancing to the next trial" — complete a
+  trial, assert the green checkmark tile, the back control returns to the
+  selector with progress intact, and the next-trial control appears only on
+  completion and never on the last indexed trial.
 
 ## 4. Dry-run protocol (offline verification)
 
@@ -226,6 +253,7 @@ above, every relevant UISPEC Gherkin scenario passes, and the dry-run protocol
 
 ## Changelog
 
+2026-09-28 — Maria Lande (with GitHub Copilot) — Added trial-index fixtures and coverage for trial-index parsing and fallback, persisted trial size for completion marking, selector pagination and navigation (TC-1.6, TC-8.3, TC-11.1–11.4, UI-TC-13–14), and updated TC-1.5 for selector-first launch.
 2026-09-28 — Maria Lande (with GitHub Copilot) — Added coverage for transparent image surfaces in standalone and combined cards.
 2026-09-28 — Maria Lande (with GitHub Copilot) — Added regression coverage for clipped combined-image corners and board/decorative stacking.
 2026-09-28 — Maria Lande (with GitHub Copilot) — Added coverage for larger image cards, long target text, and bounded combined-tile layout across viewport sizes.

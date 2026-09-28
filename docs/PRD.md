@@ -4,7 +4,7 @@
 | ---------------- | --------------------------------------------------- |
 | **Title**        | Find The Two That Match — Product Requirements Document |
 | **Status**       | Active — approved behavior                          |
-| **Version**      | 0.3.0                                               |
+| **Version**      | 0.4.0                                               |
 | **Last updated** | 2026-09-28                                          |
 | **Owner/Author** | Maria Lande (with GitHub Copilot)                   |
 
@@ -110,6 +110,10 @@ assumes the previous tier's requirements are met.
 - An object cannot be dragged off-screen.
 - Trial content (both columns, positions, and equivalences) is supplied via a
   JSON input file.
+- A trial selector lists the trials the language pack ships, a maximum of 12
+  per page with page navigation when there are more, and marks trials the
+  learner has already completed. A trial can be left at any time and, once
+  complete, leads directly into the next trial.
 
 ### Better (adds to MVP)
 - Audio-only objects can be displayed in the UI (an object with no visible
@@ -169,6 +173,7 @@ assumes the previous tier's requirements are met.
 
 ## Changelog
 
+2026-09-28 — Maria Lande (with GitHub Copilot) — Added the paginated trial selector with completed-trial marking and in-trial back/next navigation to MVP scope.
 2026-09-28 — Maria Lande (with GitHub Copilot) — Specified that a correct match combines the pair into one tappable, non-draggable tile with match feedback, and that trial completion has its own distinct celebration.
 2026-09-23 — Maria Lande (with GitHub Copilot) — Approved language fallback, tier support, degraded asset handling, event counts, textless loading, and mobile viewport containment.
 2026-09-23 — Maria Lande (with GitHub Copilot) — Initial draft, derived solely from Find-The-Two-That-Match-Spec-Brief.md and third-party-game-spec.md.
