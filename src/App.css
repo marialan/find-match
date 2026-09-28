@@ -238,6 +238,7 @@
   filter: saturate(0.7);
 }
 .match-object.is-combined {
+  width: calc(var(--object-size) * 2);
   cursor: pointer;
   opacity: 1;
 }
@@ -245,13 +246,14 @@
   transform: translate(-50%, -50%);
 }
 .is-combined .object-glyph {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  gap: 0.12em;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   background: linear-gradient(90deg, #f4bf5f 50%, #70a899 50%);
-  font-size: clamp(18px, calc(var(--object-size, 84px) * 0.4), 34px);
   filter: none;
+}
+.is-combined .glyph-part {
+  display: grid;
+  place-items: center;
+  min-width: 0;
 }
 .match-object.is-celebrating {
   z-index: 4;

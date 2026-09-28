@@ -23,13 +23,15 @@ assert.doesNotMatch(mobile, /\.match-object \{[\s\S]*width: 68px;/)
 assert.match(css, /\.play-area \{[\s\S]*?display: flex;/)
 assert.match(css, /\.play-area \{[\s\S]*?align-items: center;/)
 assert.match(css, /\.play-area \{[\s\S]*?justify-content: center;/)
-assert.match(css, /\.match-object \{[\s\S]*?width: clamp\(\s*var\(--board-object-min/)
-assert.match(css, /\.match-object \{[\s\S]*?height: clamp\(\s*var\(--board-object-min/)
+assert.match(css, /\.match-object \{[\s\S]*?width: var\(--object-size\);/)
+assert.match(css, /\.match-object \{[\s\S]*?height: var\(--object-size\);/)
 
-// TC-2.2: the combined tile keeps the single-object footprint so it cannot add overlap.
 const combinedRules = [...css.matchAll(/\.is-combined[^{]*\{([^}]*)\}/g)].map((match) => match[1]).join('\n')
 assert.ok(combinedRules, 'combined tile rules are missing')
-assert.doesNotMatch(combinedRules, /(^|\s)(width|height):/)
+assert.match(combinedRules, /width: calc\(var\(--object-size\) \* 2\);/)
+assert.match(combinedRules, /grid-template-columns: repeat\(2, minmax\(0, 1fr\)\);/)
+assert.doesNotMatch(combinedRules, /font-size:/)
+assert.match(css, /\.is-combined \.glyph-part \{\s*display: grid;\s*place-items: center;/)
 
 // TC-5.5: reduced motion swaps the scale celebration for a non-motion one.
 const reduced = css.match(/@media \(prefers-reduced-motion: reduce\) \{([\s\S]*?)\n\}/)?.[1]
@@ -39,4 +41,4 @@ assert.match(reduced, /\.match-sparkles \{[\s\S]*display: none;/)
 
 console.log('mobile layout containment: ok')
 console.log('proportional object sizing: ok')
-console.log('combined tile footprint and reduced motion: ok')
+console.log('combined tile sizing and reduced motion: ok')

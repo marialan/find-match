@@ -301,7 +301,11 @@ function App() {
                 key={item.object_id}
                 className={`match-object ${item.side} ${active ? "is-dragging" : ""} ${isReturning ? "is-returning" : ""} ${highlighted ? "is-highlighted" : ""} ${item.solved ? "is-solved" : ""} ${pair ? "is-combined" : ""} ${isCelebrating ? "is-celebrating" : ""}`}
                 style={{
-                  left: `${(item.x / BOARD_WIDTH) * 100}%`,
+                  left: pair
+                    ? item.side === "left"
+                      ? `clamp(var(--object-size), ${(item.x / BOARD_WIDTH) * 100}%, calc(50% - var(--object-size)))`
+                      : `clamp(calc(50% + var(--object-size)), ${(item.x / BOARD_WIDTH) * 100}%, calc(100% - var(--object-size)))`
+                    : `${(item.x / BOARD_WIDTH) * 100}%`,
                   top: `${(item.y / BOARD_HEIGHT) * 100}%`,
                 }}
                 onPointerDown={(event) => startDrag(event, item)}
