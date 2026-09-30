@@ -4,7 +4,7 @@
 | ---------------- | ------------------------------------------------------- |
 | **Title**        | Find The Two That Match — Development Specification     |
 | **Status**       | Active — approved behavior                              |
-| **Version**      | 0.8.1                                                   |
+| **Version**      | 0.9.0                                                   |
 | **Last updated** | 2026-09-30                                              |
 | **Owner/Author** | Maria Lande (with GitHub Copilot)                       |
 
@@ -315,6 +315,10 @@ well-formed `cr_event` per completed trial.
   language containing only `lang/<langCode>/` trial data, images, and audio.
 - Use Layout A (engine + lang packs) — the source brief describes no
   language-agnostic shared content unit, so no core/book tier is used.
+- Emit the engine bundle as a single classic (non-module) script tag with
+  `defer` and a relative `src`. ES module scripts and `crossorigin` are
+  CORS-blocked on a `file://` origin (origin `"null"`), which leaves a blank
+  page at ship time.
 
 **Exit criterion:** Extracting the engine ZIP plus one language ZIP into a
 single directory and opening
@@ -432,7 +436,9 @@ Functional tree (by purpose) mapped to an artifact-lifecycle classification:
 2. Run the standalone build (bundler public path `./`).
 3. Open the build output's `index.html` directly via
    `file:///…/index.html?cr_lang=<code>` in a browser with DevTools Network
-   set to Offline.
+   set to Offline. Desktop Chrome blocks `XMLHttpRequest` to `file://` by
+   default, so launch it with `--allow-file-access-from-files` (and a throwaway
+   `--user-data-dir`); the container WebView grants this access itself.
 4. Confirm the loading screen clears within 10 seconds and at least one trial
    is fully playable end-to-end.
 5. Package the engine ZIP and one language ZIP per §Module 10 and repeat step
@@ -501,6 +507,7 @@ Functional tree (by purpose) mapped to an artifact-lifecycle classification:
 
 ## 16. Changelog
 
+2026-09-30 — Maria Lande (with GitHub Copilot) — Required the engine bundle to ship as a single relative, deferred, non-module script (ES module scripts are CORS-blocked on `file://`) and documented Chrome's `--allow-file-access-from-files` requirement in the runbook.
 2026-09-30 — Maria Lande (with GitHub Copilot) — Defined tap-versus-drag as a 10 px pointer-travel tolerance (rather than the presence of pointer-move events) and required suppression of native touch text-selection and tap-highlight on all objects, so tap-to-hear works on touchscreens.
 2026-09-28 — Maria Lande (with GitHub Copilot) — Added the per-language trial index file (§2.3) and Module 11 (Trial Selector & Navigation) with paginated trial selection, persisted trial size for completion marking, back and next-trial navigation, and resolved OQ-7.
 2026-09-28 — Maria Lande (with GitHub Copilot) — Defined larger image-trial cards and target-length-aware text widths with wrapping and collision constraints.

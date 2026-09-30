@@ -4,7 +4,7 @@
 | ---------------- | --------------------------------------------------- |
 | **Title**        | Find The Two That Match — Test Specification         |
 | **Status**       | Active — approved behavior                          |
-| **Version**      | 0.7.2                                               |
+| **Version**      | 0.8.0                                               |
 | **Last updated** | 2026-09-30                                          |
 | **Owner/Author** | Maria Lande (with GitHub Copilot)                   |
 
@@ -159,6 +159,11 @@
 - TC-10.2: The built language ZIP contains only `lang/<langCode>/...` paths.
 - TC-10.3: Extracting the engine ZIP and one language ZIP into a single
   directory produces no overwritten files.
+- TC-10.4: The built `index.html` references its bundle with a single
+  relative, deferred, non-module `<script>` tag and contains no `type="module"`
+  or `crossorigin` attribute.
+- TC-10.5: Opening the built `index.html` from a `file://` URL renders the
+  Trial Selector and plays a trial, with zero console errors.
 
 ### Module 11 — Trial Selector & Navigation
 - TC-11.1: With 13 indexed trials, page 1 yields trials 1–12 and page 2
@@ -191,7 +196,7 @@ input:
 - UI-TC-5: "Tap-to-hear on an audio-only object" — fixture
   `trial-audio-only.json`; simulate tap (no movement between down/up). Also
   covers "Matching an audio-only object to its letter" via `?trial=2`.
-- UI-TC-14: "A touch tap with minor finger movement still plays
+- UI-TC-15: "A touch tap with minor finger movement still plays
   pronunciation" — on a real Android device (or touch-emulating browser), tap
   an Idle object and a combined tile; assert pronunciation plays each time and
   no selection highlight appears.
@@ -223,7 +228,9 @@ before any release candidate is approved:
 
 1. Build the standalone target.
 2. Open the built `index.html` via a `file://` URL with
-   `?cr_lang=english&cr_user_id=test-user`.
+   `?cr_lang=english&cr_user_id=test-user`. In desktop Chrome, launch with
+   `--allow-file-access-from-files` and a throwaway `--user-data-dir`, since
+   Chrome otherwise blocks `XMLHttpRequest` to `file://`.
 3. Set the browser's network condition to **Offline** before navigation.
 4. Confirm the Loading Screen clears within 10 seconds (UI-TC-7).
 5. Play through at least one full trial per tier fixture (letters, audio-only,
@@ -267,6 +274,7 @@ above, every relevant UISPEC Gherkin scenario passes, and the dry-run protocol
 
 ## Changelog
 
+2026-09-30 — Maria Lande (with GitHub Copilot) — Added TC-10.4 and TC-10.5 for the non-module `file://`-loadable build, noted Chrome's `--allow-file-access-from-files` requirement in the dry-run protocol, and renumbered the touch-tap case to UI-TC-15 to remove a duplicate id.
 2026-09-30 — Maria Lande (with GitHub Copilot) — Restated TC-6.2 in terms of the 10 px tap tolerance and added TC-6.9, TC-6.10, and UI-TC-14 covering touch taps with minor finger drift and suppression of native selection/tap highlights.
 2026-09-28 — Maria Lande (with GitHub Copilot) — Added TC-11.5 verifying that a full page of selector tiles stays visible and scroll-free at every supported viewport size.
 2026-09-28 — Maria Lande (with GitHub Copilot) — Added trial-index fixtures and coverage for trial-index parsing and fallback, persisted trial size for completion marking, selector pagination and navigation (TC-1.6, TC-8.3, TC-11.1–11.4, UI-TC-13–14), and updated TC-1.5 for selector-first launch.
