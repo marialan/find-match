@@ -4,8 +4,8 @@
 | ---------------- | --------------------------------------------------- |
 | **Title**        | Find The Two That Match — Test Specification         |
 | **Status**       | Active — approved behavior                          |
-| **Version**      | 0.7.1                                               |
-| **Last updated** | 2026-09-28                                          |
+| **Version**      | 0.7.2                                               |
+| **Last updated** | 2026-09-30                                          |
 | **Owner/Author** | Maria Lande (with GitHub Copilot)                   |
 
 > This TESTSPEC is derived solely from `docs/Find-The-Two-That-Match-Spec-Brief.md`
@@ -97,8 +97,15 @@
   not its `target`, and responds to drag/highlight/match identically to a
   letter object.
 - TC-6.8: A combined tile for an audio ↔ letter pair shows 🔊 and the letter.
-- TC-6.2: A tap (down+up with no intervening move) on any object plays that
-  object's `audio` exactly once and produces no state change.
+- TC-6.2: A tap (down+up with less than 10 px of pointer travel) on any
+  object plays that object's `audio` exactly once and produces no state
+  change.
+- TC-6.9: A tap whose pointer emits move events but stays within 10 px of the
+  down point is still treated as a tap and plays the pronunciation; travel
+  beyond 10 px is treated as a drag and plays no tap pronunciation.
+- TC-6.10: Every object, including a combined tile, suppresses native touch
+  text-selection and tap-highlight (`user-select: none`,
+  `-webkit-tap-highlight-color: transparent`).
 - TC-6.3: A letter object matched against its corresponding letter-audio
   object (via `pair_id`) reports a match (Better-tier equivalence).
 - TC-6.4: Tapping a combined tile plays the partner's pronunciation exactly
@@ -184,6 +191,10 @@ input:
 - UI-TC-5: "Tap-to-hear on an audio-only object" — fixture
   `trial-audio-only.json`; simulate tap (no movement between down/up). Also
   covers "Matching an audio-only object to its letter" via `?trial=2`.
+- UI-TC-14: "A touch tap with minor finger movement still plays
+  pronunciation" — on a real Android device (or touch-emulating browser), tap
+  an Idle object and a combined tile; assert pronunciation plays each time and
+  no selection highlight appears.
 - UI-TC-6: "Reloading mid-trial preserves solved pairs" — solve one pair,
   reload, assert Solved/Idle states per object.
 - UI-TC-7: "Loading screen clears offline within budget" — dry-run protocol,
@@ -256,6 +267,7 @@ above, every relevant UISPEC Gherkin scenario passes, and the dry-run protocol
 
 ## Changelog
 
+2026-09-30 — Maria Lande (with GitHub Copilot) — Restated TC-6.2 in terms of the 10 px tap tolerance and added TC-6.9, TC-6.10, and UI-TC-14 covering touch taps with minor finger drift and suppression of native selection/tap highlights.
 2026-09-28 — Maria Lande (with GitHub Copilot) — Added TC-11.5 verifying that a full page of selector tiles stays visible and scroll-free at every supported viewport size.
 2026-09-28 — Maria Lande (with GitHub Copilot) — Added trial-index fixtures and coverage for trial-index parsing and fallback, persisted trial size for completion marking, selector pagination and navigation (TC-1.6, TC-8.3, TC-11.1–11.4, UI-TC-13–14), and updated TC-1.5 for selector-first launch.
 2026-09-28 — Maria Lande (with GitHub Copilot) — Added coverage for transparent image surfaces in standalone and combined cards.

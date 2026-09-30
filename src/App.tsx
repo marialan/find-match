@@ -36,6 +36,7 @@ import "./App.css";
 
 const LEARNING_LANG = "english";
 const AUDIO_ICON = "🔊";
+const TAP_MOVE_TOLERANCE_PX = 10;
 
 function labelFor(item: BoardObject): string {
   return item.type === "audio" ? "Play sound" : item.target;
@@ -74,6 +75,8 @@ function TrialBoard({ trialNum, onBack, onNext }: TrialBoardProps) {
   const playAreaRef = useRef<HTMLDivElement>(null);
   const boardRef = useRef<HTMLDivElement>(null);
   const movedRef = useRef(false);
+  // Touch input jitters during a tap, so only movement past this radius counts as a drag.
+  const downPointRef = useRef<{ x: number; y: number } | null>(null);
   const userId = new URLSearchParams(window.location.search).get("cr_user_id");
 
   useEffect(() => {
@@ -153,9 +156,11 @@ function TrialBoard({ trialNum, onBack, onNext }: TrialBoardProps) {
 
   function startDrag(event: React.PointerEvent, item: BoardObject): void {
     movedRef.current = false;
+    downPointRef.current = null;
     if (item.solved || drag || returning) return;
     const point = pointFromEvent(event);
     if (!point) return;
+    downPointRef.current = point;
     event.currentTarget.setPointerCapture(event.pointerId);
     const board = boardRef.current;
     const designPoint = board
@@ -175,9 +180,14 @@ function TrialBoard({ trialNum, onBack, onNext }: TrialBoardProps) {
 
   function moveDrag(event: React.PointerEvent): void {
     if (!drag) return;
-    movedRef.current = true;
     const point = pointFromEvent(event);
     if (!point) return;
+    const start = downPointRef.current;
+    if (
+      !start ||
+      Math.hypot(point.x - start.x, point.y - start.y) > TAP_MOVE_TOLERANCE_PX
+    )
+      movedRef.current = true;
     const width = boardRef.current?.clientWidth ?? BOARD_WIDTH;
     const height = boardRef.current?.clientHeight ?? BOARD_HEIGHT;
     const maxSize = objects.some((item) => item.image)

@@ -1,0 +1,11 @@
+{
+  "trial_num": 8,
+  "left": [
+    { "object_id": "picture-cat", "pos": [260, 200], "target": "cat", "pair_id": ["word-cat"], "image": "lang/english/images/cat.png", "audio": "lang/english/audios/cat.wav" },
+    { "object_id": "picture-hippopotamus", "pos": [260, 470], "target": "hippopotamus", "pair_id": ["word-hippopotamus"], "image": "lang/english/images/hippopotamus.png", "audio": "lang/english/audios/hippopotamus.wav" }
+  ],
+  "right": [
+    { "object_id": "word-hippopotamus", "pos": [860, 200], "target": "hippopotamus", "pair_id": ["picture-hippopotamus"], "audio": "lang/english/audios/hippopotamus.wav" },
+    { "object_id": "word-cat", "pos": [860, 470], "target": "cat", "pair_id": ["picture-cat"], "audio": "lang/english/audios/cat.wav" }
+  ]
+}

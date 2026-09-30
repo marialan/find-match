@@ -4,8 +4,8 @@
 | ---------------- | ------------------------------------------------------- |
 | **Title**        | Find The Two That Match — Development Specification     |
 | **Status**       | Active — approved behavior                              |
-| **Version**      | 0.8.0                                                   |
-| **Last updated** | 2026-09-28                                              |
+| **Version**      | 0.8.1                                                   |
+| **Last updated** | 2026-09-30                                              |
 | **Owner/Author** | Maria Lande (with GitHub Copilot)                       |
 
 > This DEVSPEC is derived solely from `docs/Find-The-Two-That-Match-Spec-Brief.md`
@@ -227,6 +227,14 @@ any object.
 - On tap (not drag) of any object, play that object's `audio`, following the
   Module 5 pronunciation audio rule. Tapping a combined tile plays the
   partner object's pronunciation.
+- Distinguish tap from drag by pointer travel distance, not by the presence of
+  pointer-move events: a gesture counts as a drag only once the pointer moves
+  farther than a single movement-tolerance value (10 CSS px) from its
+  pointer-down point. Touch input emits small move events during an ordinary
+  tap, so any non-zero-movement rule silently disables tap-to-hear on
+  touchscreens.
+- Suppress native touch text-selection and tap-highlight on every object,
+  including combined tiles, so a tap never renders a selection highlight.
 - Extend Module 4's equivalence check so a letter object and a letter-audio
   object are treated as equivalent purely via the existing `pair_id`
   mechanism — the only schema addition is the optional `type` field.
@@ -234,7 +242,8 @@ any object.
 **Exit criterion:** Every object with `type: "audio"` renders and behaves
 identically to an image object for drag, drop, highlight, and equivalence
 purposes, differing only in its visual presentation and in supporting
-tap-to-hear.
+tap-to-hear. Tapping any object — including a combined tile — with mouse or
+touch plays exactly one pronunciation and shows no text selection.
 
 ### Module 7 — Words, Pictures, and Rhymes (Great tier)
 **Goal:** Support object types beyond letters using the same data schema.
@@ -492,6 +501,7 @@ Functional tree (by purpose) mapped to an artifact-lifecycle classification:
 
 ## 16. Changelog
 
+2026-09-30 — Maria Lande (with GitHub Copilot) — Defined tap-versus-drag as a 10 px pointer-travel tolerance (rather than the presence of pointer-move events) and required suppression of native touch text-selection and tap-highlight on all objects, so tap-to-hear works on touchscreens.
 2026-09-28 — Maria Lande (with GitHub Copilot) — Added the per-language trial index file (§2.3) and Module 11 (Trial Selector & Navigation) with paginated trial selection, persisted trial size for completion marking, back and next-trial navigation, and resolved OQ-7.
 2026-09-28 — Maria Lande (with GitHub Copilot) — Defined larger image-trial cards and target-length-aware text widths with wrapping and collision constraints.
 2026-09-28 — Maria Lande (with GitHub Copilot) — Added the optional `type` (`letter`/`audio`) object field to mark audio-only objects, made `image` optional for all objects, added `trial` query-parameter trial selection with default 1, and added OQ-7 for a future trial selector screen.

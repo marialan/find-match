@@ -1,0 +1,11 @@
+{
+  "trial_num": 10,
+  "left": [
+    { "object_id": "left-a-lower", "pos": [230, 180], "target": "a", "pair_id": ["right-a-upper"], "audio": "lang/english/audios/a.wav" },
+    { "object_id": "word-cat", "pos": [230, 470], "target": "cat", "pair_id": ["picture-cat"], "audio": "lang/english/audios/cat.wav" }
+  ],
+  "right": [
+    { "object_id": "picture-cat", "pos": [890, 180], "target": "cat", "pair_id": ["word-cat"], "image": "lang/english/images/cat.png", "audio": "lang/english/audios/cat.wav" },
+    { "object_id": "right-a-upper", "pos": [890, 470], "target": "A", "pair_id": ["left-a-lower"], "audio": "lang/english/audios/a.wav" }
+  ]
+}

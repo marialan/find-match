@@ -261,6 +261,9 @@
     top 0.32s ease,
     transform 0.18s ease;
   touch-action: none;
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-tap-highlight-color: transparent;
 }
 .match-object:focus-visible {
   outline: 3px solid #e36e49;

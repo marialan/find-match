@@ -4,8 +4,8 @@
 | ---------------- | ------------------------------------------------- |
 | **Title**        | Find The Two That Match — UI Specification         |
 | **Status**       | Active — approved behavior                        |
-| **Version**      | 0.8.1                                             |
-| **Last updated** | 2026-09-28                                        |
+| **Version**      | 0.8.2                                             |
+| **Last updated** | 2026-09-30                                        |
 | **Owner/Author** | Maria Lande (with GitHub Copilot)                 |
 
 > This UISPEC is derived solely from `docs/Find-The-Two-That-Match-Spec-Brief.md`
@@ -127,6 +127,8 @@ Two distinct celebrations exist (DEVSPEC Module 5):
   objects render Idle.
 - The next-trial control is hidden until every pair in the current trial is
   solved, and stays hidden on the last trial in the index.
+- No object, including a combined tile, ever shows a native text-selection
+  highlight or tap-highlight box on touch input.
 - Trial-selector page navigation is hidden when the pack has 12 or fewer
   trials.
 
@@ -138,8 +140,8 @@ Two distinct celebrations exist (DEVSPEC Module 5):
 | Drag move | Pointer/touch move while Dragging | Object follows pointer, constrained to board bounds; Highlighted state toggles based on proximity to candidates |
 | Drag release — match | Pointer/touch up while Highlighted and the candidate is equivalent (DEVSPEC Module 4) | Both objects combine into one Solved tile; match celebration plays; pronunciation plays; trial-complete celebration follows if this was the last pair |
 | Drag release — mismatch | Pointer/touch up while Highlighted and the candidate is not equivalent | Negative feedback sound plays; object enters Returning state, then Idle at its original `pos` |
-| Tap (no drag) | Pointer/touch down+up on an object without intervening drag movement, Better tier+ | That object's pronunciation audio plays; no state change |
-| Tap Solved tile | Pointer/touch down+up on a combined tile | The partner's pronunciation plays; no state change |
+| Tap (no drag) | Pointer/touch down+up on an object with less than 10 px of pointer travel, Better tier+ | That object's pronunciation audio plays; no state change |
+| Tap Solved tile | Pointer/touch down+up on a combined tile with less than 10 px of pointer travel | The partner's pronunciation plays; no state change |
 | Select a trial | Tap a tile on the Trial Selector Screen | That trial's Match Board Screen is shown |
 | Change selector page | Tap the previous/next page control | The selector shows the adjacent page of up to 12 trials |
 | Back to selector | Tap the board's back control | The Trial Selector Screen is shown with the just-played trial's progress reflected |
@@ -168,6 +170,12 @@ Feature: Matching two equivalent objects
     When the learner taps the tile
     Then the partner's pronunciation plays exactly once
     And the tile's state does not change
+
+  Scenario: A touch tap with minor finger movement still plays pronunciation
+    Given any object is in the Idle or Solved state
+    When the learner taps it with a finger and the touch point drifts less than 10 px
+    Then the object's pronunciation plays exactly once
+    And no text-selection highlight is shown on the object
 
   Scenario: Completing the trial shows a distinct celebration
     Given exactly one pair remains unsolved
@@ -275,6 +283,7 @@ Feature: Matching two equivalent objects
 
 ## Changelog
 
+2026-09-30 — Maria Lande (with GitHub Copilot) — Defined a tap as under 10 px of pointer travel so touch taps play pronunciation, required that no object shows a native selection or tap highlight, and added a touch-tap acceptance scenario.
 2026-09-28 — Maria Lande (with GitHub Copilot) — Clarified that the Trial Selector Screen is contained at every supported viewport size, sizing tiles from both axes with fewer columns on narrow viewports.
 2026-09-28 — Maria Lande (with GitHub Copilot) — Added the paginated Trial Selector Screen with completed-trial marking, board back and next-trial controls, their visibility rules, interactions, and acceptance scenarios.
 2026-09-28 — Maria Lande (with GitHub Copilot) — Specified transparent surfaces for image cards and combined image segments.
