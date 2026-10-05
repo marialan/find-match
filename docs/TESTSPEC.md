@@ -4,8 +4,8 @@
 | ---------------- | --------------------------------------------------- |
 | **Title**        | Find The Two That Match — Test Specification         |
 | **Status**       | Active — approved behavior                          |
-| **Version**      | 0.8.0                                               |
-| **Last updated** | 2026-09-30                                          |
+| **Version**      | 0.9.2                                               |
+| **Last updated** | 2026-10-05                                          |
 | **Owner/Author** | Maria Lande (with GitHub Copilot)                   |
 
 > This TESTSPEC is derived solely from `docs/Find-The-Two-That-Match-Spec-Brief.md`
@@ -42,7 +42,11 @@
   value selects no trial and the Trial Selector screen is shown instead.
 - TC-1.6: A valid trial index parses to an ascending, de-duplicated list of
   trial numbers; an index that is missing, unparsable, empty, or contains a
-  non-positive/non-integer entry falls back to `[1]` without throwing.
+  non-positive/non-integer entry shows a pack content error. A missing pack
+  metadata file falls back to English; malformed metadata does not.
+- TC-1.7: A generated, test-only non-English pack verifies metadata validation,
+  trial loading, relative media-path resolution, and traversal rejection;
+  invalid language codes fall back to English.
 
 ### Module 2 — Match Board Renderer
 - TC-2.1: Every object in a loaded trial renders at its authored `pos`
@@ -116,6 +120,8 @@
   used.
 - TC-6.7: With no on-device voice for the learning language (or no speech
   support), the synthesized tone plays instead.
+- TC-6.11: The pack's `speechLocale` selects an on-device voice for a
+  non-English language when pronunciation audio is unavailable.
 
 ### Module 7 — Words, Pictures, and Rhymes (Great tier)
 - TC-7.1: Loading `trial-mixed-great.json` renders and plays through Modules
@@ -132,6 +138,8 @@
 - TC-8.3: Playing a trial persists its total object count, so a trial reports
   completed only when its persisted solved count equals that total; resetting
   a trial makes it report not completed again.
+- TC-8.4: Two languages with the same trial number retain separate progress;
+  existing unscoped English completion records migrate to English only.
 
 ### Module 9 — Container Integration
 - TC-9.1: Launching with `?cr_lang=english&cr_user_id=abc123` results in the
@@ -164,6 +172,9 @@
   or `crossorigin` attribute.
 - TC-10.5: Opening the built `index.html` from a `file://` URL renders the
   Trial Selector and plays a trial, with zero console errors.
+- TC-10.6: Packaging discovers language folders (using a temporary
+  non-English fixture) and emits separate ZIPs with no cross-language files.
+  Invalid metadata, index, references, or missing referenced media prevent packaging.
 
 ### Module 11 — Trial Selector & Navigation
 - TC-11.1: With 13 indexed trials, page 1 yields trials 1–12 and page 2
@@ -213,7 +224,7 @@ input:
   fixtures as UI-TC-1.
 - UI-TC-13: "Choosing a trial from the selector" and "Paging through more than
   12 trials" — launch with no `trial` parameter; assert at most 12 tiles, the
-  page indicator, disabled edge controls, and that tapping a tile opens that
+  numeric page indicator, disabled edge controls, and that tapping a tile opens that
   trial.
 - UI-TC-14: "A completed trial is marked in the selector", "Returning to the
   selector from a trial", and "Advancing to the next trial" — complete a
@@ -273,7 +284,6 @@ above, every relevant UISPEC Gherkin scenario passes, and the dry-run protocol
   visual assertion.
 
 ## Changelog
-
 2026-09-30 — Maria Lande (with GitHub Copilot) — Added TC-10.4 and TC-10.5 for the non-module `file://`-loadable build, noted Chrome's `--allow-file-access-from-files` requirement in the dry-run protocol, and renumbered the touch-tap case to UI-TC-15 to remove a duplicate id.
 2026-09-30 — Maria Lande (with GitHub Copilot) — Restated TC-6.2 in terms of the 10 px tap tolerance and added TC-6.9, TC-6.10, and UI-TC-14 covering touch taps with minor finger drift and suppression of native selection/tap highlights.
 2026-09-28 — Maria Lande (with GitHub Copilot) — Added TC-11.5 verifying that a full page of selector tiles stays visible and scroll-free at every supported viewport size.

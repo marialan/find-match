@@ -326,9 +326,10 @@
   max-width: 100%;
   padding: 0 8px;
   font-size: var(--word-font-size, inherit);
-  white-space: nowrap;
+  white-space: normal;
+  overflow-wrap: anywhere;
   text-align: center;
-  line-height: 1.5;
+  line-height: 1.4;
 }
 .glyph-content {
   display: grid;

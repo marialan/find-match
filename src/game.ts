@@ -13,7 +13,81 @@ const BOARD_CENTER = BOARD_WIDTH / 2
 const DIVIDER_CLEARANCE = 12
 export const ENGINE_SLUG = 'ftm'
 export const TRIALS_PER_PAGE = 12
-export const SPEECH_LANGS: Record<string, string> = { english: 'en' }
+const LANGUAGE_CODE_PATTERN = /^[a-z][a-z0-9]*(?:-[a-z0-9]+)*$/
+const SPEECH_LOCALE_PATTERN = /^(?:[A-Za-z]{2,3}|[A-Za-z]{4}|[A-Za-z]{5,8})(?:-[A-Za-z0-9]{1,8})*$/
+
+export interface LanguagePack {
+  code: string
+  speechLocale: string
+}
+
+export function validLanguageCode(code: string): boolean {
+  return code.length <= 32 && LANGUAGE_CODE_PATTERN.test(code)
+}
+
+export function validateLanguagePack(value: unknown, expectedCode: string): LanguagePack {
+  if (
+    !isObject(value) ||
+    Object.keys(value).length !== 2 ||
+    value.code !== expectedCode ||
+    typeof value.speechLocale !== 'string' ||
+    !SPEECH_LOCALE_PATTERN.test(value.speechLocale)
+  ) {
+    throw new Error(`Invalid language pack metadata for ${expectedCode}`)
+  }
+  return { code: expectedCode, speechLocale: value.speechLocale }
+}
+
+export async function loadLanguagePack(langCode: string): Promise<LanguagePack> {
+  const code = validLanguageCode(langCode) ? langCode : 'english'
+  let buffer: ArrayBuffer
+  try {
+    buffer = await loadBinary(`lang/${code}/pack.json`)
+  } catch (error) {
+    if (code !== 'english') return loadLanguagePack('english')
+    throw error
+  }
+  const content = new TextDecoder().decode(buffer)
+  if (/^\s*<(?:!doctype\s+html|html\b)/i.test(content)) {
+    if (code !== 'english') return loadLanguagePack('english')
+    throw new Error('Missing English language pack metadata')
+  }
+  return validateLanguagePack(JSON.parse(content) as unknown, code)
+}
+
+export function resolveMediaPath(langCode: string, mediaPath: string): string {
+  if (!validLanguageCode(langCode)) throw new Error('Invalid language code')
+  if (
+    typeof mediaPath !== 'string' ||
+    mediaPath.length === 0 ||
+    mediaPath.startsWith('/') ||
+    mediaPath.includes('\\') ||
+    mediaPath.includes('?') ||
+    mediaPath.includes('#') ||
+    /^[a-z][a-z0-9+.-]*:/i.test(mediaPath) ||
+    /%(?:2f|5c)/i.test(mediaPath)
+  ) {
+    throw new Error(`Invalid media path: ${mediaPath}`)
+  }
+
+  let decodedPath: string
+  try {
+    decodedPath = decodeURIComponent(mediaPath)
+  } catch {
+    throw new Error(`Invalid media path: ${mediaPath}`)
+  }
+  const segments = decodedPath.split('/')
+  if (segments.some((segment) => !segment || segment === '.' || segment === '..')) {
+    throw new Error(`Invalid media path: ${mediaPath}`)
+  }
+  if (segments[0] === 'lang') {
+    if (segments[1] !== langCode || segments.length < 3) {
+      throw new Error(`Invalid media path: ${mediaPath}`)
+    }
+    return mediaPath
+  }
+  return `lang/${langCode}/${mediaPath}`
+}
 
 // Mirrors the CSS clamp() used for .match-object sizing, so drag-clamp math always
 // matches the object's actual rendered footprint at any board scale.
@@ -53,9 +127,7 @@ export function boardObjectWidth(
     })
     .reduce((widest, limit) => Math.max(widest, limit), 0)
   const maxWidth = Math.min(ownLimit, partnerLimit || ownLimit)
-  // Words never wrap, so the card grows past its region share when the minimum font needs it.
-  const minTextWidth = item.target.length * WORD_CHAR_WIDTH * MIN_WORD_FONT_SIZE + WORD_INSET
-  return Math.max(size, minTextWidth, Math.min(desiredWidth, maxWidth))
+  return Math.max(size, Math.min(desiredWidth, maxWidth))
 }
 
 export function boardScale(width: number, height: number, hasImages: boolean): number {
@@ -108,9 +180,16 @@ export function loadBinary(url: string): Promise<ArrayBuffer> {
   })
 }
 
-export async function loadTrial(url: string): Promise<Trial> {
+export async function loadTrial(url: string, langCode?: string): Promise<Trial> {
   const buffer = await loadBinary(url)
-  return validateTrial(JSON.parse(new TextDecoder().decode(buffer)) as unknown)
+  const trial = validateTrial(JSON.parse(new TextDecoder().decode(buffer)) as unknown)
+  if (!langCode) return trial
+  const resolveObjects = (items: TrialObject[]) => items.map((item) => ({
+    ...item,
+    ...(item.image ? { image: resolveMediaPath(langCode, item.image) } : {}),
+    ...(item.audio ? { audio: resolveMediaPath(langCode, item.audio) } : {}),
+  }))
+  return { ...trial, left: resolveObjects(trial.left), right: resolveObjects(trial.right) }
 }
 
 export function trialNumberFromSearch(search: string): number | null {
@@ -119,10 +198,14 @@ export function trialNumberFromSearch(search: string): number | null {
 }
 
 export function trialPath(langCode: string, trialNum: number): string {
+  if (!validLanguageCode(langCode) || !Number.isInteger(trialNum) || trialNum < 1) {
+    throw new Error('Invalid trial path')
+  }
   return `lang/${langCode}/trials/trial-${trialNum}.json`
 }
 
 export function trialIndexPath(langCode: string): string {
+  if (!validLanguageCode(langCode)) throw new Error('Invalid language code')
   return `lang/${langCode}/trials/index.json`
 }
 
@@ -138,14 +221,9 @@ export function validateTrialIndex(value: unknown): number[] {
   return [...new Set(trials as number[])].sort((a, b) => a - b)
 }
 
-// A pack without a readable index still plays its single default trial.
 export async function loadTrialIndex(url: string): Promise<number[]> {
-  try {
-    const buffer = await loadBinary(url)
-    return validateTrialIndex(JSON.parse(new TextDecoder().decode(buffer)) as unknown)
-  } catch {
-    return [1]
-  }
+  const buffer = await loadBinary(url)
+  return validateTrialIndex(JSON.parse(new TextDecoder().decode(buffer)) as unknown)
 }
 
 export function pageCount(trialCount: number): number {
@@ -354,37 +432,69 @@ export function resolveOverlaps(objects: BoardObject[], anchorId: string | null,
   })
 }
 
-export function progressKey(trialNum: number): string { return `ftm:trial:${trialNum}:solved` }
+function progressLanguage(langCode: string): string {
+  return validLanguageCode(langCode) ? langCode : 'english'
+}
 
-export function readSolvedIds(trialNum: number): Set<string> {
+export function progressKey(trialNum: number, langCode = 'english'): string {
+  return `ftm:lang:${progressLanguage(langCode)}:trial:${trialNum}:solved`
+}
+
+export function totalKey(trialNum: number, langCode = 'english'): string {
+  return `ftm:lang:${progressLanguage(langCode)}:trial:${trialNum}:total`
+}
+
+function readProgressValue(trialNum: number, langCode: string, kind: 'solved' | 'total'): string | null {
+  const code = progressLanguage(langCode)
+  const scopedKey = kind === 'solved' ? progressKey(trialNum, code) : totalKey(trialNum, code)
   try {
-    const value = localStorage.getItem(progressKey(trialNum))
+    const scopedValue = localStorage.getItem(scopedKey)
+    if (scopedValue !== null || code !== 'english') return scopedValue
+    const legacyKey = `ftm:trial:${trialNum}:${kind}`
+    const legacyValue = localStorage.getItem(legacyKey)
+    if (legacyValue !== null) {
+      localStorage.setItem(scopedKey, legacyValue)
+      localStorage.removeItem(legacyKey)
+    }
+    return legacyValue
+  } catch {
+    return null
+  }
+}
+
+export function readSolvedIds(trialNum: number, langCode = 'english'): Set<string> {
+  try {
+    const value = readProgressValue(trialNum, langCode, 'solved')
     const ids: unknown = value ? JSON.parse(value) : []
     return new Set(Array.isArray(ids) && ids.every((id) => typeof id === 'string') ? ids : [])
   } catch { return new Set() }
 }
 
-export function writeSolvedIds(trialNum: number, ids: Set<string>): void {
-  try { localStorage.setItem(progressKey(trialNum), JSON.stringify([...ids])) } catch { /* restricted WebView */ }
+export function writeSolvedIds(trialNum: number, ids: Set<string>, langCode = 'english'): void {
+  try {
+    readProgressValue(trialNum, langCode, 'solved')
+    localStorage.setItem(progressKey(trialNum, langCode), JSON.stringify([...ids]))
+  } catch { /* restricted WebView */ }
 }
 
-export function totalKey(trialNum: number): string { return `ftm:trial:${trialNum}:total` }
-
 // Stored while playing so the selector can mark completion without loading every trial.
-export function readTrialTotal(trialNum: number): number {
+export function readTrialTotal(trialNum: number, langCode = 'english'): number {
   try {
-    const total = Number(localStorage.getItem(totalKey(trialNum)))
+    const total = Number(readProgressValue(trialNum, langCode, 'total'))
     return Number.isInteger(total) && total > 0 ? total : 0
   } catch { return 0 }
 }
 
-export function writeTrialTotal(trialNum: number, total: number): void {
-  try { localStorage.setItem(totalKey(trialNum), String(total)) } catch { /* restricted WebView */ }
+export function writeTrialTotal(trialNum: number, total: number, langCode = 'english'): void {
+  try {
+    readProgressValue(trialNum, langCode, 'total')
+    localStorage.setItem(totalKey(trialNum, langCode), String(total))
+  } catch { /* restricted WebView */ }
 }
 
-export function isTrialCompleted(trialNum: number): boolean {
-  const total = readTrialTotal(trialNum)
-  return total > 0 && readSolvedIds(trialNum).size >= total
+export function isTrialCompleted(trialNum: number, langCode = 'english'): boolean {
+  const total = readTrialTotal(trialNum, langCode)
+  return total > 0 && readSolvedIds(trialNum, langCode).size >= total
 }
 
 export function emitContainerEvent(userId: string | null, type: 'trial_completed' | 'summary_data', data: Record<string, unknown>): void {
@@ -424,13 +534,14 @@ export async function preloadAudio(trial: Trial): Promise<void> {
 }
 
 // Only on-device voices, since network voices fail offline.
-function speak(text: string, langCode: string): boolean {
+function speak(text: string, speechLocale: string): boolean {
   try {
     if (!('speechSynthesis' in window)) return false
-    const lang = SPEECH_LANGS[langCode] ?? SPEECH_LANGS.english
-    const voice = window.speechSynthesis
-      .getVoices()
-      .find((candidate) => candidate.localService && candidate.lang.toLowerCase().startsWith(lang))
+    const locale = speechLocale === 'english' ? 'en-GB' : speechLocale
+    const requested = locale.toLowerCase()
+    const voices = window.speechSynthesis.getVoices().filter((candidate) => candidate.localService)
+    const voice = voices.find((candidate) => candidate.lang.toLowerCase() === requested)
+      ?? voices.find((candidate) => candidate.lang.toLowerCase().startsWith(`${requested.split('-')[0]}-`))
     if (!voice) return false
     const utterance = new SpeechSynthesisUtterance(text)
     utterance.voice = voice
@@ -441,7 +552,7 @@ function speak(text: string, langCode: string): boolean {
   } catch { return false }
 }
 
-export function playPronunciation(item: Pick<TrialObject, 'audio' | 'target'>, langCode: string): void {
+export function playPronunciation(item: Pick<TrialObject, 'audio' | 'target'>, speechLocale: string): void {
   const buffer = item.audio ? audioBuffers.get(item.audio) : undefined
   const context = getAudioContext()
   if (buffer && context) {
@@ -453,7 +564,7 @@ export function playPronunciation(item: Pick<TrialObject, 'audio' | 'target'>, l
       return
     } catch { /* fall through to generated voice */ }
   }
-  if (!speak(item.target, langCode)) playTone('target')
+  if (!speak(item.target, speechLocale)) playTone('target')
 }
 
 export function playTone(kind: 'match' | 'miss' | 'target'): void {

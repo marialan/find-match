@@ -34,6 +34,24 @@ class FakeXHR {
   open(_method, url) { this.url = url }
   send() {
     if (this.url === 'good.wav') { this.status = 200; this.response = new ArrayBuffer(4); this.onload() }
+    else if (this.url === 'lang/french/trials/trial-1.json') {
+      this.status = 200
+      this.response = new TextEncoder().encode(JSON.stringify({ trial_num: 1,
+        left: [{ object_id: 'left', pos: [190, 200], target: 'a', pair_id: ['right'] }],
+        right: [{ object_id: 'right', pos: [900, 200], target: 'A', pair_id: ['left'] }],
+      })).buffer
+      this.onload()
+    }
+    else if (this.url === 'lang/french/pack.json') {
+      this.status = 200
+      this.response = new TextEncoder().encode('{"code":"french","speechLocale":"fr-FR"}').buffer
+      this.onload()
+    }
+    else if (this.url === 'lang/english/pack.json') {
+      this.status = 200
+      this.response = new TextEncoder().encode(fs.readFileSync(path.join(root, 'public', this.url), 'utf8')).buffer
+      this.onload()
+    }
     else this.onerror()
   }
 }
@@ -49,7 +67,8 @@ globalThis.window = {
 globalThis.SpeechSynthesisUtterance = class { constructor(text) { this.text = text } }
 globalThis.XMLHttpRequest = FakeXHR
 
-const { MIN_WORD_FONT_SIZE, boardObjectSize, boardObjectWidth, boardScale, isTrialCompleted, loadTrialIndex, makeBoardObjects, nearestCandidate, nextTrialNumber, pageCount, playPronunciation, preloadAudio, resolveOverlaps, trialIndexPath: buildTrialIndexPath, trialNumberFromSearch, trialPath: buildTrialPath, trialsForPage, validateTrial, validateTrialIndex, wordFontSize, writeSolvedIds, writeTrialTotal } = await import('../src/game.ts')
+const { MIN_WORD_FONT_SIZE, boardObjectSize, boardObjectWidth, boardScale, isTrialCompleted, loadLanguagePack, loadTrial, loadTrialIndex, makeBoardObjects, nearestCandidate, nextTrialNumber, pageCount, playPronunciation, preloadAudio, progressKey, readSolvedIds, resolveMediaPath, resolveOverlaps, totalKey, trialIndexPath: buildTrialIndexPath, trialNumberFromSearch, trialPath: buildTrialPath, trialsForPage, validateLanguagePack, validateTrial, validateTrialIndex, validLanguageCode, wordFontSize, writeSolvedIds, writeTrialTotal } = await import('../src/game.ts')
+const { validatePacks } = await import('./validate-packs.mjs')
 
 // TC-1.4: type defaults to letter; unknown types are rejected.
 assert.ok(validateTrial(trial).left.every((item) => item.type === 'letter'))
@@ -80,8 +99,38 @@ assert.deepEqual(validateTrialIndex({ trials: [3, 1, 1, 2] }), [1, 2, 3])
 for (const bad of [{}, { trials: [] }, { trials: [0] }, { trials: [1.5] }, { trials: ['1'] }]) {
   assert.throws(() => validateTrialIndex(bad), /Trial index/)
 }
-assert.deepEqual(await loadTrialIndex('missing-index.json'), [1])
+await assert.rejects(loadTrialIndex('missing-index.json'), /XHR error/)
 assert.equal(buildTrialIndexPath('english'), 'lang/english/trials/index.json')
+
+const frenchPack = await loadLanguagePack('french')
+assert.deepEqual(frenchPack, { code: 'french', speechLocale: 'fr-FR' })
+assert.equal((await loadTrial(buildTrialPath('french', 1), 'french')).trial_num, 1)
+assert.equal((await loadLanguagePack('missing')).code, 'english')
+assert.equal((await loadLanguagePack('../english')).code, 'english')
+assert.equal(validLanguageCode('french'), true)
+assert.equal(validLanguageCode('a--b'), false)
+assert.throws(() => validateLanguagePack({ code: 'french', speechLocale: 'invalid-locale-' }, 'french'))
+assert.equal(resolveMediaPath('french', 'audios/a.wav'), 'lang/french/audios/a.wav')
+assert.equal(resolveMediaPath('english', 'lang/english/audios/a.wav'), 'lang/english/audios/a.wav')
+for (const bad of ['../english/a.wav', 'lang/english/a.wav', 'https://example.org/a.wav', 'a%2fb.wav', '/a.wav']) {
+  assert.throws(() => resolveMediaPath('french', bad), /Invalid media path/)
+}
+assert.deepEqual(validatePacks(), ['english'])
+const badPackRoot = fs.mkdtempSync(path.join(root, 'pack-check-'))
+try {
+  fs.cpSync(path.join(root, 'public', 'lang', 'english'), path.join(badPackRoot, 'english'), { recursive: true })
+  const examplePack = path.join(badPackRoot, 'french')
+  fs.mkdirSync(path.join(examplePack, 'trials'), { recursive: true })
+  fs.writeFileSync(path.join(examplePack, 'pack.json'), '{"code":"french","speechLocale":"fr-FR"}')
+  fs.writeFileSync(path.join(examplePack, 'trials', 'index.json'), '{ "trials": [1] }')
+  fs.writeFileSync(path.join(examplePack, 'trials', 'trial-1.json'), JSON.stringify({ trial_num: 1,
+    left: [{ object_id: 'left', pos: [190, 200], target: 'a', pair_id: ['right'] }],
+    right: [{ object_id: 'right', pos: [900, 200], target: 'A', pair_id: ['left'] }],
+  }))
+  assert.deepEqual(validatePacks(badPackRoot), ['english', 'french'])
+  fs.writeFileSync(path.join(badPackRoot, 'french', 'trials', 'index.json'), '{ "trials": [2] }')
+  assert.throws(() => validatePacks(badPackRoot), /ENOENT/)
+} finally { fs.rmSync(badPackRoot, { recursive: true, force: true }) }
 
 const thirteen = Array.from({ length: 13 }, (_, index) => index + 1)
 assert.equal(pageCount(thirteen.length), 2)
@@ -98,6 +147,7 @@ const store = new Map()
 globalThis.localStorage = {
   getItem: (key) => (store.has(key) ? store.get(key) : null),
   setItem: (key, value) => store.set(key, String(value)),
+  removeItem: (key) => store.delete(key),
 }
 assert.equal(isTrialCompleted(1), false)
 writeTrialTotal(1, 6)
@@ -107,6 +157,19 @@ writeSolvedIds(1, new Set(['a', 'b', 'c', 'd', 'e', 'f']))
 assert.equal(isTrialCompleted(1), true)
 writeSolvedIds(1, new Set())
 assert.equal(isTrialCompleted(1), false)
+assert.equal(isTrialCompleted(1, 'french'), false)
+writeTrialTotal(1, 2, 'french')
+writeSolvedIds(1, new Set(['fr-left', 'fr-right']), 'french')
+assert.equal(isTrialCompleted(1, 'french'), true)
+assert.equal(isTrialCompleted(1), false)
+store.set('ftm:trial:2:solved', '["old-left","old-right"]')
+store.set('ftm:trial:2:total', '2')
+assert.equal(isTrialCompleted(2, 'french'), false)
+assert.equal(isTrialCompleted(2), true)
+assert.deepEqual([...readSolvedIds(2)], ['old-left', 'old-right'])
+assert.equal(store.has('ftm:trial:2:solved'), false)
+assert.equal(store.get(progressKey(2)), '["old-left","old-right"]')
+assert.equal(store.get(totalKey(2)), '2')
 console.log('trial completion marking: ok')
 
 // TC-6.1 / TC-6.3: trial-2 pairs every audio-only object with a letter on the other side.
@@ -165,19 +228,16 @@ for (const scale of [1, 0.409, 0.325]) {
   const shortWidth = boardObjectWidth(shortWord, longWordObjects, scale, 176)
   const longWidth = boardObjectWidth(longWord, longWordObjects, scale, 176)
   assert.ok(longWidth > shortWidth)
-  // The unsplit word at the minimum font takes priority over staying inside one region.
   const combinedWidth = longWidth + boardObjectWidth(longPicture, longWordObjects, scale, 176)
-  assert.ok(combinedWidth <= Math.max(496 * size / 176, 12 * 0.62 * MIN_WORD_FONT_SIZE + 22 + size))
+  assert.ok(combinedWidth <= 496 * size / 176 + 0.01)
   assert.ok(combinedWidth <= 1120 * scale || scale < 0.2)
   const font = wordFontSize(longWidth, 12, size)
   assert.ok(font >= MIN_WORD_FONT_SIZE)
-  assert.ok(12 * 0.62 * font + 22 <= longWidth + 0.01, `hippopotamus does not fit at scale ${scale}`)
   assert.equal(boardObjectWidth(longPicture, longWordObjects, scale, 176), size)
 }
 for (const length of [1, 3, 8, 12, 20]) {
   const width = boardObjectWidth({ ...shortWord, target: 'x'.repeat(length) }, [], 0.2, 84)
   assert.ok(wordFontSize(width, length, 56) >= MIN_WORD_FONT_SIZE)
-  assert.ok(length * 0.62 * MIN_WORD_FONT_SIZE + 22 <= width + 0.01)
 }
 console.log('long target tile sizing: ok')
 
@@ -246,10 +306,12 @@ console.log('overlap resolution: ok')
 
 // TC-6.5 / TC-6.6 / TC-6.7: authored audio, then on-device voice in the learning language, then tone.
 await preloadAudio({ trial_num: 0, left: [{ object_id: 'g', pos: [0, 0], target: 'g', pair_id: ['b'], audio: 'good.wav' }], right: [{ object_id: 'b', pos: [0, 0], target: 'b', pair_id: ['g'], audio: 'missing.wav' }] })
-playPronunciation({ target: 'g', audio: 'good.wav' }, 'english')
-playPronunciation({ target: 'b', audio: 'missing.wav' }, 'english')
-playPronunciation({ target: 'c' }, 'english')
+playPronunciation({ target: 'g', audio: 'good.wav' }, 'en-GB')
+playPronunciation({ target: 'b', audio: 'missing.wav' }, 'en-GB')
+playPronunciation({ target: 'c' }, 'en-GB')
+voices = [{ lang: 'fr-FR', localService: true }, { lang: 'en-US', localService: true }]
+playPronunciation({ target: 'bonjour' }, 'fr-FR')
 voices = [{ lang: 'en-US', localService: false }, { lang: 'fr-FR', localService: true }]
-playPronunciation({ target: 'd' }, 'english')
-assert.deepEqual(calls, ['file', 'speech:b:en-GB', 'speech:c:en-GB', 'tone'])
+playPronunciation({ target: 'd' }, 'en-GB')
+assert.deepEqual(calls, ['file', 'speech:b:en-GB', 'speech:c:en-GB', 'speech:bonjour:fr-FR', 'tone'])
 console.log('audio file, offline voice, tone fallback: ok')

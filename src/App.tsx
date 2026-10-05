@@ -12,6 +12,7 @@ import {
   emitContainerEvent,
   fitsHalf,
   isTrialCompleted,
+  loadLanguagePack,
   loadTrial,
   loadTrialIndex,
   makeBoardObjects,
@@ -31,10 +32,9 @@ import {
   writeTrialTotal,
   wordFontSize,
 } from "./game";
-import type { Trial, BoardObject, LayoutMetrics } from "./game";
+import type { Trial, BoardObject, LanguagePack, LayoutMetrics } from "./game";
 import "./App.css";
 
-const LEARNING_LANG = "english";
 const AUDIO_ICON = "🔊";
 const TAP_MOVE_TOLERANCE_PX = 10;
 
@@ -56,11 +56,12 @@ type ReturnState = {
 
 type TrialBoardProps = {
   trialNum: number;
+  languagePack: LanguagePack;
   onBack: () => void;
   onNext: (() => void) | null;
 };
 
-function TrialBoard({ trialNum, onBack, onNext }: TrialBoardProps) {
+function TrialBoard({ trialNum, languagePack, onBack, onNext }: TrialBoardProps) {
   const [trial, setTrial] = useState<Trial | null>(null);
   const [objects, setObjects] = useState<BoardObject[]>([]);
   const [drag, setDrag] = useState<DragState | null>(null);
@@ -75,6 +76,7 @@ function TrialBoard({ trialNum, onBack, onNext }: TrialBoardProps) {
   const playAreaRef = useRef<HTMLDivElement>(null);
   const boardRef = useRef<HTMLDivElement>(null);
   const movedRef = useRef(false);
+  const completesTrialAfterMatchRef = useRef(false);
   // Touch input jitters during a tap, so only movement past this radius counts as a drag.
   const downPointRef = useRef<{ x: number; y: number } | null>(null);
   const userId = new URLSearchParams(window.location.search).get("cr_user_id");
@@ -115,12 +117,12 @@ function TrialBoard({ trialNum, onBack, onNext }: TrialBoardProps) {
   }, [trial]);
 
   useEffect(() => {
-    loadTrial(trialPath(LEARNING_LANG, trialNum))
+    loadTrial(trialPath(languagePack.code, trialNum), languagePack.code)
       .then(async (loaded) => {
         await preloadAudio(loaded);
         setTrial(loaded);
-        writeTrialTotal(loaded.trial_num, loaded.left.length + loaded.right.length);
-        setObjects(makeBoardObjects(loaded, readSolvedIds(loaded.trial_num)));
+        writeTrialTotal(loaded.trial_num, loaded.left.length + loaded.right.length, languagePack.code);
+        setObjects(makeBoardObjects(loaded, readSolvedIds(loaded.trial_num, languagePack.code)));
       })
       .catch((reason: unknown) =>
         setError(
@@ -129,7 +131,7 @@ function TrialBoard({ trialNum, onBack, onNext }: TrialBoardProps) {
             : "Unable to load this trial",
         ),
       );
-  }, [trialNum]);
+  }, [trialNum, languagePack]);
 
   function layoutMetrics(): LayoutMetrics {
     const board = boardRef.current;
@@ -183,11 +185,8 @@ function TrialBoard({ trialNum, onBack, onNext }: TrialBoardProps) {
     const point = pointFromEvent(event);
     if (!point) return;
     const start = downPointRef.current;
-    if (
-      !start ||
-      Math.hypot(point.x - start.x, point.y - start.y) > TAP_MOVE_TOLERANCE_PX
-    )
-      movedRef.current = true;
+    if (!start || Math.hypot(point.x - start.x, point.y - start.y) <= TAP_MOVE_TOLERANCE_PX) return;
+    movedRef.current = true;
     const width = boardRef.current?.clientWidth ?? BOARD_WIDTH;
     const height = boardRef.current?.clientHeight ?? BOARD_HEIGHT;
     const maxSize = objects.some((item) => item.image)
@@ -220,7 +219,23 @@ function TrialBoard({ trialNum, onBack, onNext }: TrialBoardProps) {
 
   function endDrag(event: React.PointerEvent): void {
     if (!drag) return;
-    event.currentTarget.releasePointerCapture?.(event.pointerId);
+    if (event.currentTarget.hasPointerCapture(event.pointerId)) {
+      event.currentTarget.releasePointerCapture(event.pointerId);
+    }
+    const endPoint = pointFromEvent(event);
+    const startPoint = downPointRef.current;
+    if (
+      startPoint &&
+      endPoint &&
+      Math.hypot(endPoint.x - startPoint.x, endPoint.y - startPoint.y) > TAP_MOVE_TOLERANCE_PX
+    ) {
+      movedRef.current = true;
+    }
+    if (!movedRef.current) {
+      setDrag(null);
+      setCandidateId(null);
+      return;
+    }
     const dragged = objects.find((item) => item.object_id === drag.id);
     const candidate = dragged ? nearestCandidate(dragged, objects) : null;
     if (!dragged || !candidate) {
@@ -256,16 +271,17 @@ function TrialBoard({ trialNum, onBack, onNext }: TrialBoardProps) {
           metrics,
         ),
       );
-      writeSolvedIds(trial?.trial_num ?? 0, solvedIds);
+      writeSolvedIds(trial?.trial_num ?? 0, solvedIds, languagePack.code);
       playTone("match");
-      playPronunciation(candidate, LEARNING_LANG);
+      playPronunciation(candidate, languagePack.speechLocale);
       setCelebration(null);
       setCelebratingId(candidate.object_id);
-      if (solvedIds.size === objects.length) {
+      completesTrialAfterMatchRef.current = solvedIds.size === objects.length;
+      if (completesTrialAfterMatchRef.current) {
         emitContainerEvent(userId, "trial_completed", {
           type: "trial_completed",
           trial_num: trial?.trial_num,
-          lang: LEARNING_LANG,
+          lang: languagePack.code,
           pairs_completed: objects.length / 2,
         });
         emitContainerEvent(userId, "summary_data", {
@@ -296,12 +312,15 @@ function TrialBoard({ trialNum, onBack, onNext }: TrialBoardProps) {
 
   function finishCelebration(): void {
     setCelebratingId(null);
-    if (objects.every((item) => item.solved)) setCelebration("Trial complete!");
+    if (completesTrialAfterMatchRef.current) {
+      completesTrialAfterMatchRef.current = false;
+      setCelebration("Trial complete!");
+    }
   }
 
   function resetTrial(): void {
     if (!trial) return;
-    writeSolvedIds(trial.trial_num, new Set());
+    writeSolvedIds(trial.trial_num, new Set(), languagePack.code);
     const metrics = layoutMetrics();
     setObjects(resolveOverlaps(makeBoardObjects(trial, new Set()), null, metrics));
     setDrag(null);
@@ -309,6 +328,7 @@ function TrialBoard({ trialNum, onBack, onNext }: TrialBoardProps) {
     setCandidateId(null);
     setCelebration(null);
     setCelebratingId(null);
+    completesTrialAfterMatchRef.current = false;
   }
 
   function contentFor(item: BoardObject): ReactNode {
@@ -339,9 +359,8 @@ function TrialBoard({ trialNum, onBack, onNext }: TrialBoardProps) {
     );
   if (!trial)
     return (
-      <main className="status-screen">
+      <main className="status-screen" role="status" aria-label="Loading">
         <div className="loader-orbit" />
-        <p>Getting your matching game ready</p>
       </main>
     );
 
@@ -434,8 +453,12 @@ function TrialBoard({ trialNum, onBack, onNext }: TrialBoardProps) {
                   else if (isCelebrating) finishCelebration();
                 }}
                 onClick={() => {
-                  if (!drag && !returning && !movedRef.current)
-                    playPronunciation(item, LEARNING_LANG);
+                  if (returning) return;
+                  if (movedRef.current) {
+                    movedRef.current = false;
+                    return;
+                  }
+                  playPronunciation(item, languagePack.speechLocale);
                 }}
                 aria-label={
                   pair
@@ -526,15 +549,17 @@ function TrialBoard({ trialNum, onBack, onNext }: TrialBoardProps) {
 
 function TrialSelector({
   trials,
+  langCode,
   onSelect,
 }: {
   trials: number[];
+  langCode: string;
   onSelect: (trialNum: number) => void;
 }) {
   const [page, setPage] = useState(0);
   const pages = pageCount(trials.length);
   const visible = trialsForPage(trials, page);
-  const completedCount = trials.filter((trialNum) => isTrialCompleted(trialNum)).length;
+  const completedCount = trials.filter((trialNum) => isTrialCompleted(trialNum, langCode)).length;
 
   return (
     <main className="game-shell">
@@ -553,7 +578,7 @@ function TrialSelector({
       <section className="selector-area">
         <ul className="trial-grid">
           {visible.map((trialNum) => {
-            const completed = isTrialCompleted(trialNum);
+            const completed = isTrialCompleted(trialNum, langCode);
             return (
               <li key={trialNum}>
                 <button
@@ -587,7 +612,7 @@ function TrialSelector({
             ‹
           </button>
           <span className="page-status" aria-live="polite">
-            Page {page + 1} of {pages}
+            {page + 1} / {pages}
           </span>
           <button
             className="icon-button"
@@ -619,35 +644,65 @@ function syncTrialParam(trialNum: number | null): void {
 
 function App() {
   const [trials, setTrials] = useState<number[] | null>(null);
+  const [languagePack, setLanguagePack] = useState<LanguagePack | null>(null);
+  const [loadError, setLoadError] = useState<string | null>(null);
+  const langCode = new URLSearchParams(window.location.search).get("cr_lang") ?? "english";
   const [selected, setSelected] = useState<number | null>(() =>
     trialNumberFromSearch(window.location.search),
   );
 
   useEffect(() => {
-    void loadTrialIndex(trialIndexPath(LEARNING_LANG)).then(setTrials);
-  }, []);
+    let cancelled = false;
+    void loadLanguagePack(langCode)
+      .then(async (pack) => {
+        const loadedTrials = await loadTrialIndex(trialIndexPath(pack.code));
+        if (!cancelled) {
+          setLanguagePack(pack);
+          setTrials(loadedTrials);
+        }
+      })
+      .catch((reason: unknown) => {
+        if (!cancelled) {
+          setLoadError(
+            reason instanceof Error ? reason.message : "Unable to load this language pack",
+          );
+        }
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [langCode]);
 
   function select(trialNum: number | null): void {
     syncTrialParam(trialNum);
     setSelected(trialNum);
   }
 
-  if (!trials)
+  if (loadError)
     return (
       <main className="status-screen">
+        <div className="error-mark">!</div>
+        <p>Something went wrong loading this board.</p>
+        <small>{loadError}</small>
+      </main>
+    );
+
+  if (!trials || !languagePack)
+    return (
+      <main className="status-screen" role="status" aria-label="Loading">
         <div className="loader-orbit" />
-        <p>Getting your matching game ready</p>
       </main>
     );
 
   if (selected === null)
-    return <TrialSelector trials={trials} onSelect={select} />;
+    return <TrialSelector trials={trials} langCode={languagePack.code} onSelect={select} />;
 
   const next = nextTrialNumber(trials, selected);
   return (
     <TrialBoard
       key={selected}
       trialNum={selected}
+      languagePack={languagePack}
       onBack={() => select(null)}
       onNext={next === null ? null : () => select(next)}
     />

@@ -4,8 +4,8 @@
 | ---------------- | --------------------------------------------------- |
 | **Title**        | Find The Two That Match — Product Requirements Document |
 | **Status**       | Active — approved behavior                          |
-| **Version**      | 0.4.0                                               |
-| **Last updated** | 2026-09-28                                          |
+| **Version**      | 0.5.0                                               |
+| **Last updated** | 2026-09-30                                          |
 | **Owner/Author** | Maria Lande (with GitHub Copilot)                   |
 
 > This PRD is derived exclusively from two source-of-truth documents:
@@ -45,15 +45,15 @@ container's `cr_event` bridge.
   alone.
 - Run identically well fully offline, inside the Curious Reader container's
   `file://` WebView, with zero network calls.
-- Let content authors define new matching trials by supplying a JSON file and
-  media assets, without code changes.
+- Let content authors define new matching trials and languages by supplying
+  JSON files and media assets, without game-code changes.
 
 ## 3. Personas
 
 | Persona | Description | Needs |
 |---|---|---|
 | **Learner** | A child who cannot yet reliably read, ages roughly 4–8 | Simple, forgiving drag interaction; immediate audio/visual feedback; cannot lose progress or be scored against |
-| **Content author** | A non-engineer who prepares trial content (object pairs, images, audio, translations) | A documented JSON schema and a predictable media-asset naming convention they can produce without touching game code |
+| **Content author** | A non-engineer who prepares trial content (object pairs, images, audio) | A documented JSON schema and a predictable media-asset naming convention they can produce without touching game code |
 | **Container integrator (Curious Reader team)** | The team that packages, uploads, and ships the game inside the Curious Reader CMS | A game that complies with the third-party game spec's offline rules, ZIP packaging layout, and `cr_event` reporting contract |
 
 ## 4. Key user scenarios
@@ -163,6 +163,9 @@ assumes the previous tier's requirements are met.
   string.
 - `cr_lang` selects the language pack; absent or unsupported values fall back
   to English.
+- Game chrome and accessible control names remain shared English text; only
+  trial content and speech locale vary per language pack. The trial selector
+  uses a numeric page indicator.
 - The loading state is textless and the responsive game shell remains within
   the mobile visual viewport without page-level scrolling.
 - The product must be packaged as an **engine ZIP** plus **one language ZIP

@@ -4,7 +4,7 @@
 | ---------------- | ------------------------------------------------------- |
 | **Title**        | Find The Two That Match — Development Specification     |
 | **Status**       | Active — approved behavior                              |
-| **Version**      | 0.9.0                                                   |
+| **Version**      | 0.10.0                                                  |
 | **Last updated** | 2026-09-30                                              |
 | **Owner/Author** | Maria Lande (with GitHub Copilot)                       |
 
@@ -82,7 +82,14 @@ author; the game does not infer the reverse direction).
 All `image`/`audio` paths in trial JSON are relative and resolve under that
 trial's language root (`lang/<langCode>/...`), consistent with
 `docs/third-party-game-spec.md` §4. No absolute or CDN URLs are permitted in
-trial data.
+trial data. New packs use paths such as `audios/a.wav` or `images/a.png`;
+existing English trial files may use `lang/english/...` paths. Paths must not
+escape their own language root (including encoded traversal).
+
+Each pack contains `lang/<langCode>/pack.json` with only `code` equal to its
+directory name and `speechLocale` set to a BCP 47 locale for offline voice
+fallback (e.g. `fr-FR`). UI labels live in the engine, not in each pack; the
+engine must not maintain a list of languages.
 
 ### 2.3 Trial index file
 
@@ -98,9 +105,9 @@ source of truth for which trials exist.
 |---|---|---|
 | `trials` | number[] | Non-empty list of positive integers, each the `trial_num` of a `trial-<n>.json` in the same directory. Duplicates are ignored; the list is presented in ascending order |
 
-The index lives at `lang/<langCode>/trials/index.json`. A missing or invalid
-index is not a fatal error: the game falls back to the single-trial list
-`[1]` so a minimal language pack still plays.
+The index lives at `lang/<langCode>/trials/index.json`. A missing pack (missing
+`pack.json`) selects English; an installed pack with a missing or invalid index
+shows a content error, not an English board. A valid pack has a non-empty index.
 
 ## 3. Modules
 
@@ -119,7 +126,8 @@ index is not a fatal error: the game falls back to the single-trial list
   object's `type` is not an allowed value.
 - Resolve every `image`/`audio` path to its full relative location under the
   selected language asset root. The language is read from `cr_lang`; absent or
-  unsupported values select the English pack.
+  unsupported values select the English pack. Reject invalid codes and paths
+  before constructing URLs. Validate the pack metadata before loading trials.
 
 **Exit criterion:** Given a well-formed trial file, every object in `left` and
 `right` has a resolved, loadable image (if present) and audio path, and every
@@ -202,8 +210,8 @@ any non-equivalent object and releasing always reports no match.
   that is visually distinct from the per-match celebration.
 - Pronunciation audio rule: play the object's `audio` file when one is
   provided and loads; otherwise speak the object's `target` with an
-  auto-generated voice in the learning language (`cr_lang`; English only for
-  MVP). Only on-device voices are used so speech works offline; if no
+  auto-generated voice in the learning language (`speechLocale` from the
+  selected pack). Only on-device voices are used so speech works offline; if no
   on-device voice for the learning language is available, fall back to a
   synthesized tone. Feedback sounds with no authored audio (e.g., mismatch)
   use synthesized tones.
@@ -267,6 +275,9 @@ on the learner.
 - Persist per-trial completion state to `localStorage` (per
   `docs/third-party-game-spec.md` §2.2 — no IndexedDB-backed network-sync
   libraries).
+- Namespace progress by selected language and trial. On first English access,
+  migrate existing unnamespaced English progress without overwriting newer
+  language-specific records.
 - Persist each played trial's total object count alongside its solved ids, so
   a trial's completion can be derived (solved count equals total count)
   without loading that trial's JSON.
@@ -312,7 +323,10 @@ well-formed `cr_event` per completed trial.
 - Build the engine ZIP (`<engine>-core.zip`) containing `index.html` at its
   root, engine JS/CSS, and shared (non-language) assets; no `lang/` directory.
 - Build one language ZIP (`<engine>-lang-<langCode>.zip`) per supported
-  language containing only `lang/<langCode>/` trial data, images, and audio.
+  language discovered under `public/lang/`, containing only its
+  `lang/<langCode>/` metadata, trial data, images, and audio. Validate content
+  and media references before shipping; no engine rebuild is required to add
+  a pack to an already deployed engine.
 - Use Layout A (engine + lang packs) — the source brief describes no
   language-agnostic shared content unit, so no core/book tier is used.
 - Emit the engine bundle as a single classic (non-module) script tag with
@@ -517,7 +531,3 @@ Functional tree (by purpose) mapped to an artifact-lifecycle classification:
 2026-09-23 — Maria Lande (with GitHub Copilot) — Documented aspect-ratio-preserving board scaling and proportional/min-size object footprint (Module 2) to prevent object overlap on narrow viewports, and clarified that mobile containment (Design Principle) applies to short-height landscape orientations too, not only narrow-width portrait viewports.
 2026-09-23 — Maria Lande (with GitHub Copilot) — Resolved approved language, tier, asset-fallback, event-count, loading-state, and mobile-containment behavior.
 2026-09-23 — Maria Lande (with GitHub Copilot) — Initial draft, derived solely from Find-The-Two-That-Match-Spec-Brief.md and third-party-game-spec.md.
-
-## 17. Lessons Log
-
-_Empty — no implementation has occurred against this draft yet._

@@ -5,6 +5,7 @@ import { defineConfig } from 'vite'
 // runtime (DEVSPEC Module 10), so the bundle ships as one deferred classic script.
 const classicScriptTag = {
   name: 'classic-script-tag',
+  apply: 'build' as const,
   enforce: 'post' as const,
   transformIndexHtml(html: string) {
     return html

@@ -4,8 +4,8 @@
 | ---------------- | ------------------------------------------------- |
 | **Title**        | Find The Two That Match — UI Specification         |
 | **Status**       | Active — approved behavior                        |
-| **Version**      | 0.8.2                                             |
-| **Last updated** | 2026-09-30                                        |
+| **Version**      | 0.9.1                                             |
+| **Last updated** | 2026-10-05                                        |
 | **Owner/Author** | Maria Lande (with GitHub Copilot)                 |
 
 > This UISPEC is derived solely from `docs/Find-The-Two-That-Match-Spec-Brief.md`
@@ -81,8 +81,11 @@ Two distinct celebrations exist (DEVSPEC Module 5):
   of tiles, each labelled with its trial number.
 - Shows a maximum of **12 tiles per page**. When more trials exist, a bottom
   navigation row shows a previous-page control, the current page position
-  ("Page X of Y"), and a next-page control; the control for a non-existent
+  ("X / Y"), and a next-page control; the control for a non-existent
   page is disabled. With 12 or fewer trials, no page navigation is shown.
+- Shared brand text, button accessible names, and tooltips are supplied by
+  the engine in English; language packs only change trial content and the
+  pronunciation locale. Trial navigation remains icon-based.
 - A **completed** trial tile (all its pairs solved, DEVSPEC Module 8) is shown
   in green with a checkmark; its accessible name states that it is completed.
   An uncompleted tile uses the neutral tile treatment.
@@ -249,10 +252,10 @@ Feature: Matching two equivalent objects
 
   Scenario: Paging through more than 12 trials
     Given the language pack lists 13 trials
-    Then the Trial Selector Screen shows trials 1 to 12 and "Page 1 of 2"
+    Then the Trial Selector Screen shows trials 1 to 12 and "1 / 2"
     And the previous-page control is disabled
     When the learner taps the next-page control
-    Then the selector shows trial 13 and "Page 2 of 2"
+    Then the selector shows trial 13 and "2 / 2"
 
   Scenario: A completed trial is marked in the selector
     Given every pair of trial 1 has been solved
@@ -283,7 +286,6 @@ Feature: Matching two equivalent objects
 
 ## Changelog
 
-2026-09-30 — Maria Lande (with GitHub Copilot) — Defined a tap as under 10 px of pointer travel so touch taps play pronunciation, required that no object shows a native selection or tap highlight, and added a touch-tap acceptance scenario.
 2026-09-28 — Maria Lande (with GitHub Copilot) — Clarified that the Trial Selector Screen is contained at every supported viewport size, sizing tiles from both axes with fewer columns on narrow viewports.
 2026-09-28 — Maria Lande (with GitHub Copilot) — Added the paginated Trial Selector Screen with completed-trial marking, board back and next-trial controls, their visibility rules, interactions, and acceptance scenarios.
 2026-09-28 — Maria Lande (with GitHub Copilot) — Specified transparent surfaces for image cards and combined image segments.
