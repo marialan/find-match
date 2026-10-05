@@ -75,6 +75,40 @@ assert.ok(validateTrial(trial).left.every((item) => item.type === 'letter'))
 assert.throws(() => validateTrial({ ...trial, left: [{ ...trial.left[0], type: 'video' }, ...trial.left.slice(1)] }), /Invalid type/)
 console.log('object type validation: ok')
 
+const { worldLayout } = await import('../src/game.ts')
+for (const trialNum of JSON.parse(fs.readFileSync(path.join(root, 'public', 'lang', 'english', 'trials', 'index.json'), 'utf8')).trials) {
+  const fixture = validateTrial(JSON.parse(fs.readFileSync(path.join(root, 'public', 'lang', 'english', 'trials', `trial-${trialNum}.json`), 'utf8')))
+  for (const [width, height] of [[296, 460], [336, 532], [390, 788], [788, 267], [544, 212], [1120, 650]]) {
+    const layout = worldLayout(makeBoardObjects(fixture, new Set()), width, height)
+    const fixed = layout.objects.filter((item) => item.fixed)
+    const words = layout.objects.filter((item) => !item.fixed)
+    assert.equal(fixed.length, words.length)
+    assert.ok(words.every((item) => item.type !== 'audio' && !item.image))
+    assert.ok(fixed.every((item) => item.y < words[0].y))
+    assert.ok(layout.cardWidth <= width)
+    const boxes = layout.objects.map((item) => {
+      const centerX = item.x / 1120 * width
+      const centerY = item.y / 650 * height
+      const tileWidth = item.fixed ? Math.max(layout.targetSize, layout.cardWidth) : layout.cardWidth
+      return { left: centerX - tileWidth / 2, right: centerX + tileWidth / 2,
+        top: centerY - (item.fixed ? layout.targetSize : layout.wordHeight) / 2,
+        bottom: centerY + (item.fixed ? layout.targetSize / 2 + 12 + layout.wordHeight : layout.wordHeight / 2) }
+    })
+    for (const box of boxes) assert.ok(box.left >= 0 && box.right <= width && box.top >= 0 && box.bottom <= height)
+    for (let first = 0; first < boxes.length; first++) for (let second = first + 1; second < boxes.length; second++) {
+      const firstBox = boxes[first], secondBox = boxes[second]
+      assert.ok(firstBox.right <= secondBox.left || secondBox.right <= firstBox.left || firstBox.bottom <= secondBox.top || secondBox.bottom <= firstBox.top,
+        `World slots overlap at ${width}x${height}`)
+    }
+    const word = words[0]
+    const host = fixed.find((item) => word.pair_id.includes(item.object_id))
+    const restored = worldLayout(makeBoardObjects(fixture, new Set([host.object_id, word.object_id])), width, height).objects
+    assert.equal(restored.find((item) => item.object_id === word.object_id).mergedInto, host.object_id)
+    assert.equal(restored.find((item) => item.object_id === host.object_id).mergedInto, undefined)
+  }
+}
+console.log('Name the World role assignment and restored target anchors: ok')
+
 // TC-1.5: trial query parameter selects the trial file; anything else shows the selector.
 assert.equal(trialNumberFromSearch('?trial=2'), 2)
 for (const search of ['', '?trial=0', '?trial=-1', '?trial=abc', '?trial=2.5']) assert.equal(trialNumberFromSearch(search), null)

@@ -2,15 +2,8 @@ import { useEffect, useRef, useState } from "react";
 import type { ReactNode } from "react";
 import {
   BOARD_HEIGHT,
-  BOARD_IMAGE_OBJECT_SIZE,
-  BOARD_OBJECT_MIN_SIZE,
-  BOARD_OBJECT_SIZE,
   BOARD_WIDTH,
-  boardObjectSize,
-  boardObjectWidth,
-  boardScale,
   emitContainerEvent,
-  fitsHalf,
   isTrialCompleted,
   loadLanguagePack,
   loadTrial,
@@ -23,7 +16,6 @@ import {
   playTone,
   preloadAudio,
   readSolvedIds,
-  resolveOverlaps,
   trialIndexPath,
   trialNumberFromSearch,
   trialPath,
@@ -31,8 +23,10 @@ import {
   writeSolvedIds,
   writeTrialTotal,
   wordFontSize,
+  worldLayout,
 } from "./game";
-import type { Trial, BoardObject, LanguagePack, LayoutMetrics } from "./game";
+import type { Trial, BoardObject, LanguagePack } from "./game";
+import crateImage from "./assets/crate.png";
 import "./App.css";
 
 const AUDIO_ICON = "🔊";
@@ -71,8 +65,8 @@ function TrialBoard({ trialNum, languagePack, onBack, onNext }: TrialBoardProps)
   const [celebratingId, setCelebratingId] = useState<string | null>(null);
   const [missingImages, setMissingImages] = useState<Set<string>>(() => new Set());
   const [error, setError] = useState<string | null>(null);
-  const [scale, setScale] = useState(1);
-  const [pxPerUnit, setPxPerUnit] = useState(1);
+  const [sizes, setSizes] = useState({ targetSize: 120, wordHeight: 60, cardWidth: 160 });
+  const [listeningId, setListeningId] = useState<string | null>(null);
   const playAreaRef = useRef<HTMLDivElement>(null);
   const boardRef = useRef<HTMLDivElement>(null);
   const movedRef = useRef(false);
@@ -84,26 +78,14 @@ function TrialBoard({ trialNum, languagePack, onBack, onNext }: TrialBoardProps)
   useEffect(() => {
     const playArea = playAreaRef.current;
     if (!playArea) return undefined;
-    // scale is the object-only sizing factor: the more constrained of the board's
-    // width or height ratios, so square objects fit within whichever axis is
-    // tightest even though the board itself may stretch to a different aspect ratio
-    // (image trials on portrait boards may grow further, see boardScale).
     const updateScale = (width: number, height: number) => {
-      const hasImages = [...(trial?.left ?? []), ...(trial?.right ?? [])].some((item) => item.image);
-      const nextScale = boardScale(width, height, hasImages);
-      setScale(nextScale);
-      if (width > 0) setPxPerUnit(width / BOARD_WIDTH);
-      // Restored combined tiles and resized cards can collide with neighbours.
-      if (width > 0 && height > 0)
-        setObjects((current) =>
-          resolveOverlaps(current, null, {
-            scale: nextScale,
-            maxSize: current.some((item) => item.image)
-              ? BOARD_IMAGE_OBJECT_SIZE
-              : BOARD_OBJECT_SIZE,
-            unitsPerPx: [BOARD_WIDTH / width, BOARD_HEIGHT / height],
-          }),
-        );
+      if (!trial || width <= 0 || height <= 0) return;
+      const layout = worldLayout(makeBoardObjects(trial, readSolvedIds(trial.trial_num, languagePack.code)), width, height);
+      setSizes({ targetSize: layout.targetSize, wordHeight: layout.wordHeight, cardWidth: layout.cardWidth });
+      setObjects(layout.objects);
+      setDrag(null);
+      setReturning(null);
+      setCandidateId(null);
     };
     updateScale(playArea.clientWidth, playArea.clientHeight);
     const observer = new ResizeObserver(([entry]) => {
@@ -114,7 +96,7 @@ function TrialBoard({ trialNum, languagePack, onBack, onNext }: TrialBoardProps)
     return () => observer.disconnect();
     // playAreaRef only attaches once the board has a trial to render, so this must
     // re-run after that first render instead of just once on mount.
-  }, [trial]);
+  }, [trial, languagePack.code]);
 
   useEffect(() => {
     loadTrial(trialPath(languagePack.code, trialNum), languagePack.code)
@@ -133,20 +115,6 @@ function TrialBoard({ trialNum, languagePack, onBack, onNext }: TrialBoardProps)
       );
   }, [trialNum, languagePack]);
 
-  function layoutMetrics(): LayoutMetrics {
-    const board = boardRef.current;
-    return {
-      scale,
-      maxSize: objects.some((item) => item.image)
-        ? BOARD_IMAGE_OBJECT_SIZE
-        : BOARD_OBJECT_SIZE,
-      unitsPerPx: [
-        BOARD_WIDTH / (board?.clientWidth || BOARD_WIDTH),
-        BOARD_HEIGHT / (board?.clientHeight || BOARD_HEIGHT),
-      ],
-    };
-  }
-
   function pointFromEvent(
     event: React.PointerEvent,
   ): { x: number; y: number } | null {
@@ -159,7 +127,7 @@ function TrialBoard({ trialNum, languagePack, onBack, onNext }: TrialBoardProps)
   function startDrag(event: React.PointerEvent, item: BoardObject): void {
     movedRef.current = false;
     downPointRef.current = null;
-    if (item.solved || drag || returning) return;
+    if (item.solved || item.fixed || drag || returning) return;
     const point = pointFromEvent(event);
     if (!point) return;
     downPointRef.current = point;
@@ -189,13 +157,10 @@ function TrialBoard({ trialNum, languagePack, onBack, onNext }: TrialBoardProps)
     movedRef.current = true;
     const width = boardRef.current?.clientWidth ?? BOARD_WIDTH;
     const height = boardRef.current?.clientHeight ?? BOARD_HEIGHT;
-    const maxSize = objects.some((item) => item.image)
-      ? BOARD_IMAGE_OBJECT_SIZE
-      : BOARD_OBJECT_SIZE;
     const moved = objects.find((item) => item.object_id === drag.id);
     if (!moved) return;
-    const halfWidth = (boardObjectWidth(moved, objects, scale, maxSize, pxPerUnit) / 2) * (BOARD_WIDTH / width);
-    const halfHeight = (boardObjectSize(scale, maxSize) / 2) * (BOARD_HEIGHT / height);
+    const halfWidth = (sizes.cardWidth / 2) * (BOARD_WIDTH / width);
+    const halfHeight = (sizes.wordHeight / 2) * (BOARD_HEIGHT / height);
     const x = Math.max(
       halfWidth,
       Math.min(
@@ -239,8 +204,7 @@ function TrialBoard({ trialNum, languagePack, onBack, onNext }: TrialBoardProps)
     const dragged = objects.find((item) => item.object_id === drag.id);
     const candidate = dragged ? nearestCandidate(dragged, objects) : null;
     if (!dragged || !candidate) {
-      const metrics = layoutMetrics();
-      setObjects((current) => resolveOverlaps(current, drag.id, metrics));
+      setReturning({ id: drag.id, origin: drag.origin });
       setDrag(null);
       setCandidateId(null);
       return;
@@ -251,9 +215,7 @@ function TrialBoard({ trialNum, languagePack, onBack, onNext }: TrialBoardProps)
       );
       solvedIds.add(dragged.object_id);
       solvedIds.add(candidate.object_id);
-      const metrics = layoutMetrics();
       setObjects((current) =>
-        resolveOverlaps(
           current.map((item) =>
             item.object_id === dragged.object_id
               ? {
@@ -267,9 +229,6 @@ function TrialBoard({ trialNum, languagePack, onBack, onNext }: TrialBoardProps)
                 ? { ...item, solved: true }
                 : item,
           ),
-          candidate.object_id,
-          metrics,
-        ),
       );
       writeSolvedIds(trial?.trial_num ?? 0, solvedIds, languagePack.code);
       playTone("match");
@@ -321,18 +280,24 @@ function TrialBoard({ trialNum, languagePack, onBack, onNext }: TrialBoardProps)
   function resetTrial(): void {
     if (!trial) return;
     writeSolvedIds(trial.trial_num, new Set(), languagePack.code);
-    const metrics = layoutMetrics();
-    setObjects(resolveOverlaps(makeBoardObjects(trial, new Set()), null, metrics));
+    const board = boardRef.current;
+    setObjects(worldLayout(makeBoardObjects(trial, new Set()), board?.clientWidth ?? BOARD_WIDTH, board?.clientHeight ?? BOARD_HEIGHT).objects);
     setDrag(null);
     setReturning(null);
     setCandidateId(null);
     setCelebration(null);
     setCelebratingId(null);
+    setListeningId(null);
     completesTrialAfterMatchRef.current = false;
   }
 
   function contentFor(item: BoardObject): ReactNode {
-    if (item.type === "audio") return AUDIO_ICON;
+    if (item.type === "audio") return (
+      <>
+        <img className="object-image crate-image" src={crateImage} alt="" draggable={false} />
+        <span className="listen-icon" aria-hidden="true">{AUDIO_ICON}</span>
+      </>
+    );
     if (!item.image) return <span className="word-target">{item.target}</span>;
     if (missingImages.has(item.object_id))
       return <span className="image-placeholder" aria-hidden="true" />;
@@ -365,22 +330,16 @@ function TrialBoard({ trialNum, languagePack, onBack, onNext }: TrialBoardProps)
     );
 
   const solvedCount = objects.filter((item) => item.solved).length / 2;
-  const maxObjectSize = objects.some((item) => item.image)
-    ? BOARD_IMAGE_OBJECT_SIZE
-    : BOARD_OBJECT_SIZE;
-
   return (
-    <main className="game-shell">
+    <main className="game-shell world-shell">
       <header className="game-header">
-        <div className="brand-lockup">
-          <strong>FIND THE MATCH</strong>
-        </div>
         <div
           className="progress-pill"
           aria-label={`${solvedCount} pairs found`}
         >
-          <span className="progress-dot" />
-          {solvedCount} / {objects.length / 2}
+          {Array.from({ length: objects.length / 2 }, (_, index) => (
+            <span key={index} className={`pair-progress ${index < solvedCount ? "is-found" : ""}`} aria-hidden="true">★</span>
+          ))}
         </div>
       </header>
       <section className="play-area" ref={playAreaRef}>
@@ -390,15 +349,7 @@ function TrialBoard({ trialNum, languagePack, onBack, onNext }: TrialBoardProps)
           onPointerDown={celebration ? () => setCelebration(null) : undefined}
           onPointerMove={moveDrag}
           onPointerUp={endDrag}
-          style={{
-            ...({
-              "--board-scale": scale,
-              "--board-object-max": `${maxObjectSize}px`,
-              "--board-object-min": `${BOARD_OBJECT_MIN_SIZE}px`,
-            } as React.CSSProperties),
-          }}
         >
-          <div className="board-divider" />
           {objects.filter((item) => !item.mergedInto).map((item) => {
             const active = drag?.id === item.object_id;
             const isReturning = returning?.id === item.object_id;
@@ -408,42 +359,22 @@ function TrialBoard({ trialNum, languagePack, onBack, onNext }: TrialBoardProps)
             const merged = objects.find(
               (other) => other.mergedInto === item.object_id,
             );
-            const pair = merged
-              ? item.side === "left"
-                ? [item, merged]
-                : [merged, item]
-              : null;
-            const itemWidth = boardObjectWidth(item, objects, scale, maxObjectSize, pxPerUnit);
-            const itemHeight = boardObjectSize(scale, maxObjectSize);
-            const pairWidths = pair?.map((part) => boardObjectWidth(part, objects, scale, maxObjectSize, pxPerUnit));
-            const combinedWidth = pairWidths?.reduce((total, width) => total + width, 0) ?? 0;
+            const itemWidth = item.fixed ? sizes.targetSize : sizes.cardWidth;
+            const itemHeight = item.fixed ? sizes.targetSize : sizes.wordHeight;
             const isCelebrating = celebratingId === item.object_id;
             return (
               <button
                 key={item.object_id}
-                className={`match-object ${item.side} ${item.image ? "has-image" : ""} ${active ? "is-dragging" : ""} ${isReturning ? "is-returning" : ""} ${highlighted ? "is-highlighted" : ""} ${item.solved ? "is-solved" : ""} ${pair ? "is-combined" : ""} ${isCelebrating ? "is-celebrating" : ""}`}
+                className={`match-object ${item.side} ${item.fixed ? "world-target" : "world-word"} ${item.image ? "has-image" : ""} ${item.type === "audio" ? "has-audio" : ""} ${active ? "is-dragging" : ""} ${isReturning ? "is-returning" : ""} ${highlighted ? "is-highlighted" : ""} ${item.solved ? "is-solved" : ""} ${merged ? "world-combined" : ""} ${isCelebrating ? "is-celebrating" : ""} ${listeningId === item.object_id ? "is-listening" : ""}`}
                 style={{
-                  left: pair
-                    ? !fitsHalf(combinedWidth / pxPerUnit)
-                      ? `clamp(var(--combined-half-width), ${(item.x / BOARD_WIDTH) * 100}%, calc(100% - var(--combined-half-width)))`
-                      : item.x < BOARD_WIDTH / 2
-                      ? `clamp(var(--combined-half-width), ${(item.x / BOARD_WIDTH) * 100}%, calc(50% - var(--combined-half-width)))`
-                      : `clamp(calc(50% + var(--combined-half-width)), ${(item.x / BOARD_WIDTH) * 100}%, calc(100% - var(--combined-half-width)))`
-                    : `${(item.x / BOARD_WIDTH) * 100}%`,
+                  left: `${(item.x / BOARD_WIDTH) * 100}%`,
                   top: `${(item.y / BOARD_HEIGHT) * 100}%`,
                   ...({
                     "--object-width": `${itemWidth}px`,
+                    "--object-size": `${itemHeight}px`,
+                    "--label-width": `${sizes.cardWidth}px`,
+                    "--label-height": `${sizes.wordHeight}px`,
                     "--word-font-size": `${wordFontSize(itemWidth, item.target.length, itemHeight)}px`,
-                    ...(pair && pairWidths
-                      ? {
-                          "--combined-width": `${combinedWidth}px`,
-                          "--combined-half-width": `${combinedWidth / 2}px`,
-                          "--combined-first-width": `${pairWidths[0]}px`,
-                          "--combined-second-width": `${pairWidths[1]}px`,
-                          "--celebration-origin-x": item.side === "left" ? "left" : "right",
-                          "--celebration-origin-y": item.y < BOARD_HEIGHT / 2 ? "top" : "bottom",
-                        }
-                      : {}),
                   } as React.CSSProperties),
                 }}
                 onPointerDown={(event) => startDrag(event, item)}
@@ -451,6 +382,7 @@ function TrialBoard({ trialNum, languagePack, onBack, onNext }: TrialBoardProps)
                   if (event.target !== event.currentTarget) return;
                   if (isReturning) finishReturn();
                   else if (isCelebrating) finishCelebration();
+                  else setListeningId(null);
                 }}
                 onClick={() => {
                   if (returning) return;
@@ -459,34 +391,26 @@ function TrialBoard({ trialNum, languagePack, onBack, onNext }: TrialBoardProps)
                     return;
                   }
                   playPronunciation(item, languagePack.speechLocale);
+                  setListeningId(item.object_id);
                 }}
                 aria-label={
-                  pair
-                    ? `${pair.map((part) => (part.type === "audio" ? "sound" : part.target)).join(" ")} matched`
+                  merged
+                    ? `${merged.target} matched`
                     : labelFor(item)
                 }
+                data-object-id={item.object_id}
+                data-fixed={item.fixed}
               >
                 <span className="object-shadow" />
                 <span className="object-glyph">
-                  {pair
-                    ? pair.map((part) => (
-                        <span key={part.object_id} className={`glyph-part ${part.side} ${part.image ? "has-image" : ""}`}>
-                          <span
-                            className="glyph-content"
-                            style={{
-                              "--word-font-size": `${wordFontSize(
-                                pairWidths?.[pair.indexOf(part)] ?? itemHeight,
-                                part.target.length,
-                                itemHeight,
-                              )}px`,
-                            } as React.CSSProperties}
-                          >
-                            {contentFor(part)}
-                          </span>
-                        </span>
-                      ))
-                    : contentFor(item)}
+                  {contentFor(item)}
                 </span>
+                {item.fixed && (
+                  <span className={`word-landing ${merged ? "is-filled" : ""}`} aria-hidden={!merged}
+                    style={{ "--word-font-size": `${wordFontSize(sizes.cardWidth, merged?.target.length ?? 1, sizes.wordHeight)}px` } as React.CSSProperties}>
+                    {merged && <span className="word-target">{merged.target}</span>}
+                  </span>
+                )}
                 {isCelebrating && (
                   <span className="match-sparkles" aria-hidden="true">
                     <i />

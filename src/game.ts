@@ -164,6 +164,7 @@ export interface BoardObject extends TrialObject {
   y: number
   solved: boolean
   mergedInto?: string
+  fixed?: boolean
 }
 
 export function loadBinary(url: string): Promise<ArrayBuffer> {
@@ -294,6 +295,40 @@ export function makeBoardObjects(trial: Trial, solvedIds: Set<string>): BoardObj
     const host = item.pair_id.find((id) => solvedIds.has(id) && order.indexOf(id) > order.indexOf(item.object_id))
     return host ? { ...item, mergedInto: host } : item
   })
+}
+
+export function worldLayout(objects: BoardObject[], width: number, height: number) {
+  const left = objects.filter((item) => item.side === 'left')
+  const right = objects.filter((item) => item.side === 'right')
+  const hasMedia = (items: BoardObject[]) => items.some((item) => item.image || item.type === 'audio')
+  const targetSide: Side = hasMedia(left) && !hasMedia(right) ? 'left' : 'right'
+  const count = Math.max(left.length, right.length)
+  const columns = Math.min(count, height < 400 && width >= 500 ? Math.max(4, Math.floor(width / 130)) : width < 600 ? (count > 3 ? 2 : 3) : Math.max(3, Math.floor(width / 200)))
+  const rows = Math.ceil(count / columns)
+  const slotWidth = width / columns
+  const wordHeight = Math.max(36, Math.min(76, height * (height < 400 ? 0.16 : 0.22) / rows))
+  const targetSize = Math.max(40, Math.min(190, slotWidth * 0.72, height * 0.53 / rows - wordHeight - 18))
+  const cardWidth = Math.min(230, slotWidth - 16)
+  const positioned = objects.map((item) => {
+    const group = item.side === 'left' ? left : right
+    const index = group.findIndex((other) => other.object_id === item.object_id)
+    const row = Math.floor(index / columns)
+    const rowCount = Math.min(columns, group.length - row * columns)
+    const fixed = item.side === targetSide
+    const x = ((index % columns + 0.5) / rowCount) * BOARD_WIDTH
+    const y = fixed
+      ? (0.12 + (row + 0.5) * 0.53 / rows) * BOARD_HEIGHT
+      : (0.73 + (row + 0.5) * 0.24 / rows) * BOARD_HEIGHT
+    const { mergedInto: previousHost, ...rest } = item
+    void previousHost
+    return { ...rest, fixed, pos: [x, y] as [number, number], x, y }
+  })
+  const arranged = positioned.map((item) => {
+    if (!item.solved || item.fixed) return item
+    const host = positioned.find((other) => other.fixed && other.solved && item.pair_id.includes(other.object_id))
+    return host ? { ...item, mergedInto: host.object_id, x: host.x, y: host.y } : item
+  })
+  return { objects: arranged, targetSize, wordHeight, cardWidth }
 }
 
 export function nearestCandidate(dragged: BoardObject, objects: BoardObject[]): BoardObject | null {

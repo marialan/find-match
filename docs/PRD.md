@@ -19,6 +19,15 @@
 
 ## 1. Product summary
 
+### Name the World redesign
+The matching screen uses fixed targets in an upper layer and draggable written
+words or letters in a lower layer over the supplied park background. Audio-only
+targets use the supplied crate; image targets display their authored image.
+Listening never exposes an audio-only target's written answer. Existing trial
+content, equivalence, persistence, feedback, and navigation are preserved. This
+approved redesign supersedes the left/right and bidirectional-drag requirements
+below. No gameplay title or instructional text is shown.
+
 Find The Two That Match is an **offline literacy web game for early readers**
 (the brief targets beginner reading skills; no strict age range is given in the
 source brief). The screen is split into two sides — a left set of objects and a

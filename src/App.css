@@ -594,7 +594,154 @@
     filter: drop-shadow(0 0 10px #e6ac46);
   }
 }
+.world-shell {
+  background: #7bc5e8 url("./assets/park-bg.png") center 65% / cover no-repeat;
+  padding: 16px 24px;
+  gap: 0;
+}
+.world-shell .game-header {
+  justify-content: flex-end;
+  height: 44px;
+}
+.world-shell .progress-pill {
+  display: flex;
+  gap: 5px;
+  padding: 4px 12px;
+  background: #fffefa;
+  border: 2px solid #d7e4ec;
+  box-shadow: 0 3px 6px #25486333;
+}
+.pair-progress {
+  color: #c4c8cc;
+  font-size: 27px;
+  line-height: 1;
+}
+.pair-progress.is-found {
+  color: #e9ad13;
+}
+.world-shell .play-area {
+  max-width: 1280px;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+}
+.world-shell .game-footer {
+  height: 48px;
+  gap: 18px;
+}
+.world-shell .footer-spark {
+  display: none;
+}
+.world-shell .icon-button {
+  color: #315773;
+  background: #fffefa;
+  border: 2px solid #d7e4ec;
+  box-shadow: 0 3px 6px #25486333;
+}
+.world-shell .icon-button.is-next {
+  background: #d5f0c7;
+  color: #28562c;
+}
+.world-shell .match-object {
+  letter-spacing: 0;
+  transition: none;
+}
+.world-shell .match-object.is-dragging {
+  transform: translate(-50%, -50%);
+  filter: drop-shadow(0 8px 5px #294c3f44);
+}
+.world-shell .object-shadow {
+  display: none;
+}
+.world-shell .object-glyph {
+  border-radius: 8px;
+  border: 3px solid #619db7;
+  background: #fffef5;
+  color: #242c32;
+  text-shadow: none;
+  box-shadow: 0 5px 0 #356885, 0 8px 10px #25486333;
+}
+.world-shell .world-target {
+  cursor: pointer;
+  opacity: 1;
+}
+.world-shell .world-target:active {
+  transform: translate(-50%, -50%);
+}
+.world-shell .world-target.has-image .object-glyph,
+.world-shell .world-target.has-audio .object-glyph {
+  background: transparent;
+  border: 0;
+  box-shadow: none;
+  filter: drop-shadow(0 5px 3px #25463330);
+}
+.world-shell .is-solved .object-glyph {
+  filter: none;
+}
+.world-shell .object-image {
+  border-radius: 8px;
+}
+.world-shell .word-target {
+  line-height: 1.2;
+  padding: 0 6px;
+}
+.listen-icon {
+  position: absolute;
+  bottom: 8%;
+  left: 50%;
+  transform: translateX(-50%);
+  display: grid;
+  place-items: center;
+  width: 40%;
+  height: 40%;
+  font-size: calc(var(--object-size) * 0.23);
+  border-radius: 50%;
+  background: #fffef5;
+  border: 2px solid #d7c4a1;
+  box-shadow: 0 3px 4px #34291b40;
+}
+.word-landing {
+  position: absolute;
+  top: calc(100% + 12px);
+  left: 50%;
+  transform: translateX(-50%);
+  width: var(--label-width);
+  height: var(--label-height);
+  display: grid;
+  place-items: center;
+  border: 2px dashed #7c937c;
+  border-radius: 8px;
+  background: #fffff4c7;
+  color: #242c32;
+}
+.word-landing.is-filled {
+  border: 3px solid #5b9a64;
+  background: #fffff4;
+  box-shadow: 0 3px 0 #3d7147;
+}
+.world-shell .is-highlighted .object-glyph {
+  outline: 4px solid #fff7ae;
+  outline-offset: 4px;
+}
+.world-shell .is-highlighted .word-landing {
+  border-color: #287249;
+  background: #ecffd9;
+}
+.world-shell .is-listening {
+  animation: listen-glow 1200ms ease-in-out;
+}
+@keyframes listen-glow {
+  0%, 100% { filter: none; }
+  35%, 70% { filter: drop-shadow(0 0 10px #fff6a4); }
+}
 @media (prefers-reduced-motion: reduce) {
+  .world-shell .is-listening {
+    animation: match-glow 1200ms ease-in-out;
+  }
+  .world-shell .match-object {
+    transition: none;
+  }
   .match-object.is-celebrating {
     animation: match-glow 600ms ease-in-out;
   }

@@ -25,6 +25,20 @@
 - Displays no text requiring reading ability (per PRD design goal).
 
 ### 1.2 Match Board Screen
+#### Name the World override
+- Use the supplied park background with no title, instructions, sign, or labels.
+- Fixed targets occupy the upper layer; draggable words/letters occupy the lower
+  layer. Use horizontal rows when possible and wrap into slots on narrow screens.
+- Only audio-only targets use the supplied crate. Show a separate listen icon,
+  never an answer glyph. Image targets display the trial-defined image directly.
+- Use large, high-contrast readable word cards, empty wordless landing outlines,
+  candidate highlighting, and transient listening feedback.
+- Solved pairs keep the fixed target and its matched text directly beneath it,
+  inside a single fixed tappable tile. No answer image is invented for audio-only
+  trials. Icon navigation and visual progress remain available.
+- This override replaces the left/right positioning, either-side drag, and
+  side-by-side combined-tile presentation specified below.
+
 - Split into a **left region** and a **right region**.
 - Every object from the trial's `left` array renders in the left region at its
   authored `pos`; every object from `right` renders in the right region at its

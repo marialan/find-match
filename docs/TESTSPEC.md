@@ -29,6 +29,22 @@
 
 ## 2. Unit test cases (per DEVSPEC module)
 
+### Name the World redesign verification
+- NW-1: Audio-only and image sides become fixed upper targets regardless of
+  whether authored in left or right; the text side becomes lower draggable cards.
+- Verify all 13 shipped trials have a text-only draggable side, including the
+  approved trial-11 conversion from audio-only objects to written word cards.
+- NW-2: Upper targets cannot move. Audio-only crates expose no target text or
+  answer image; image targets show their authored asset. Taps show listen feedback.
+- NW-3: Correct text drops form fixed vertical combined tiles; mismatches and
+  empty drops return exactly to pickup. Restore solved pairs in target slots.
+- NW-4: Verify target/card containment and absence of overlaps at 320x568,
+  360x640, 414x896, 812x375, 568x320, and desktop; verify long words fit.
+- Run typecheck, lint, engine/layout tests, browser pointer/touch acceptance,
+  standalone build, packaging, and offline dry-run gates from sections 3-5.
+- These cases supersede authored-position, divider, either-side-drag, emoji-crate,
+  and horizontal combined-tile assertions for the redesigned screen.
+
 ### Module 1 — Trial Loader
 - TC-1.1: Loading `trial-letters-basic.json` resolves every object's `image`
   and `audio` to a loadable relative path.

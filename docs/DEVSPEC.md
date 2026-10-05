@@ -19,6 +19,22 @@
 
 ## 1. Overview
 
+### Name the World layout override (Modules 2, 3, 5, 6)
+Keep the trial schema and pair_id matching. Assign the side containing image or
+audio-only objects to fixed upper targets; the opposite text side becomes the
+lower draggable pieces. Text-only trials retain the right side as fixed targets.
+Use evenly spaced responsive slots rather than authored pos on this screen.
+Only lower unsolved text objects can start a drag. Matches remain anchored to
+the fixed target, with the matched text beneath the target in one tappable tile.
+Audio-only targets use the supplied crate without exposing target text; image
+targets use their authored images. Invalid drops return to the pickup position.
+Tap-to-hear retains existing audio and offline fallback rules and provides
+transient visual playback feedback. These rules supersede conflicting module
+requirements below; persistence, container events, and navigation are unchanged.
+
+Trial 11's formerly audio-only side is approved to render as written word cards
+using type "letter", retaining its original ids, pair_id, targets, and recordings.
+
 Find The Two That Match renders a two-column matching board from a trial JSON
 file, lets the learner drag objects from one column onto their equivalent
 partner in the other column, and gives immediate audio/visual feedback on

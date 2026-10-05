@@ -1,9 +1,9 @@
 {
   "trial_num": 11,
   "left": [
-    { "object_id": "audio-bat", "pos": [250, 160], "target": "bat", "type": "audio", "pair_id": ["picture-bat"], "audio": "lang/english/audios/bat.wav" },
-    { "object_id": "audio-cat", "pos": [250, 350], "target": "cat", "type": "audio", "pair_id": ["picture-cat"], "audio": "lang/english/audios/cat.wav" },
-    { "object_id": "audio-hat", "pos": [250, 540], "target": "hat", "type": "audio", "pair_id": ["picture-hat"], "audio": "lang/english/audios/hat.wav" }
+    { "object_id": "audio-bat", "pos": [250, 160], "target": "bat", "type": "letter", "pair_id": ["picture-bat"], "audio": "lang/english/audios/bat.wav" },
+    { "object_id": "audio-cat", "pos": [250, 350], "target": "cat", "type": "letter", "pair_id": ["picture-cat"], "audio": "lang/english/audios/cat.wav" },
+    { "object_id": "audio-hat", "pos": [250, 540], "target": "hat", "type": "letter", "pair_id": ["picture-hat"], "audio": "lang/english/audios/hat.wav" }
   ],
   "right": [
     { "object_id": "picture-cat", "pos": [880, 160], "target": "cat", "pair_id": ["audio-cat"], "image": "lang/english/images/cat.png", "audio": "lang/english/audios/cat.wav" },
