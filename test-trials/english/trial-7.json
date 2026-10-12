@@ -1,0 +1,13 @@
+{
+  "trial_num": 7,
+  "left": [
+    { "object_id": "word-bat", "pos": [250, 160], "target": "bat", "pair_id": ["picture-bat"], "audio": "lang/english/audios/bat.wav" },
+    { "object_id": "word-cat", "pos": [250, 350], "target": "cat", "pair_id": ["picture-cat"], "audio": "lang/english/audios/cat.wav" },
+    { "object_id": "word-hat", "pos": [250, 540], "target": "hat", "pair_id": ["picture-hat"], "audio": "lang/english/audios/hat.wav" }
+  ],
+  "right": [
+    { "object_id": "picture-hat", "pos": [880, 160], "target": "hat", "pair_id": ["word-hat"], "image": "lang/english/images/hat.png", "audio": "lang/english/audios/hat.wav" },
+    { "object_id": "picture-bat", "pos": [880, 350], "target": "bat", "pair_id": ["word-bat"], "image": "lang/english/images/bat.png", "audio": "lang/english/audios/bat.wav" },
+    { "object_id": "picture-cat", "pos": [880, 540], "target": "cat", "pair_id": ["word-cat"], "image": "lang/english/images/cat.png", "audio": "lang/english/audios/cat.wav" }
+  ]
+}

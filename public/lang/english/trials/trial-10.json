@@ -1,11 +1,19 @@
 {
   "trial_num": 10,
   "left": [
-    { "object_id": "left-a-lower", "pos": [230, 180], "target": "a", "pair_id": ["right-a-upper"], "audio": "lang/english/audios/a.wav" },
-    { "object_id": "word-cat", "pos": [230, 470], "target": "cat", "pair_id": ["picture-cat"], "audio": "lang/english/audios/cat.wav" }
+    { "object_id": "left-t-lower", "pos": [190, 190], "target": "t", "pair_id": ["right-t-upper"] },
+    { "object_id": "left-v-lower", "pos": [390, 190], "target": "v", "pair_id": ["right-v-upper"] },
+    { "object_id": "left-w-lower", "pos": [190, 350], "target": "w", "pair_id": ["right-w-upper"] },
+    { "object_id": "left-x-lower", "pos": [390, 350], "target": "x", "pair_id": ["right-x-upper"] },
+    { "object_id": "left-y-lower", "pos": [190, 510], "target": "y", "pair_id": ["right-y-upper"] },
+    { "object_id": "left-z-lower", "pos": [390, 510], "target": "z", "pair_id": ["right-z-upper"] }
   ],
   "right": [
-    { "object_id": "picture-cat", "pos": [890, 180], "target": "cat", "pair_id": ["word-cat"], "image": "lang/english/images/cat.png", "audio": "lang/english/audios/cat.wav" },
-    { "object_id": "right-a-upper", "pos": [890, 470], "target": "A", "pair_id": ["left-a-lower"], "audio": "lang/english/audios/a.wav" }
+    { "object_id": "right-y-upper", "pos": [870, 350], "target": "Y", "pair_id": ["left-y-lower"] },
+    { "object_id": "right-t-upper", "pos": [670, 510], "target": "T", "pair_id": ["left-t-lower"] },
+    { "object_id": "right-x-upper", "pos": [870, 190], "target": "X", "pair_id": ["left-x-lower"] },
+    { "object_id": "right-v-upper", "pos": [670, 350], "target": "V", "pair_id": ["left-v-lower"] },
+    { "object_id": "right-z-upper", "pos": [870, 510], "target": "Z", "pair_id": ["left-z-lower"] },
+    { "object_id": "right-w-upper", "pos": [670, 190], "target": "W", "pair_id": ["left-w-lower"] }
   ]
 }

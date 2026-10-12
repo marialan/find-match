@@ -3,7 +3,7 @@ import fs from 'node:fs'
 import path from 'node:path'
 
 const root = process.cwd()
-const trialPath = path.join(root, 'public', 'lang', 'english', 'trials', 'trial-1.json')
+const trialPath = path.join(root, 'test-trials', 'english', 'trial-1.json')
 const trial = JSON.parse(fs.readFileSync(trialPath, 'utf8'))
 const objects = [...trial.left, ...trial.right]
 const ids = new Set(objects.map((item) => item.object_id))
@@ -84,16 +84,43 @@ console.log('trial selection: ok')
 // TC-1.6 / TC-11.1 / TC-11.3: trial index parsing, pagination, and next-trial lookup.
 const shippedIndex = JSON.parse(fs.readFileSync(path.join(root, 'public', 'lang', 'english', 'trials', 'index.json'), 'utf8'))
 assert.deepEqual(validateTrialIndex(shippedIndex), shippedIndex.trials)
+assert.equal(shippedIndex.trials.length, 10)
+const reviewGroups = ['aeiou', 'bdfgh', 'cjklm', 'npqrs', 'tvwxyz']
+let alphabet = ''
 for (const trialNum of shippedIndex.trials) {
   const file = path.join(root, 'public', buildTrialPath('english', trialNum))
   assert.ok(fs.existsSync(file), `Missing trial-${trialNum}.json`)
   const shipped = validateTrial(JSON.parse(fs.readFileSync(file, 'utf8')))
   assert.equal(shipped.trial_num, trialNum)
+  assert.ok(shipped.left.length >= 5 && shipped.left.length <= 6)
+  assert.equal(shipped.left.length, shipped.right.length)
+  const letters = shipped.left.map((item) => item.target)
+  if (trialNum <= 5) alphabet += letters.join('')
+  else {
+    assert.equal(letters.join(''), reviewGroups[trialNum - 6])
+    const uppercase = shipped.right.map((item) => item.target)
+    assert.notDeepEqual(uppercase, [...uppercase].sort())
+  }
+  for (const item of shipped.left) {
+    const partner = shipped.right.find((other) => other.object_id === item.pair_id[0])
+    assert.equal(item.target, item.target.toLowerCase())
+    assert.equal(partner?.target, item.target.toUpperCase())
+    assert.ok(partner.pair_id.includes(item.object_id))
+  }
   for (const item of [...shipped.left, ...shipped.right]) {
     for (const asset of [item.image, item.audio].filter(Boolean)) {
       assert.ok(fs.existsSync(path.join(root, 'public', asset)), `Missing ${asset} in trial-${trialNum}.json`)
     }
   }
+}
+assert.equal(alphabet, 'abcdefghijklmnopqrstuvwxyz')
+assert.equal(reviewGroups.join('').split('').sort().join(''), 'abcdefghijklmnopqrstuvwxyz')
+const testFixtureIndex = JSON.parse(fs.readFileSync(path.join(root, 'test-trials', 'english', 'index.json'), 'utf8'))
+for (const trialNum of testFixtureIndex.trials) {
+  const file = path.join(root, 'test-trials', 'english', `trial-${trialNum}.json`)
+  assert.ok(fs.existsSync(file), `Missing test fixture trial-${trialNum}.json`)
+  const fixture = validateTrial(JSON.parse(fs.readFileSync(file, 'utf8')))
+  assert.equal(fixture.trial_num, trialNum)
 }
 assert.deepEqual(validateTrialIndex({ trials: [3, 1, 1, 2] }), [1, 2, 3])
 for (const bad of [{}, { trials: [] }, { trials: [0] }, { trials: [1.5] }, { trials: ['1'] }]) {
@@ -173,7 +200,7 @@ assert.equal(store.get(totalKey(2)), '2')
 console.log('trial completion marking: ok')
 
 // TC-6.1 / TC-6.3: trial-2 pairs every audio-only object with a letter on the other side.
-const trial2 = validateTrial(JSON.parse(fs.readFileSync(path.join(root, 'public', 'lang', 'english', 'trials', 'trial-2.json'), 'utf8')))
+const trial2 = validateTrial(JSON.parse(fs.readFileSync(path.join(root, 'test-trials', 'english', 'trial-2.json'), 'utf8')))
 const trial2Objects = [...trial2.left, ...trial2.right]
 assert.ok(trial2.left.every((item) => item.type === 'audio' && item.audio))
 assert.ok(trial2.right.every((item) => item.type === 'letter'))
@@ -187,7 +214,7 @@ for (const item of trial2.left) {
 console.log('audio-only trial: ok')
 
 // TC-7.1 / TC-7.2: trial 3 loads real word/image pairs and their language assets.
-const trial3 = validateTrial(JSON.parse(fs.readFileSync(path.join(root, 'public', 'lang', 'english', 'trials', 'trial-3.json'), 'utf8')))
+const trial3 = validateTrial(JSON.parse(fs.readFileSync(path.join(root, 'test-trials', 'english', 'trial-3.json'), 'utf8')))
 const trial3Objects = makeBoardObjects(trial3, new Set())
 assert.equal(trial3.trial_num, 3)
 assert.deepEqual(trial3.left.map((item) => item.target), ['bat', 'cat', 'hat', 'hippopotamus'])

@@ -61,7 +61,12 @@ type TrialBoardProps = {
   onNext: (() => void) | null;
 };
 
-function TrialBoard({ trialNum, languagePack, onBack, onNext }: TrialBoardProps) {
+function TrialBoard({
+  trialNum,
+  languagePack,
+  onBack,
+  onNext,
+}: TrialBoardProps) {
   const [trial, setTrial] = useState<Trial | null>(null);
   const [objects, setObjects] = useState<BoardObject[]>([]);
   const [drag, setDrag] = useState<DragState | null>(null);
@@ -69,8 +74,12 @@ function TrialBoard({ trialNum, languagePack, onBack, onNext }: TrialBoardProps)
   const [candidateId, setCandidateId] = useState<string | null>(null);
   const [celebration, setCelebration] = useState<string | null>(null);
   const [celebratingId, setCelebratingId] = useState<string | null>(null);
-  const [missingImages, setMissingImages] = useState<Set<string>>(() => new Set());
+  const [missingImages, setMissingImages] = useState<Set<string>>(
+    () => new Set(),
+  );
   const [error, setError] = useState<string | null>(null);
+  // `scale` controls tile size; `pxPerUnit` converts board coordinates to pixels
+  // for calculating word-card width limits.
   const [scale, setScale] = useState(1);
   const [pxPerUnit, setPxPerUnit] = useState(1);
   const playAreaRef = useRef<HTMLDivElement>(null);
@@ -84,12 +93,13 @@ function TrialBoard({ trialNum, languagePack, onBack, onNext }: TrialBoardProps)
   useEffect(() => {
     const playArea = playAreaRef.current;
     if (!playArea) return undefined;
-    // scale is the object-only sizing factor: the more constrained of the board's
-    // width or height ratios, so square objects fit within whichever axis is
-    // tightest even though the board itself may stretch to a different aspect ratio
-    // (image trials on portrait boards may grow further, see boardScale).
+    // Recalculate tile sizing when the play area is measured or resized.
+    // Then reposition tiles if their new bounds overlap. Image tiles may grow
+    // on portrait boards to make better use of the available space.
     const updateScale = (width: number, height: number) => {
-      const hasImages = [...(trial?.left ?? []), ...(trial?.right ?? [])].some((item) => item.image);
+      const hasImages = [...(trial?.left ?? []), ...(trial?.right ?? [])].some(
+        (item) => item.image,
+      );
       const nextScale = boardScale(width, height, hasImages);
       setScale(nextScale);
       if (width > 0) setPxPerUnit(width / BOARD_WIDTH);
@@ -121,8 +131,17 @@ function TrialBoard({ trialNum, languagePack, onBack, onNext }: TrialBoardProps)
       .then(async (loaded) => {
         await preloadAudio(loaded);
         setTrial(loaded);
-        writeTrialTotal(loaded.trial_num, loaded.left.length + loaded.right.length, languagePack.code);
-        setObjects(makeBoardObjects(loaded, readSolvedIds(loaded.trial_num, languagePack.code)));
+        writeTrialTotal(
+          loaded.trial_num,
+          loaded.left.length + loaded.right.length,
+          languagePack.code,
+        );
+        setObjects(
+          makeBoardObjects(
+            loaded,
+            readSolvedIds(loaded.trial_num, languagePack.code),
+          ),
+        );
       })
       .catch((reason: unknown) =>
         setError(
@@ -185,7 +204,11 @@ function TrialBoard({ trialNum, languagePack, onBack, onNext }: TrialBoardProps)
     const point = pointFromEvent(event);
     if (!point) return;
     const start = downPointRef.current;
-    if (!start || Math.hypot(point.x - start.x, point.y - start.y) <= TAP_MOVE_TOLERANCE_PX) return;
+    if (
+      !start ||
+      Math.hypot(point.x - start.x, point.y - start.y) <= TAP_MOVE_TOLERANCE_PX
+    )
+      return;
     movedRef.current = true;
     const width = boardRef.current?.clientWidth ?? BOARD_WIDTH;
     const height = boardRef.current?.clientHeight ?? BOARD_HEIGHT;
@@ -194,8 +217,11 @@ function TrialBoard({ trialNum, languagePack, onBack, onNext }: TrialBoardProps)
       : BOARD_OBJECT_SIZE;
     const moved = objects.find((item) => item.object_id === drag.id);
     if (!moved) return;
-    const halfWidth = (boardObjectWidth(moved, objects, scale, maxSize, pxPerUnit) / 2) * (BOARD_WIDTH / width);
-    const halfHeight = (boardObjectSize(scale, maxSize) / 2) * (BOARD_HEIGHT / height);
+    const halfWidth =
+      (boardObjectWidth(moved, objects, scale, maxSize, pxPerUnit) / 2) *
+      (BOARD_WIDTH / width);
+    const halfHeight =
+      (boardObjectSize(scale, maxSize) / 2) * (BOARD_HEIGHT / height);
     const x = Math.max(
       halfWidth,
       Math.min(
@@ -227,7 +253,8 @@ function TrialBoard({ trialNum, languagePack, onBack, onNext }: TrialBoardProps)
     if (
       startPoint &&
       endPoint &&
-      Math.hypot(endPoint.x - startPoint.x, endPoint.y - startPoint.y) > TAP_MOVE_TOLERANCE_PX
+      Math.hypot(endPoint.x - startPoint.x, endPoint.y - startPoint.y) >
+        TAP_MOVE_TOLERANCE_PX
     ) {
       movedRef.current = true;
     }
@@ -322,7 +349,9 @@ function TrialBoard({ trialNum, languagePack, onBack, onNext }: TrialBoardProps)
     if (!trial) return;
     writeSolvedIds(trial.trial_num, new Set(), languagePack.code);
     const metrics = layoutMetrics();
-    setObjects(resolveOverlaps(makeBoardObjects(trial, new Set()), null, metrics));
+    setObjects(
+      resolveOverlaps(makeBoardObjects(trial, new Set()), null, metrics),
+    );
     setDrag(null);
     setReturning(null);
     setCandidateId(null);
@@ -399,111 +428,142 @@ function TrialBoard({ trialNum, languagePack, onBack, onNext }: TrialBoardProps)
           }}
         >
           <div className="board-divider" />
-          {objects.filter((item) => !item.mergedInto).map((item) => {
-            const active = drag?.id === item.object_id;
-            const isReturning = returning?.id === item.object_id;
-            const highlighted =
-              candidateId === item.object_id ||
-              (active && candidateId !== null);
-            const merged = objects.find(
-              (other) => other.mergedInto === item.object_id,
-            );
-            const pair = merged
-              ? item.side === "left"
-                ? [item, merged]
-                : [merged, item]
-              : null;
-            const itemWidth = boardObjectWidth(item, objects, scale, maxObjectSize, pxPerUnit);
-            const itemHeight = boardObjectSize(scale, maxObjectSize);
-            const pairWidths = pair?.map((part) => boardObjectWidth(part, objects, scale, maxObjectSize, pxPerUnit));
-            const combinedWidth = pairWidths?.reduce((total, width) => total + width, 0) ?? 0;
-            const isCelebrating = celebratingId === item.object_id;
-            return (
-              <button
-                key={item.object_id}
-                className={`match-object ${item.side} ${item.image ? "has-image" : ""} ${active ? "is-dragging" : ""} ${isReturning ? "is-returning" : ""} ${highlighted ? "is-highlighted" : ""} ${item.solved ? "is-solved" : ""} ${pair ? "is-combined" : ""} ${isCelebrating ? "is-celebrating" : ""}`}
-                style={{
-                  left: pair
-                    ? !fitsHalf(combinedWidth / pxPerUnit)
-                      ? `clamp(var(--combined-half-width), ${(item.x / BOARD_WIDTH) * 100}%, calc(100% - var(--combined-half-width)))`
-                      : item.x < BOARD_WIDTH / 2
-                      ? `clamp(var(--combined-half-width), ${(item.x / BOARD_WIDTH) * 100}%, calc(50% - var(--combined-half-width)))`
-                      : `clamp(calc(50% + var(--combined-half-width)), ${(item.x / BOARD_WIDTH) * 100}%, calc(100% - var(--combined-half-width)))`
-                    : `${(item.x / BOARD_WIDTH) * 100}%`,
-                  top: `${(item.y / BOARD_HEIGHT) * 100}%`,
-                  ...({
-                    "--object-width": `${itemWidth}px`,
-                    "--word-font-size": `${wordFontSize(itemWidth, item.target.length, itemHeight)}px`,
-                    ...(pair && pairWidths
-                      ? {
-                          "--combined-width": `${combinedWidth}px`,
-                          "--combined-half-width": `${combinedWidth / 2}px`,
-                          "--combined-first-width": `${pairWidths[0]}px`,
-                          "--combined-second-width": `${pairWidths[1]}px`,
-                          "--celebration-origin-x": item.side === "left" ? "left" : "right",
-                          "--celebration-origin-y": item.y < BOARD_HEIGHT / 2 ? "top" : "bottom",
-                        }
-                      : {}),
-                  } as React.CSSProperties),
-                }}
-                onPointerDown={(event) => startDrag(event, item)}
-                onAnimationEnd={(event) => {
-                  if (event.target !== event.currentTarget) return;
-                  if (isReturning) finishReturn();
-                  else if (isCelebrating) finishCelebration();
-                }}
-                onClick={() => {
-                  if (returning) return;
-                  if (movedRef.current) {
-                    movedRef.current = false;
-                    return;
+          {objects
+            .filter((item) => !item.mergedInto)
+            .map((item) => {
+              const active = drag?.id === item.object_id;
+              const isReturning = returning?.id === item.object_id;
+              const highlighted =
+                candidateId === item.object_id ||
+                (active && candidateId !== null);
+              const merged = objects.find(
+                (other) => other.mergedInto === item.object_id,
+              );
+              const pair = merged
+                ? item.side === "left"
+                  ? [item, merged]
+                  : [merged, item]
+                : null;
+              const itemWidth = boardObjectWidth(
+                item,
+                objects,
+                scale,
+                maxObjectSize,
+                pxPerUnit,
+              );
+              const itemHeight = boardObjectSize(scale, maxObjectSize);
+              const pairWidths = pair?.map((part) =>
+                boardObjectWidth(
+                  part,
+                  objects,
+                  scale,
+                  maxObjectSize,
+                  pxPerUnit,
+                ),
+              );
+              const combinedWidth =
+                pairWidths?.reduce((total, width) => total + width, 0) ?? 0;
+              const isCelebrating = celebratingId === item.object_id;
+              return (
+                <button
+                  key={item.object_id}
+                  className={`match-object ${item.side} ${item.image ? "has-image" : ""} ${active ? "is-dragging" : ""} ${isReturning ? "is-returning" : ""} ${highlighted ? "is-highlighted" : ""} ${item.solved ? "is-solved" : ""} ${pair ? "is-combined" : ""} ${isCelebrating ? "is-celebrating" : ""}`}
+                  style={{
+                    left: pair
+                      ? !fitsHalf(combinedWidth / pxPerUnit)
+                        ? `clamp(var(--combined-half-width), ${(item.x / BOARD_WIDTH) * 100}%, calc(100% - var(--combined-half-width)))`
+                        : item.x < BOARD_WIDTH / 2
+                          ? `clamp(var(--combined-half-width), ${(item.x / BOARD_WIDTH) * 100}%, calc(50% - var(--combined-half-width)))`
+                          : `clamp(calc(50% + var(--combined-half-width)), ${(item.x / BOARD_WIDTH) * 100}%, calc(100% - var(--combined-half-width)))`
+                      : `${(item.x / BOARD_WIDTH) * 100}%`,
+                    top: `${(item.y / BOARD_HEIGHT) * 100}%`,
+                    ...({
+                      "--object-width": `${itemWidth}px`,
+                      "--word-font-size": `${wordFontSize(itemWidth, item.target.length, itemHeight)}px`,
+                      ...(pair && pairWidths
+                        ? {
+                            "--combined-width": `${combinedWidth}px`,
+                            "--combined-half-width": `${combinedWidth / 2}px`,
+                            "--combined-first-width": `${pairWidths[0]}px`,
+                            "--combined-second-width": `${pairWidths[1]}px`,
+                            "--celebration-origin-x":
+                              item.side === "left" ? "left" : "right",
+                            "--celebration-origin-y":
+                              item.y < BOARD_HEIGHT / 2 ? "top" : "bottom",
+                          }
+                        : {}),
+                    } as React.CSSProperties),
+                  }}
+                  onPointerDown={(event) => startDrag(event, item)}
+                  onAnimationEnd={(event) => {
+                    if (event.target !== event.currentTarget) return;
+                    if (isReturning) finishReturn();
+                    else if (isCelebrating) finishCelebration();
+                  }}
+                  onClick={() => {
+                    if (returning) return;
+                    if (movedRef.current) {
+                      movedRef.current = false;
+                      return;
+                    }
+                    playPronunciation(item, languagePack.speechLocale);
+                  }}
+                  aria-label={
+                    pair
+                      ? `${pair.map((part) => (part.type === "audio" ? "sound" : part.target)).join(" ")} matched`
+                      : labelFor(item)
                   }
-                  playPronunciation(item, languagePack.speechLocale);
-                }}
-                aria-label={
-                  pair
-                    ? `${pair.map((part) => (part.type === "audio" ? "sound" : part.target)).join(" ")} matched`
-                    : labelFor(item)
-                }
-              >
-                <span className="object-shadow" />
-                <span className="object-glyph">
-                  {pair
-                    ? pair.map((part) => (
-                        <span key={part.object_id} className={`glyph-part ${part.side} ${part.image ? "has-image" : ""}`}>
+                >
+                  <span className="object-shadow" />
+                  <span className="object-glyph">
+                    {pair
+                      ? pair.map((part) => (
                           <span
-                            className="glyph-content"
-                            style={{
-                              "--word-font-size": `${wordFontSize(
-                                pairWidths?.[pair.indexOf(part)] ?? itemHeight,
-                                part.target.length,
-                                itemHeight,
-                              )}px`,
-                            } as React.CSSProperties}
+                            key={part.object_id}
+                            className={`glyph-part ${part.side} ${part.image ? "has-image" : ""}`}
                           >
-                            {contentFor(part)}
+                            <span
+                              className="glyph-content"
+                              style={
+                                {
+                                  "--word-font-size": `${wordFontSize(
+                                    pairWidths?.[pair.indexOf(part)] ??
+                                      itemHeight,
+                                    part.target.length,
+                                    itemHeight,
+                                  )}px`,
+                                } as React.CSSProperties
+                              }
+                            >
+                              {contentFor(part)}
+                            </span>
                           </span>
-                        </span>
-                      ))
-                    : contentFor(item)}
-                </span>
-                {isCelebrating && (
-                  <span className="match-sparkles" aria-hidden="true">
-                    <i />
-                    <i />
-                    <i />
-                    <i />
-                    <i />
-                    <i />
+                        ))
+                      : contentFor(item)}
                   </span>
-                )}
-                {item.solved && <span className="solved-check">✓</span>}
-              </button>
-            );
-          })}
+                  {isCelebrating && (
+                    <span className="match-sparkles" aria-hidden="true">
+                      <i />
+                      <i />
+                      <i />
+                      <i />
+                      <i />
+                      <i />
+                    </span>
+                  )}
+                  {item.solved && <span className="solved-check">✓</span>}
+                </button>
+              );
+            })}
           {celebration && (
-            <div className="celebration" aria-live="polite" aria-label="Trial complete">
-              <span className="sparkle" aria-hidden="true">🎉</span>
+            <div
+              className="celebration"
+              aria-live="polite"
+              aria-label="Trial complete"
+            >
+              <span className="sparkle" aria-hidden="true">
+                🎉
+              </span>
             </div>
           )}
         </div>
@@ -529,7 +589,9 @@ function TrialBoard({ trialNum, languagePack, onBack, onNext }: TrialBoardProps)
           ↻
         </button>
         <span className="footer-spark">✦</span>
-        {onNext && objects.length > 0 && objects.every((item) => item.solved) ? (
+        {onNext &&
+        objects.length > 0 &&
+        objects.every((item) => item.solved) ? (
           <button
             className="icon-button is-next"
             type="button"
@@ -559,7 +621,9 @@ function TrialSelector({
   const [page, setPage] = useState(0);
   const pages = pageCount(trials.length);
   const visible = trialsForPage(trials, page);
-  const completedCount = trials.filter((trialNum) => isTrialCompleted(trialNum, langCode)).length;
+  const completedCount = trials.filter((trialNum) =>
+    isTrialCompleted(trialNum, langCode),
+  ).length;
 
   return (
     <main className="game-shell">
@@ -617,7 +681,9 @@ function TrialSelector({
           <button
             className="icon-button"
             type="button"
-            onClick={() => setPage((current) => Math.min(pages - 1, current + 1))}
+            onClick={() =>
+              setPage((current) => Math.min(pages - 1, current + 1))
+            }
             disabled={page === pages - 1}
             aria-label="Next page"
             title="Next page"
@@ -646,7 +712,8 @@ function App() {
   const [trials, setTrials] = useState<number[] | null>(null);
   const [languagePack, setLanguagePack] = useState<LanguagePack | null>(null);
   const [loadError, setLoadError] = useState<string | null>(null);
-  const langCode = new URLSearchParams(window.location.search).get("cr_lang") ?? "english";
+  const langCode =
+    new URLSearchParams(window.location.search).get("cr_lang") ?? "english";
   const [selected, setSelected] = useState<number | null>(() =>
     trialNumberFromSearch(window.location.search),
   );
@@ -664,7 +731,9 @@ function App() {
       .catch((reason: unknown) => {
         if (!cancelled) {
           setLoadError(
-            reason instanceof Error ? reason.message : "Unable to load this language pack",
+            reason instanceof Error
+              ? reason.message
+              : "Unable to load this language pack",
           );
         }
       });
@@ -695,7 +764,13 @@ function App() {
     );
 
   if (selected === null)
-    return <TrialSelector trials={trials} langCode={languagePack.code} onSelect={select} />;
+    return (
+      <TrialSelector
+        trials={trials}
+        langCode={languagePack.code}
+        onSelect={select}
+      />
+    );
 
   const next = nextTrialNumber(trials, selected);
   return (

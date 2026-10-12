@@ -1,0 +1,15 @@
+{
+  "trial_num": 4,
+  "left": [
+    { "object_id": "left-c-lower", "pos": [190, 170], "target": "c", "pair_id": ["right-c-upper"] },
+    { "object_id": "left-h-lower", "pos": [190, 430], "target": "h", "pair_id": ["right-h-upper"] },
+    { "object_id": "left-b-lower", "pos": [410, 170], "target": "b", "pair_id": ["right-b-upper"] },
+    { "object_id": "left-t-lower", "pos": [410, 430], "target": "t", "pair_id": ["right-t-upper"] }
+  ],
+  "right": [
+    { "object_id": "right-h-upper", "pos": [710, 170], "target": "H", "pair_id": ["left-h-lower"] },
+    { "object_id": "right-b-upper", "pos": [710, 430], "target": "B", "pair_id": ["left-b-lower"] },
+    { "object_id": "right-t-upper", "pos": [930, 170], "target": "T", "pair_id": ["left-t-lower"] },
+    { "object_id": "right-c-upper", "pos": [930, 430], "target": "C", "pair_id": ["left-c-lower"] }
+  ]
+}

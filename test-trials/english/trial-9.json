@@ -1,0 +1,13 @@
+{
+  "trial_num": 9,
+  "left": [
+    { "object_id": "left-rhyme-bat", "pos": [250, 170], "target": "bat", "pair_id": ["right-rhyme-cat", "right-rhyme-hat", "right-rhyme-bat"], "audio": "lang/english/audios/bat.wav" },
+    { "object_id": "left-rhyme-cat", "pos": [250, 330], "target": "cat", "pair_id": ["right-rhyme-cat", "right-rhyme-hat", "right-rhyme-bat"], "audio": "lang/english/audios/cat.wav" },
+    { "object_id": "left-rhyme-hat", "pos": [250, 490], "target": "hat", "pair_id": ["right-rhyme-cat", "right-rhyme-hat", "right-rhyme-bat"], "audio": "lang/english/audios/hat.wav" }
+  ],
+  "right": [
+    { "object_id": "right-rhyme-cat", "pos": [880, 170], "target": "cat", "pair_id": ["left-rhyme-bat", "left-rhyme-cat", "left-rhyme-hat"], "audio": "lang/english/audios/cat.wav" },
+    { "object_id": "right-rhyme-hat", "pos": [880, 330], "target": "hat", "pair_id": ["left-rhyme-bat", "left-rhyme-cat", "left-rhyme-hat"], "audio": "lang/english/audios/hat.wav" },
+    { "object_id": "right-rhyme-bat", "pos": [880, 490], "target": "bat", "pair_id": ["left-rhyme-bat", "left-rhyme-cat", "left-rhyme-hat"], "audio": "lang/english/audios/bat.wav" }
+  ]
+}
