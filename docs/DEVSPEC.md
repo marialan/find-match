@@ -4,8 +4,8 @@
 | ---------------- | ------------------------------------------------------- |
 | **Title**        | Find The Two That Match — Development Specification     |
 | **Status**       | Active — approved behavior                              |
-| **Version**      | 0.10.0                                                  |
-| **Last updated** | 2026-09-30                                              |
+| **Version**      | 0.11.0                                                  |
+| **Last updated** | 2026-10-12                                              |
 | **Owner/Author** | Maria Lande (with GitHub Copilot)                       |
 
 > This DEVSPEC is derived solely from `docs/Find-The-Two-That-Match-Spec-Brief.md`
@@ -69,13 +69,15 @@ One trial file describes one playable board.
 | `pos` | `[x, y]` number pair | Screen placement of the object at rest |
 | `target` | string | The name/value of the object's target concept (letter, word, etc.) |
 | `type` | `"letter"` \| `"audio"` | Optional; defaults to `"letter"`. A `"letter"` object displays its `target`; an `"audio"` object is audio-only (Better tier) and never displays its `target`. Any other value makes the trial invalid |
-| `pair_id` | string[] | `object_id`s (typically on the opposite side) that are equivalent to this object. May contain more than one id (e.g., a rhyme family) |
-| `image` | string (relative path) | Optional; not used by `"audio"` objects. Relative to the trial's language asset root |
-| `audio` | string (relative path) | Path to the object's pronunciation audio, relative to the trial's language asset root |
+| `pair_id` | string[] | Exactly one equivalent `object_id` on the opposite side. The relationship is reciprocal: each object's only `pair_id` references the other's `object_id`, including in rhyme trials |
+| `image` | string (relative path) | Optional; not used by `"audio"` objects. Relative to the trial's language asset root. If provided but missing or corrupt at runtime, render a neutral placeholder |
+| `audio` | string (relative path) | Optional; relative to the trial's language asset root. If absent, missing, or corrupt, use the pronunciation fallback in Module 5 |
 
-Equivalence rule: two objects A and B are equivalent if `B.object_id` appears
-in `A.pair_id` (the relationship is authored bidirectionally by the content
-author; the game does not infer the reverse direction).
+Equivalence rule: each object has exactly one equivalent partner. Objects A
+and B are equivalent when A's only `pair_id` is B's `object_id` and B's only
+`pair_id` is A's `object_id`. This rule applies to letters, words, pictures,
+audio objects, and rhymes; rhyme content must author one specific partner per
+object rather than a family of candidates.
 
 ### 2.2 Media asset paths
 
@@ -121,17 +123,21 @@ shows a content error, not an English board. A valid pack has a non-empty index.
   and load `lang/<langCode>/trials/trial-<n>.json`; an absent or invalid value
   shows the Trial Selector screen instead (Module 11).
 - Validate required fields (§2.1) are present on every object; reject/report a
-  trial that has an object whose `pair_id` references a non-existent
-  `object_id`, where an object has no `pair_id` entries at all, or where an
-  object's `type` is not an allowed value.
-- Resolve every `image`/`audio` path to its full relative location under the
-  selected language asset root. The language is read from `cr_lang`; absent or
-  unsupported values select the English pack. Reject invalid codes and paths
-  before constructing URLs. Validate the pack metadata before loading trials.
+  trial that has an object whose `pair_id` does not contain exactly one
+  existing `object_id`, whose partner is not on the opposite side, or whose
+  partner does not reference it back; reject objects with an invalid `type`.
+  Require equal side counts.
+- Resolve every provided `image`/`audio` path to its full relative location
+  under the selected language asset root. Neither media field is required for
+  a valid object. The language is read from `cr_lang`; absent or unsupported
+  values select the English pack. Reject invalid codes and paths before
+  constructing URLs. Validate the pack metadata before loading trials.
 
-**Exit criterion:** Given a well-formed trial file, every object in `left` and
-`right` has a resolved, loadable image (if present) and audio path, and every
+**Exit criterion:** Given a well-formed trial file, every provided media path
+in `left` and `right` resolves under the selected language root, and every
 `pair_id` reference resolves to an existing `object_id` in the same trial.
+Absent or failed media does not invalidate the trial; Module 5 provides the
+runtime fallback.
 
 ### Module 2 — Match Board Renderer
 **Goal:** Render both columns at their authored positions.
@@ -193,6 +199,9 @@ candidate.
   `pair_id` list (§2.1).
 - If multiple candidates are simultaneously within tolerance, resolve using
   the nearest candidate by on-screen distance (see Open Question OQ-4).
+- The dragged object's single partner must be the candidate's single partner
+  in return. A successful match consumes both objects; solved objects cannot
+  be matched again.
 
 **Exit criterion:** For every authored equivalent pair in a trial, dragging
 one onto the other and releasing always reports a match; dragging one onto
@@ -279,10 +288,15 @@ on the learner.
   migrate existing unnamespaced English progress without overwriting newer
   language-specific records.
 - Persist each played trial's total object count alongside its solved ids, so
-  a trial's completion can be derived (solved count equals total count)
-  without loading that trial's JSON.
-- On reload, restore already-solved pairs as combined tiles without replaying
-  any celebration.
+  a trial's completion can be derived without loading that trial's JSON. The
+  total is `left.length + right.length`; the solved value is a set of unique
+  `object_id` strings, with both IDs from each successful pair added once.
+- A trial is complete only when the solved-ID set contains exactly the stored
+  total number of trial objects; each object ID counts once, and each solved
+  pair contributes two IDs.
+- On reload, restore a pair only when both IDs of its reciprocal `pair_id`
+  relationship are present in the solved-ID set; show it as one combined tile
+  without replaying a celebration.
 
 **Exit criterion:** Reloading the game mid-trial restores every previously
 solved pair as solved and leaves unsolved pairs interactive.
@@ -380,9 +394,12 @@ the next indexed trial only after the current trial is complete.
 
 - A malformed trial file (schema violation per §2.1) must be rejected with a
   logged error and must not crash the board renderer for other, valid trials.
-- A missing or corrupt audio/image asset must not stop the trial from loading;
-  substitute the auto-generated voice (audio, Module 5) and skip rendering (image), per
-  `docs/third-party-game-spec.md` §2.3.
+- A missing or corrupt audio/image asset must not stop the trial from loading.
+  If `audio` is absent, missing, or corrupt, use the Module 5 pronunciation
+  fallback: speak `target` with an on-device voice in the learning language,
+  then use a synthesized tone if no suitable voice is available. If a provided
+  image is missing or corrupt, render the neutral placeholder specified by
+  UISPEC §1.2; keep the object available for normal interaction.
 - `cr_event` emission failures must never affect gameplay — every emission
   call is wrapped in try/catch and is fire-and-forget.
 
@@ -521,6 +538,7 @@ Functional tree (by purpose) mapped to an artifact-lifecycle classification:
 
 ## 16. Changelog
 
+2026-10-12 — Maria Lande (with GitHub Copilot) — Clarified that `audio` and `image` are optional media fields, specified their runtime fallbacks, and aligned language-pack contents with optional per-language images.
 2026-09-30 — Maria Lande (with GitHub Copilot) — Required the engine bundle to ship as a single relative, deferred, non-module script (ES module scripts are CORS-blocked on `file://`) and documented Chrome's `--allow-file-access-from-files` requirement in the runbook.
 2026-09-30 — Maria Lande (with GitHub Copilot) — Defined tap-versus-drag as a 10 px pointer-travel tolerance (rather than the presence of pointer-move events) and required suppression of native touch text-selection and tap-highlight on all objects, so tap-to-hear works on touchscreens.
 2026-09-28 — Maria Lande (with GitHub Copilot) — Added the per-language trial index file (§2.3) and Module 11 (Trial Selector & Navigation) with paginated trial selection, persisted trial size for completion marking, back and next-trial navigation, and resolved OQ-7.

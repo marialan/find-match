@@ -3,9 +3,9 @@
 |                  |                                                     |
 | ---------------- | --------------------------------------------------- |
 | **Title**        | Find The Two That Match — Test Specification         |
-| **Status**       | Active — approved behavior                          |
-| **Version**      | 0.9.2                                               |
-| **Last updated** | 2026-10-05                                          |
+| **Status**       | Active — approved verification criteria             |
+| **Version**      | 0.10.0                                              |
+| **Last updated** | 2026-10-12                                          |
 | **Owner/Author** | Maria Lande (with GitHub Copilot)                   |
 
 > This TESTSPEC is derived solely from `docs/Find-The-Two-That-Match-Spec-Brief.md`
@@ -30,8 +30,10 @@
 ## 2. Unit test cases (per DEVSPEC module)
 
 ### Module 1 — Trial Loader
-- TC-1.1: Loading `trial-letters-basic.json` resolves every object's `image`
-  and `audio` to a loadable relative path.
+- TC-1.1: Loading `trial-letters-basic.json` resolves every provided `image`
+  and `audio` path under the language root; an otherwise valid object with no
+  `audio` field is accepted. Missing or corrupt provided media does not reject
+  the trial (see TC-6.6, TC-9.4).
 - TC-1.2: Loading `trial-letters-orphan.json` is rejected/reported as invalid
   and does not crash the loader.
 - TC-1.3: Loader never calls `window.fetch()` when `window.location.protocol
@@ -47,14 +49,20 @@
 - TC-1.7: A generated, test-only non-English pack verifies metadata validation,
   trial loading, relative media-path resolution, and traversal rejection;
   invalid language codes fall back to English.
+- TC-1.8: The loader rejects unequal side counts, any object with zero or
+  multiple `pair_id` values, same-side or non-reciprocal partner references,
+  and partners that do not exist.
 
 ### Module 2 — Match Board Renderer
 - TC-2.1: Every object in a loaded trial renders at its authored `pos`
   (pixel-exact, within a documented tolerance for coordinate rounding).
-- TC-2.2: At a set of supported viewport widths (see UI-TC-8), the board's
-  rendered width:height ratio matches its authored 1120:650 design ratio, and
-  no two objects' (including combined tiles') rendered bounding boxes overlap
-  each other or the region divider.
+- TC-2.2: At the supported viewport sizes (see UI-TC-8), the board's rendered
+  width and height each match the containing play area's corresponding
+  dimension independently, even when the resulting ratio differs from the
+  authored 1120:650 design ratio. Authored object positions track the board as
+  percentages of its current width and height, and no two objects' (including
+  combined tiles') rendered bounding boxes overlap each other or the region
+  divider.
 - TC-2.3: Image-trial cards render larger than the text-only baseline; text
   card width grows with target length, a 12-character target remains fully
   visible, and its combined tile stays within the board and its region at
@@ -115,9 +123,9 @@
 - TC-6.4: Tapping a combined tile plays the partner's pronunciation exactly
   once and produces no state change.
 - TC-6.5: An object with a loadable `audio` file plays that file.
-- TC-6.6: An object with missing or broken `audio` speaks its `target` with an
-  on-device voice in the learning language; network-backed voices are never
-  used.
+- TC-6.6: An object with absent, missing, or broken `audio` speaks its
+  `target` with an on-device voice in the learning language; network-backed
+  voices are never used.
 - TC-6.7: With no on-device voice for the learning language (or no speech
   support), the synthesized tone plays instead.
 - TC-6.11: The pack's `speechLocale` selects an on-device voice for a
@@ -129,15 +137,19 @@
 - TC-7.2: A word object matched against its picture partner (via `pair_id`)
   reports a match.
 - TC-7.3: A word object matched against a rhyming-word partner (via
-  `pair_id`) reports a match.
+  its single reciprocal `pair_id`) reports a match; all other rhyme objects
+  remain non-equivalent to it.
 
 ### Module 8 — Progress & Session State
-- TC-8.1: Completing a pair persists its solved state to `localStorage`.
+- TC-8.1: Completing a pair persists both distinct `object_id` values once in
+  the trial's solved-ID set in `localStorage`.
 - TC-8.2: Reloading the page restores every previously solved pair as a
-  combined tile with no celebration and leaves other pairs Idle.
-- TC-8.3: Playing a trial persists its total object count, so a trial reports
-  completed only when its persisted solved count equals that total; resetting
-  a trial makes it report not completed again.
+  combined tile with no celebration and leaves other pairs Idle; this also
+  verifies the one-to-one rhyming pairs in `trial-9.json`.
+- TC-8.3: Playing a trial persists `left.length + right.length` as the total
+  object count. Completion is true only when the unique solved-ID set contains
+  exactly that many IDs; each pair contributes two IDs. Resetting clears the
+  set and makes the trial incomplete.
 - TC-8.4: Two languages with the same trial number retain separate progress;
   existing unscoped English completion records migrate to English only.
 
@@ -284,6 +296,10 @@ above, every relevant UISPEC Gherkin scenario passes, and the dry-run protocol
   visual assertion.
 
 ## Changelog
+2026-10-12 — Maria Lande (with GitHub Copilot) — Replaced candidate-list pairing with exactly one reciprocal partner per object, including rhymes, and updated loader, matching, and reload coverage.
+2026-10-12 — Maria Lande (with GitHub Copilot) — Specified candidate-based equivalence, disjoint solved pairs, exact object-ID completion accounting, and reload coverage for many-candidate pairings.
+2026-10-12 — Maria Lande (with GitHub Copilot) — Clarified optional media-field validation and verified that absent or failed audio and image assets use their specified runtime fallbacks.
+2026-10-12 — Maria Lande (with GitHub Copilot) — Updated TC-2.2 to verify independent board fill on both axes and percentage-based position tracking, consistent with DEVSPEC Module 2 and UISPEC §1.3.
 2026-09-30 — Maria Lande (with GitHub Copilot) — Added TC-10.4 and TC-10.5 for the non-module `file://`-loadable build, noted Chrome's `--allow-file-access-from-files` requirement in the dry-run protocol, and renumbered the touch-tap case to UI-TC-15 to remove a duplicate id.
 2026-09-30 — Maria Lande (with GitHub Copilot) — Restated TC-6.2 in terms of the 10 px tap tolerance and added TC-6.9, TC-6.10, and UI-TC-14 covering touch taps with minor finger drift and suppression of native selection/tap highlights.
 2026-09-28 — Maria Lande (with GitHub Copilot) — Added TC-11.5 verifying that a full page of selector tiles stays visible and scroll-free at every supported viewport size.

@@ -249,8 +249,8 @@ function validateObject(value: unknown, ids: Set<string>): TrialObject {
   if (!Array.isArray(value.pos) || value.pos.length !== 2 || !value.pos.every((part) => typeof part === 'number')) {
     throw new Error(`Invalid position for ${value.object_id}`)
   }
-  if (!Array.isArray(value.pair_id) || value.pair_id.length === 0 || !value.pair_id.every((id) => typeof id === 'string')) {
-    throw new Error(`Invalid pair_id for ${value.object_id}`)
+  if (!Array.isArray(value.pair_id) || value.pair_id.length !== 1 || typeof value.pair_id[0] !== 'string') {
+    throw new Error(`Each object must have exactly one pair_id for ${value.object_id}`)
   }
   if (ids.has(value.object_id)) throw new Error(`Duplicate object_id ${value.object_id}`)
   if (value.type !== undefined && (typeof value.type !== 'string' || !OBJECT_TYPES.includes(value.type))) {
@@ -275,24 +275,51 @@ export function validateTrial(value: unknown): Trial {
   const ids = new Set<string>()
   const left = value.left.map((item) => validateObject(item, ids))
   const right = value.right.map((item) => validateObject(item, ids))
+  if (left.length !== right.length) throw new Error('Trial sides must contain the same number of objects')
   const allIds = new Set([...left, ...right].map((item) => item.object_id))
+  const rightById = new Map(right.map((item) => [item.object_id, item]))
+  const leftById = new Map(left.map((item) => [item.object_id, item]))
   for (const item of [...left, ...right]) {
     if (item.pair_id.some((id) => !allIds.has(id))) throw new Error(`Unknown pair_id in ${item.object_id}`)
+  }
+  for (const item of left) {
+    for (const partnerId of item.pair_id) {
+      const partner = rightById.get(partnerId)
+      if (!partner || !partner.pair_id.includes(item.object_id)) {
+        throw new Error(`Pair relationship must be reciprocal and cross-side for ${item.object_id}`)
+      }
+    }
+  }
+  for (const item of right) {
+    for (const partnerId of item.pair_id) {
+      const partner = leftById.get(partnerId)
+      if (!partner || !partner.pair_id.includes(item.object_id)) {
+        throw new Error(`Pair relationship must be reciprocal and cross-side for ${item.object_id}`)
+      }
+    }
   }
   return { trial_num: value.trial_num, left, right }
 }
 
 export function makeBoardObjects(trial: Trial, solvedIds: Set<string>): BoardObject[] {
-  const order = [...solvedIds]
+  const trialIds = new Set([...trial.left, ...trial.right].map((item) => item.object_id))
+  const eligibleSolvedIds = new Set([...solvedIds].filter((id) => trialIds.has(id)))
+  const partnerByLeftId = new Map(
+    trial.left
+      .filter((item) => eligibleSolvedIds.has(item.object_id) && eligibleSolvedIds.has(item.pair_id[0]))
+      .map((item) => [item.object_id, item.pair_id[0]]),
+  )
+  const leftByRightId = new Map([...partnerByLeftId].map(([leftId, rightId]) => [rightId, leftId]))
   const all: BoardObject[] = [
-    ...trial.left.map((item) => ({ ...item, side: 'left' as const, x: item.pos[0], y: item.pos[1], solved: solvedIds.has(item.object_id) })),
-    ...trial.right.map((item) => ({ ...item, side: 'right' as const, x: item.pos[0], y: item.pos[1], solved: solvedIds.has(item.object_id) })),
+    ...trial.left.map((item) => ({ ...item, side: 'left' as const, x: item.pos[0], y: item.pos[1], solved: partnerByLeftId.has(item.object_id) })),
+    ...trial.right.map((item) => ({ ...item, side: 'right' as const, x: item.pos[0], y: item.pos[1], solved: leftByRightId.has(item.object_id) })),
   ]
   return all.map((item) => {
     if (!item.solved) return item
-    // Pairs persist as [dragged, partner], so the later id hosts the combined tile.
-    const host = item.pair_id.find((id) => solvedIds.has(id) && order.indexOf(id) > order.indexOf(item.object_id))
-    return host ? { ...item, mergedInto: host } : item
+    const partnerId = item.side === 'left'
+      ? partnerByLeftId.get(item.object_id)
+      : leftByRightId.get(item.object_id)
+    return item.side === 'left' && partnerId ? { ...item, mergedInto: partnerId } : item
   })
 }
 
@@ -494,7 +521,7 @@ export function writeTrialTotal(trialNum: number, total: number, langCode = 'eng
 
 export function isTrialCompleted(trialNum: number, langCode = 'english'): boolean {
   const total = readTrialTotal(trialNum, langCode)
-  return total > 0 && readSolvedIds(trialNum, langCode).size >= total
+  return total > 0 && readSolvedIds(trialNum, langCode).size === total
 }
 
 export function emitContainerEvent(userId: string | null, type: 'trial_completed' | 'summary_data', data: Record<string, unknown>): void {

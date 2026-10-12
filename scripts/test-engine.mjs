@@ -73,6 +73,34 @@ const { validatePacks } = await import('./validate-packs.mjs')
 // TC-1.4: type defaults to letter; unknown types are rejected.
 assert.ok(validateTrial(trial).left.every((item) => item.type === 'letter'))
 assert.throws(() => validateTrial({ ...trial, left: [{ ...trial.left[0], type: 'video' }, ...trial.left.slice(1)] }), /Invalid type/)
+assert.throws(() => validateTrial({ trial_num: 1, left: [trial.left[0]], right: [] }), /same number of objects/)
+assert.throws(() => validateTrial({ ...trial, left: [{ ...trial.left[0], pair_id: [...trial.left[0].pair_id, 'right-extra'] }, ...trial.left.slice(1)] }), /exactly one pair_id/)
+assert.throws(() => validateTrial({
+  trial_num: 1,
+  left: [
+    { object_id: 'left-a', pos: [100, 100], target: 'a', pair_id: ['right-a'] },
+    { object_id: 'left-b', pos: [100, 200], target: 'b', pair_id: ['right-b'] },
+  ],
+  right: [
+    { object_id: 'right-a', pos: [900, 100], target: 'A', pair_id: ['left-b'] },
+    { object_id: 'right-b', pos: [900, 200], target: 'B', pair_id: ['left-b'] },
+  ],
+}), /reciprocal and cross-side/)
+assert.throws(() => validateTrial({
+  trial_num: 1,
+  left: ['a', 'b', 'c', 'd'].map((target, index) => ({
+    object_id: `left-${target}`,
+    pos: [100, 100 + index * 100],
+    target,
+    pair_id: target === 'd' ? ['right-3', 'right-4'] : ['right-1', 'right-2'],
+  })),
+  right: [
+    { object_id: 'right-1', pos: [900, 100], target: '1', pair_id: ['left-a', 'left-b', 'left-c'] },
+    { object_id: 'right-2', pos: [900, 200], target: '2', pair_id: ['left-a', 'left-b', 'left-c'] },
+    { object_id: 'right-3', pos: [900, 300], target: '3', pair_id: ['left-d'] },
+    { object_id: 'right-4', pos: [900, 400], target: '4', pair_id: ['left-d'] },
+  ],
+}), /exactly one pair_id/)
 console.log('object type validation: ok')
 
 // TC-1.5: trial query parameter selects the trial file; anything else shows the selector.
@@ -182,6 +210,8 @@ writeSolvedIds(1, new Set(['a', 'b', 'c', 'd']))
 assert.equal(isTrialCompleted(1), false)
 writeSolvedIds(1, new Set(['a', 'b', 'c', 'd', 'e', 'f']))
 assert.equal(isTrialCompleted(1), true)
+writeSolvedIds(1, new Set(['a', 'b', 'c', 'd', 'e', 'f', 'stale-id']))
+assert.equal(isTrialCompleted(1), false)
 writeSolvedIds(1, new Set())
 assert.equal(isTrialCompleted(1), false)
 assert.equal(isTrialCompleted(1, 'french'), false)
@@ -198,6 +228,18 @@ assert.equal(store.has('ftm:trial:2:solved'), false)
 assert.equal(store.get(progressKey(2)), '["old-left","old-right"]')
 assert.equal(store.get(totalKey(2)), '2')
 console.log('trial completion marking: ok')
+
+// TC-8.2: unique rhyme partners restore as three distinct solved pairs.
+const rhymeTrial = validateTrial(JSON.parse(fs.readFileSync(path.join(root, 'test-trials', 'english', 'trial-9.json'), 'utf8')))
+assert.ok([...rhymeTrial.left, ...rhymeTrial.right].every((item) => item.pair_id.length === 1))
+const rhymeIds = new Set([...rhymeTrial.left, ...rhymeTrial.right].map((item) => item.object_id))
+const restoredRhymes = makeBoardObjects(rhymeTrial, rhymeIds)
+const restoredRhymePairs = restoredRhymes.filter((item) => item.side === 'left' && item.mergedInto)
+assert.equal(restoredRhymePairs.length, 3)
+assert.equal(new Set(restoredRhymePairs.map((item) => item.mergedInto)).size, 3)
+assert.ok(restoredRhymePairs.every((item) => item.pair_id[0] === item.mergedInto))
+assert.equal(restoredRhymes.filter((item) => !item.mergedInto).length, 3)
+console.log('one-to-one rhyme pair restore: ok')
 
 // TC-6.1 / TC-6.3: trial-2 pairs every audio-only object with a letter on the other side.
 const trial2 = validateTrial(JSON.parse(fs.readFileSync(path.join(root, 'test-trials', 'english', 'trial-2.json'), 'utf8')))
