@@ -4,8 +4,8 @@
 | ---------------- | ------------------------------------------------------- |
 | **Title**        | Find The Two That Match — Development Specification     |
 | **Status**       | Active — approved behavior                              |
-| **Version**      | 0.11.0                                                  |
-| **Last updated** | 2026-10-12                                              |
+| **Version**      | 0.12.0                                                  |
+| **Last updated** | 2026-10-14                                              |
 | **Owner/Author** | Maria Lande (with GitHub Copilot)                       |
 
 > This DEVSPEC is derived solely from `docs/Find-The-Two-That-Match-Spec-Brief.md`
@@ -445,10 +445,8 @@ Functional tree (by purpose) mapped to an artifact-lifecycle classification:
 
 ## 9. Environment and configuration
 
-- `engineSlug`: agreed with the Curious Learning team at upload time; stable,
-  lowercase, hyphenated.
-- `sub_app_id`: stable lowercase identifier used in every `cr_event` envelope;
-  never changes between releases.
+- `engineSlug` and `sub_app_id` are the registered stable identifier
+  `findmatch`; use it for package artifact names and every `cr_event` envelope.
 - Build must produce a **standalone** target: bundler public path `./`, no
   `.map` files, no analytics/feature-flag SDK network code.
 
@@ -497,10 +495,11 @@ Functional tree (by purpose) mapped to an artifact-lifecycle classification:
 | OQ-3 | When a drag ends with no candidate in tolerance range at all, does the object stay where dropped or return to its pre-drag position? | Module 3 |
 | OQ-4 | When a drag ends within tolerance of more than one candidate, is nearest-distance the correct tie-break, or should the first-encountered candidate win? | Module 4 |
 | OQ-5 | What technology stack/bundler will be used for the standalone build? | Part III §10 |
-| OQ-6 | What is the `engineSlug` / `sub_app_id` to register with the Curious Learning team? | Module 9, Module 10 |
 
 ## 14. Resolved Decisions
 
+- The registered `engineSlug` and `sub_app_id` are `findmatch`; engine and
+  language-package artifact names use the same slug.
 - `cr_lang` selects the language pack; absent or unsupported values fall back
   to English.
 - Better supports audio-only objects, marked with `type: "audio"`, and
@@ -538,6 +537,7 @@ Functional tree (by purpose) mapped to an artifact-lifecycle classification:
 
 ## 16. Changelog
 
+2026-10-14 — Maria Lande (with GitHub Copilot) — Resolved OQ-6 by setting the registered engine slug and `sub_app_id` to `findmatch` and using it for package artifact names.
 2026-10-12 — Maria Lande (with GitHub Copilot) — Clarified that `audio` and `image` are optional media fields, specified their runtime fallbacks, and aligned language-pack contents with optional per-language images.
 2026-09-30 — Maria Lande (with GitHub Copilot) — Required the engine bundle to ship as a single relative, deferred, non-module script (ES module scripts are CORS-blocked on `file://`) and documented Chrome's `--allow-file-access-from-files` requirement in the runbook.
 2026-09-30 — Maria Lande (with GitHub Copilot) — Defined tap-versus-drag as a 10 px pointer-travel tolerance (rather than the presence of pointer-move events) and required suppression of native touch text-selection and tap-highlight on all objects, so tap-to-hear works on touchscreens.

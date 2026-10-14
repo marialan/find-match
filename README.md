@@ -43,7 +43,7 @@ Start-Process 'C:\Program Files\Google\Chrome\Application\chrome.exe' -ArgumentL
 npm run package
 ```
 
-This builds the app and creates `artifacts/ftm-core.zip` plus one `artifacts/ftm-lang-<code>.zip` per language folder. The packaging script clears and recreates the `artifacts/` directory first, so move or back up anything there that you need to keep. Packaging uses `tar.exe` to write portable ZIP paths.
+This builds the app and creates `artifacts/findmatch-core.zip` plus one `artifacts/findmatch-lang-<code>.zip` per language folder. The packaging script clears and recreates the `artifacts/` directory first, so move or back up anything there that you need to keep. Packaging uses `tar.exe` to write portable ZIP paths.
 
 ## Developer commands
 

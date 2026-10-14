@@ -68,7 +68,10 @@ globalThis.SpeechSynthesisUtterance = class { constructor(text) { this.text = te
 globalThis.XMLHttpRequest = FakeXHR
 
 const { MIN_WORD_FONT_SIZE, boardObjectSize, boardObjectWidth, boardScale, isTrialCompleted, loadLanguagePack, loadTrial, loadTrialIndex, makeBoardObjects, nearestCandidate, nextTrialNumber, pageCount, playPronunciation, preloadAudio, progressKey, readSolvedIds, resolveMediaPath, resolveOverlaps, totalKey, trialIndexPath: buildTrialIndexPath, trialNumberFromSearch, trialPath: buildTrialPath, trialsForPage, validateLanguagePack, validateTrial, validateTrialIndex, validLanguageCode, wordFontSize, writeSolvedIds, writeTrialTotal } = await import('../src/game.ts')
+const { ENGINE_SLUG } = await import('../src/game/container.ts')
 const { validatePacks } = await import('./validate-packs.mjs')
+
+assert.equal(ENGINE_SLUG, 'findmatch')
 
 // TC-1.4: type defaults to letter; unknown types are rejected.
 assert.ok(validateTrial(trial).left.every((item) => item.type === 'letter'))

@@ -36,3 +36,13 @@ YYYY-MM-DD — <author> — <one-sentence description of change>
 5. Return a concise list of all spec changes, explicitly identifying additions, removals, and modified requirements.
 
 Do not update changelogs for unapproved exploratory work. Do not claim human approval; wait for it to be stated by the user or review process.
+
+## MCP Write Operations
+
+The `curious-reader-cms` MCP server (see `docs/third-party-game-spec.md`, section 8) has write tools: `create_engine_slug`, `create_core_slug`, `upload_core_game`, `upload_book`, `upload_language_pack`, `begin_upload`, `upload_chunk`, `abort_upload`, `promote_content`, `demote_content`, `update_version_notes`, and `update_manifest`.
+
+1. Run read-only tools first (`list_engine_slugs`, `list_core_slugs`, `list_inventory`) to check current state.
+2. Before calling any write tool, state the exact tool and arguments, note whether it is irreversible (slug reservations are permanent), and wait for explicit user approval.
+3. Never set `confirmed: true` on a slug tool until the user has approved the exact slug.
+4. Never request, store, or echo MCP tokens; they are supplied only through the `mcp.json` password prompt.
+5. Do not use `promote_content` or `demote_content` unless the user explicitly asks; promotion and publishing are staff-controlled.

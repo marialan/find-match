@@ -4,8 +4,8 @@
 | ---------------- | --------------------------------------------------- |
 | **Title**        | Find The Two That Match — Test Specification         |
 | **Status**       | Active — approved verification criteria             |
-| **Version**      | 0.10.0                                              |
-| **Last updated** | 2026-10-12                                          |
+| **Version**      | 0.11.0                                              |
+| **Last updated** | 2026-10-14                                          |
 | **Owner/Author** | Maria Lande (with GitHub Copilot)                   |
 
 > This TESTSPEC is derived solely from `docs/Find-The-Two-That-Match-Spec-Brief.md`
@@ -161,7 +161,8 @@
   trial results in exactly one `cr_event` `postMessage` call and exactly one
   `summary_data` update, with neither repeated per pair or reload. The event
   JSON parses to a valid envelope (`payload_id`, `cr_user_id`, `sub_app_id`,
-  `payload_version`, `collection`, `timestamp`, `data`) per
+  `payload_version`, `collection`, `timestamp`, `data`); `sub_app_id` is
+  exactly `findmatch` per
   `docs/third-party-game-spec.md` §6.2.
 - TC-9.3: With `window.ReactNativeWebView` undefined (plain browser), no
   `postMessage`-related error is thrown and no attempt is made to call it.
@@ -174,9 +175,10 @@
   10 seconds offline.
 
 ### Module 10 — Packaging
-- TC-10.1: The built engine ZIP contains `index.html` at its root and no
+- TC-10.1: `findmatch-core.zip` contains `index.html` at its root and no
   `lang/` directory.
-- TC-10.2: The built language ZIP contains only `lang/<langCode>/...` paths.
+- TC-10.2: Each `findmatch-lang-<langCode>.zip` contains only
+  `lang/<langCode>/...` paths.
 - TC-10.3: Extracting the engine ZIP and one language ZIP into a single
   directory produces no overwritten files.
 - TC-10.4: The built `index.html` references its bundle with a single
@@ -296,6 +298,7 @@ above, every relevant UISPEC Gherkin scenario passes, and the dry-run protocol
   visual assertion.
 
 ## Changelog
+2026-10-14 — Maria Lande (with GitHub Copilot) — Added verification for the registered `findmatch` event identifier and matching engine/language ZIP names.
 2026-10-12 — Maria Lande (with GitHub Copilot) — Replaced candidate-list pairing with exactly one reciprocal partner per object, including rhymes, and updated loader, matching, and reload coverage.
 2026-10-12 — Maria Lande (with GitHub Copilot) — Specified candidate-based equivalence, disjoint solved pairs, exact object-ID completion accounting, and reload coverage for many-candidate pairings.
 2026-10-12 — Maria Lande (with GitHub Copilot) — Clarified optional media-field validation and verified that absent or failed audio and image assets use their specified runtime fallbacks.
