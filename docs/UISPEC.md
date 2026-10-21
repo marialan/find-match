@@ -1,298 +1,283 @@
 # UISPEC — Find The Two That Match
 
-|                  |                                                   |
-| ---------------- | ------------------------------------------------- |
-| **Title**        | Find The Two That Match — UI Specification         |
-| **Status**       | Active — approved behavior                        |
-| **Version**      | 0.9.1                                             |
-| **Last updated** | 2026-10-05                                        |
-| **Owner/Author** | Maria Lande (with GitHub Copilot)                 |
+| | |
+|---|---|
+| **Title** | Find The Two That Match — UI Specification |
+| **Status** | Active — approved and playtested user experience |
+| **Version** | 1.0.0 |
+| **Last updated** | 2026-10-21 |
+| **Owner/Author** | Maria Lande (with GitHub Copilot) |
 
-> This UISPEC is derived solely from `docs/Find-The-Two-That-Match-Spec-Brief.md`
-> and `docs/third-party-game-spec.md`. It references the DEVSPEC for behavior
-> (equivalence rules, tolerance, feedback triggers) and does not duplicate
-> that behavior here — only the user-facing surface, states, and acceptance
-> criteria are defined below.
-
----
+This document defines layout, visual states, interactions, accessibility,
+and acceptance scenarios. [PRD.md](PRD.md) defines product scope,
+[DEVSPEC.md](DEVSPEC.md) defines system behavior, and
+[TESTSPEC.md](TESTSPEC.md) defines verification.
 
 ## 1. Screens
 
-### 1.1 Loading Screen
-- Shown from launch until the requested trial's assets have settled
-  (successfully or with tolerated per-asset failure — DEVSPEC Module 9).
-- Must clear within 10 seconds under offline conditions (PRD §5 KPI).
-- Displays no text requiring reading ability (per PRD design goal).
+### 1.1 Loading and content errors
 
-### 1.2 Match Board Screen
-- Split into a **left region** and a **right region**.
-- Every object from the trial's `left` array renders in the left region at its
-  authored `pos`; every object from `right` renders in the right region at its
-  authored `pos` (DEVSPEC Module 2).
-- Objects render as one of:
-  - **Letter object** — `type` absent or `"letter"`; renders its `target`.
-  - **Image object** — has an `image`; renders that image.
-  - **Audio-only object** (Better tier) — `type: "audio"`; renders a speaker
-    emoji (🔊) as an interim icon and never shows its `target`. Its accessible
-    name is "Play sound" so it does not reveal the answer.
-- If an image is missing or corrupt, the object renders a neutral placeholder
-  that remains available for dragging, highlighting, matching, and tap-to-hear.
-- Image-containing trials use larger cards. Text cards widen with their target
-  text, and long targets wrap within the available region width; image cards
-  remain square. Combined cards allocate room for both contents without
-  crossing the region divider.
-- Image-backed cards and image segments in combined cards have a transparent
-  surface; text segments retain their side color.
-- The board's usable area never allows an object's rest or dragged position to
-  extend past its visible bounds (DEVSPEC Module 3).
+- Loading uses a textless visual indicator with an accessible "Loading"
+  status. Replace it within 10 seconds under offline conditions.
+- Malformed or unavailable content shows an explicit error, not a partially
+  functioning board or a substituted trial.
+- Board content errors offer back navigation to the selector.
+- Failed individual images or pronunciation recordings do not show the
+  whole-board error; use the media fallbacks below.
 
-### 1.3 Mobile viewport containment
-- On mobile viewports, the game shell fits within the visual viewport with no
-  page-level horizontal or vertical scrolling.
-- "Mobile viewport" includes short-height landscape orientations (e.g. a phone
-  turned sideways), not only narrow-width portrait viewports — containment
-  must hold whenever either dimension is phone-sized, since a landscape phone
-  can be wider than a typical narrow-width breakpoint while still having a
-  constrained height.
-- The board resizes responsively while preserving both regions and keeps every
-  object's rendered bounds inside the board.
-- The board fills the full width and height of its containing play area
-  independently on each axis. Card height scales uniformly from a single scale
-  factor derived from the more constrained axis (width or height). Text-card
-  width may grow with target length, bounded by available region space; image
-  cards stay square. This keeps authored positions usable without object or
-  divider overlap at supported viewport sizes.
+### 1.2 Match board
 
-### 1.4 Celebrations
-Two distinct celebrations exist (DEVSPEC Module 5):
-- **Match celebration** — plays on the combined tile when a pair is confirmed
-  equivalent. Brief, clearly communicates that the match is correct,
-  non-blocking (other unsolved pairs remain interactive), and ends
-  automatically.
-- **Trial-complete celebration** — a board-level overlay shown after the last
-  pair is solved; visually distinct from the match celebration.
-- Both respect the user's reduced-motion preference and require no learner
-  action to continue.
+**UI-1 — Regions**
 
-### 1.5 Trial Selector Screen
-- Shown at launch when the launch URL names no valid trial (DEVSPEC Module
-  11), and whenever the learner uses the board's back control.
-- Lists the language pack's trials (DEVSPEC §2.3) in ascending order as a grid
-  of tiles, each labelled with its trial number.
-- Shows a maximum of **12 tiles per page**. When more trials exist, a bottom
-  navigation row shows a previous-page control, the current page position
-  ("X / Y"), and a next-page control; the control for a non-existent
-  page is disabled. With 12 or fewer trials, no page navigation is shown.
-- Shared brand text, button accessible names, and tooltips are supplied by
-  the engine in English; language packs only change trial content and the
-  pronunciation locale. Trial navigation remains icon-based.
-- A **completed** trial tile (all its pairs solved, DEVSPEC Module 8) is shown
-  in green with a checkmark; its accessible name states that it is completed.
-  An uncompleted tile uses the neutral tile treatment.
-- Selecting a tile opens that trial's Match Board Screen.
-- The selector obeys the same containment rule as the board (§1.3): tiles
-  shrink with the available width *and* height so a full page of 12 is fully
-  visible at every supported viewport size, with no page-level or in-panel
-  scrolling. Narrow viewports use fewer columns.
+- The board fills the available play area inside a header/footer shell.
+- All `right` objects are fixed matching targets. One `left` object at a time
+  appears as the draggable prompt in a separate tray.
+- Portrait and square viewports: target grid above, prompt tray below.
+- Landscape viewports (width greater than height): prompt tray left, target
+  grid right.
+- Both colored regions have 12 CSS px outer margins from the board edges
+  they face. The inter-region gap is 16 CSS px.
+- After outer margins and gap, the target region occupies 60% of the split
+  axis and the prompt tray occupies 40%.
+- Use a softly tinted green target region and warm prompt tray, with rounded
+  corners and a visually distinct tray border.
+- Arrange targets in authored order in a responsive grid and center the
+  prompt in its tray. Authored `pos` values do not dictate placement.
+- Targets do not move or disappear after matching. Progress changes only
+  their indicators and transient feedback.
 
-### 1.6 Board navigation controls
-- The Match Board Screen shows a **back control** (return-arrow icon) that
-  returns to the Trial Selector Screen. It is available at all times, has the
-  accessible name "Back to trial selector", and discards no progress.
-- The board shows a **next-trial control** (forward-arrow icon) only once the
-  current trial is complete and a following trial exists in the index. It
-  opens that next trial.
-- Both controls sit in the board footer alongside the existing reset control
-  and are icon-only, consistent with the textless design goal.
+**UI-2 — Cards and media**
+
+- A text object displays its target; words widen and wrap within the available
+  cell/tray width. Long labels must remain fully visible.
+- An image object displays its image in a square card with rounded corners
+  and no colored card surface behind the image.
+- An audio-only object displays a speaker icon, not its target. Use the
+  accessible name "Play sound".
+- Missing/corrupt images use a neutral placeholder that remains matchable.
+- Prompt and target text cards retain distinct warm/green treatments.
+- Cards use consistent height derived from target cells and tray space, up
+  to 136 CSS px. Keep room for shadows and progress indicators.
+- All cards suppress native touch selection and tap-highlight.
+
+**UI-3 — Progress**
+
+- Each target has a small completed/required progress indicator below it.
+  Its accessible label states the two counts.
+- The header shows aggregate completed versus required matches, not a score.
+- A fully practised target stays visible, fixed, and available for
+  tap-to-hear; its prompt stops appearing.
+- Matched targets retain their own card content and fixed grid position.
+
+### 1.3 Responsive containment
+
+**UI-4 — Viewports and rotation**
+
+- The entire shell fits the visual viewport without page-level scrolling.
+- Support narrow portrait phones and short-height landscape screens, not
+  just width-based breakpoints.
+- At rest, cards, text, progress indicators, and controls remain inside their
+  regions without overlapping each other or the inter-region gap.
+- While dragging, the prompt can overlap targets but its full rectangle
+  remains inside the board.
+- Rotation switches placement without resetting repetition counts. An
+  active gesture is cancelled safely.
+- Supported checks include 320×568, 360×640, 414×896, 812×375, and 568×320,
+  plus desktop and square viewports.
+
+### 1.4 Entry, feedback, and completion
+
+**UI-5 — Prompt entry**
+
+- Each new prompt gently floats into its resting position over 400 ms.
+- In portrait it enters from slightly below; in landscape from slightly left.
+- Apply entry to the initial prompt and every replacement, including a
+  repeated identical object.
+- Under reduced motion, show it immediately without entry translation.
+- Starting a drag interrupts entry animation so the card follows the gesture.
+
+**UI-6 — Drop feedback**
+
+- Highlight only the dragged prompt and the selected target.
+- Collision eligibility uses the whole prompt/target rectangles. If a wide
+  prompt overlaps several targets, select the one nearest the current
+  finger/mouse position, not nearest the clamped word center.
+- Do not favor the correct answer. Edge, middle, and opposite-edge targets
+  must each be selectable with the same long word.
+- A correct drop briefly celebrates the target and plays its pronunciation.
+  Update progress, hide the consumed prompt, and present the next prompt
+  after the 480 ms feedback interval.
+- Incorrect and empty drops play negative feedback and return the same
+  prompt to its centered tray position without incrementing progress.
+- Do not accept another drag or tap pronunciation during feedback.
+
+**UI-7 — Trial completion**
+
+- After the final required repetition and match feedback, show a distinct
+  board-level celebration with a polite "Trial complete" announcement.
+- No further prompt appears once all requirements are satisfied.
+- Targets and progress indicators remain visible.
+- Completion feedback requires no learner action to advance the state.
+  The overlay can be dismissed by pointer input without changing progress.
+- Celebrations respect reduced motion; avoid motion-heavy match effects
+  and hide decorative sparkles under that preference.
+- Restoring a completed trial shows completed progress without replaying the
+  completion celebration.
+
+### 1.5 Trial selector
+
+**UI-8 — Selection and pagination**
+
+- Show the selector when no valid trial is named at launch and when back
+  navigation is used.
+- List the selected language pack's indexed trials ascending as numbered tiles.
+- Show at most 12 tiles per page; reduce grid columns on narrow viewports.
+- When several pages exist, show previous/next controls and numeric page
+  position ("X / Y"). Disable the unavailable direction on either edge.
+- Hide pagination when there is only one page.
+- Mark completed trials green with a checkmark. Their accessible names
+  include "completed"; partial and unplayed trials use the neutral treatment.
+- Show aggregate completed/available trials in the header.
+- Fit a full page without document or panel scrolling at supported sizes.
+- Selecting a tile opens its board.
+
+### 1.6 Board controls
+
+**UI-9 — Navigation**
+
+- Back and reset are always available as icon-only footer buttons.
+- Back has accessible name "Back to trial selector" and retains counts.
+- Reset has accessible name "Reset trial" and restarts the current trial.
+- Show "Next trial" only after completion feedback ends and only if a following
+  trial exists in the index.
+- Accessible names/tooltips are shared English text. Language packs change
+  content and pronunciation locale, not interface labels.
+- Give buttons visible keyboard-focus treatment.
 
 ## 2. States
 
-| State | Entry condition | Visible characteristics |
+| State | Entry condition | Visible behavior |
 |---|---|---|
-| **Idle** | Object at rest, not being dragged, not highlighted | Rendered at its authored `pos` |
-| **Dragging** | Learner has an active pointer/touch drag on the object | Object follows pointer; constrained within board bounds |
-| **Highlighted** | A dragged object is within tolerance of a candidate partner (or vice versa) | Both the dragged object and the candidate show a highlight treatment (exact visual: Open Question UI-OQ-3) |
-| **Solved** | The pair has been confirmed equivalent | The two objects are shown as one combined tile at the partner's position, displaying both matched objects (an audio-only part shows 🔊, a letter part shows its `target`); fixed in place, not draggable, tappable to hear |
-| **Returning** | A mismatched drag has ended and the object is animating back | Object animates from drop point to its exact pre-drag `pos` |
+| Entering | A prompt is newly presented | Brief float-in, or immediate placement with reduced motion |
+| Idle prompt | Entry finishes or a gesture is cancelled | Centered in tray; draggable and tappable |
+| Fixed target | Trial is loaded | Remains in its grid cell; tappable, never draggable |
+| Dragging | Active prompt pointer exceeds 10 CSS px travel | Card follows gesture, contained in board |
+| Highlighted | A collision candidate is selected | Prompt and selected target highlight together |
+| Incorrect feedback | Wrong/empty drop | Same prompt returns to tray with brief feedback; counts unchanged |
+| Correct feedback | Reciprocal match accepted | Target celebrates, count increases, consumed prompt hidden |
+| Target satisfied | Target reaches its requirement | Full indicator; target stays visible; no more prompts for it |
+| Trial complete | Every target is satisfied | No prompt; final celebration followed by completed board |
 
-## 3. Status-dependent visibility rules
+## 3. Visibility and accessibility
 
-- A **Solved** pair remains visible on the board as a combined tile (per
-  DEVSPEC Module 8, progress persists) — it is not removed or hidden, per the
-  source brief's "no reading is required, nothing is lost" intent.
-- A combined tile stays within the board and does not overlap other objects
-  or the region divider.
-- Audio-only objects (Better tier, §1.2) are visually distinguishable from
-  image objects at all times, including while Idle, Dragging, Highlighted, and
-  Solved.
-- On reload mid-trial (DEVSPEC Module 8), objects previously in the Solved
-  state render directly as combined tiles with no celebration; all other
-  objects render Idle.
-- The next-trial control is hidden until every pair in the current trial is
-  solved, and stays hidden on the last trial in the index.
-- No object, including a combined tile, ever shows a native text-selection
-  highlight or tap-highlight box on touch input.
-- Trial-selector page navigation is hidden when the pack has 12 or fewer
-  trials.
+- Repetition counts, not object removal, represent progress.
+- Keep all targets visible through feedback, satisfaction, and completion.
+- Hide the prompt during correct feedback and after trial completion.
+- Restore saved counts without replaying feedback or pronunciation.
+- Preserve icon-only navigation and textless loading; no reading of
+  instructions is needed.
+- Pronunciation taps allow movement up to 10 CSS px; gestures beyond that
+  threshold do not additionally play tap audio.
+- Keyboard activation on a card plays pronunciation when no feedback is active.
+- Audio-only cards never expose the target through their accessible name.
+- Decorative regions and celebration graphics are not spoken as instructions.
+- Maintain focus visibility and reduced-motion behavior.
 
-## 4. Commands / interactions
+## 4. Commands
 
-| Interaction | Trigger | Result |
-|---|---|---|
-| Drag start | Pointer/touch down on an Idle or Returning-complete object (never a Solved tile) | Object enters Dragging state |
-| Drag move | Pointer/touch move while Dragging | Object follows pointer, constrained to board bounds; Highlighted state toggles based on proximity to candidates |
-| Drag release — match | Pointer/touch up while Highlighted and the candidate is equivalent (DEVSPEC Module 4) | Both objects combine into one Solved tile; match celebration plays; pronunciation plays; trial-complete celebration follows if this was the last pair |
-| Drag release — mismatch | Pointer/touch up while Highlighted and the candidate is not equivalent | Negative feedback sound plays; object enters Returning state, then Idle at its original `pos` |
-| Tap (no drag) | Pointer/touch down+up on an object with less than 10 px of pointer travel, Better tier+ | That object's pronunciation audio plays; no state change |
-| Tap Solved tile | Pointer/touch down+up on a combined tile with less than 10 px of pointer travel | The partner's pronunciation plays; no state change |
-| Select a trial | Tap a tile on the Trial Selector Screen | That trial's Match Board Screen is shown |
-| Change selector page | Tap the previous/next page control | The selector shows the adjacent page of up to 12 trials |
-| Back to selector | Tap the board's back control | The Trial Selector Screen is shown with the just-played trial's progress reflected |
-| Next trial | Tap the board's next-trial control (visible only when the trial is complete and a next trial exists) | The next indexed trial's Match Board Screen is shown |
+| Input | Result |
+|---|---|
+| Drag prompt | Track pointer with grab offset; clamp card to board |
+| Move over eligible targets | Highlight candidate nearest the pointer |
+| Release over reciprocal partner | Increment that target and give correct feedback |
+| Release over wrong target or empty space | Return prompt and give incorrect feedback |
+| Pointer cancellation or lost capture | Return prompt without recording a match |
+| Resize/rotate | Reflow regions, cancel active gesture, retain counts |
+| Tap/keyboard-activate prompt or target | Play its pronunciation when idle |
+| Reset | Clear current trial counts and transient state; show initial prompt |
+| Back | Open selector with current progress retained |
+| Next trial | Open following indexed trial after completion |
 
-## 5. Acceptance criteria (Gherkin)
+## 5. Acceptance scenarios
 
 ```gherkin
-Feature: Matching two equivalent objects
+Feature: Repeated matching
 
-  Scenario: Dragging an object onto its equivalent partner
-    Given a trial is loaded with an object A whose pair_id includes object B
-    And object A is in the Idle state
-    When the learner drags object A within tolerance of object B and releases
-    Then object A and object B combine into one Solved tile at B's position
-    And the match celebration plays on the combined tile
-    And the target's pronunciation audio plays exactly once
+  Scenario: Matching the current prompt
+    Given the current prompt and target reciprocally reference each other
+    When the learner drags the prompt onto the target and releases
+    Then the target's completed count increases by one
+    And the target celebrates and is pronounced once
+    And the target stays in its grid cell
+    And the next unfinished prompt floats in after feedback
 
-  Scenario: A combined tile cannot be dragged
-    Given a pair is shown as a combined Solved tile
-    When the learner tries to drag the tile
-    Then the tile does not move
+  Scenario: Configurable repetition
+    Given a trial requires two matches by default
+    And one target overrides its requirement to four
+    When every target receives its required correct matches
+    Then the trial completes
+    And no target receives extra prompts after its requirement is satisfied
 
-  Scenario: Tapping a combined tile replays its pronunciation
-    Given a pair is shown as a combined Solved tile
-    When the learner taps the tile
-    Then the partner's pronunciation plays exactly once
-    And the tile's state does not change
+  Scenario: A long word can aim at edge targets
+    Given a wide prompt is constrained within a portrait board
+    And it overlaps left, middle, and right targets
+    When the learner moves the pointer over each target
+    Then the pointed-at target highlights independently of the card center
+    And release checks that target without preferring the correct answer
 
-  Scenario: A touch tap with minor finger movement still plays pronunciation
-    Given any object is in the Idle or Solved state
-    When the learner taps it with a finger and the touch point drifts less than 10 px
-    Then the object's pronunciation plays exactly once
-    And no text-selection highlight is shown on the object
+  Scenario: Incorrect or empty drop
+    Given the current prompt is idle in its tray
+    When the learner drops it on a wrong target or empty space
+    Then negative feedback plays once
+    And the same prompt returns to its tray
+    And repetition counts do not change
 
-  Scenario: Completing the trial shows a distinct celebration
-    Given exactly one pair remains unsolved
-    When the learner matches that pair
-    Then the match celebration plays on the combined tile
-    And the trial-complete celebration is shown and is visually distinct
+  Scenario: Cancelling a drag
+    Given the learner is dragging the prompt
+    When pointer input is cancelled or capture is lost
+    Then the prompt returns to its tray without incrementing a count
 
-  Scenario: Pronunciation falls back to a generated voice
-    Given the device is offline
-    And an object's audio is missing or fails to load
-    When its pronunciation should play
-    Then an auto-generated voice speaks the object's target in the learning language
-    And if no on-device voice is available, a synthesized tone plays instead
+  Scenario: Changing orientation
+    Given a portrait trial has saved partial progress
+    When the viewport becomes landscape
+    Then targets appear on the right and the prompt on the left
+    And both areas retain equal outer margins
+    And counts remain unchanged
+    And matching works at the new target positions
 
-  Scenario: Dragging an object onto a non-equivalent object
-    Given a trial is loaded with an object A whose pair_id does not include object C
-    And object A is in the Idle state at position P
-    When the learner drags object A within tolerance of object C and releases
-    Then a negative feedback sound plays exactly once
-    And object A animates back to position P
-    And object A ends in the Idle state
+  Scenario: Tap-to-hear with minor movement
+    Given a prompt or target is idle
+    When a tap moves no farther than 10 CSS px
+    Then its pronunciation plays once
+    And no count changes or text-selection highlight appears
 
-  Scenario: Highlighting during drag
-    Given object A is being dragged
-    When object A comes within tolerance of candidate object B
-    Then object A and object B both show the Highlighted state
-    When object A moves out of tolerance of every candidate
-    Then neither object shows the Highlighted state
+  Scenario: Audio-only presentation
+    Given the prompt has type audio
+    Then it shows a speaker icon without revealing its target
+    And it can be heard and matched through the same interactions
 
-  Scenario: Dragging never leaves the board
-    Given any object is being dragged
-    When the learner moves the pointer beyond the board's visible bounds
-    Then the object's rendered position remains within the board's visible bounds
+  Scenario: Completing and restoring a trial
+    Given one required repetition remains
+    When the learner matches it
+    Then the target celebrates followed by a distinct trial celebration
+    And no further prompt appears
+    When the page reloads
+    Then completion is restored without replaying feedback
 
-  Scenario: Tap-to-hear on an audio-only object (Better tier)
-    Given an object has no image and is in the Idle state
-    When the learner taps the object without dragging it
-    Then the object's pronunciation audio plays exactly once
-    And the object's state does not change
+  Scenario: Reduced-motion entry
+    Given reduced motion is requested
+    When a new prompt is presented
+    Then it appears in its resting position without translation
 
-  Scenario: Matching an audio-only object to its letter (Better tier)
-    Given a trial has an audio-only object A whose pair_id includes letter object B
-    Then object A shows the speaker icon and not its target
-    When the learner drags object A within tolerance of object B and releases
-    Then object A and object B combine into one Solved tile showing the speaker icon and B's letter
-
-  Scenario: Reloading mid-trial preserves solved pairs
-    Given a trial has at least one Solved pair and at least one Idle pair
-    When the game reloads
-    Then the previously Solved pair renders as a combined tile with no celebration
-    And the previously Idle pair renders in the Idle state
-
-  Scenario: Loading screen clears offline within budget
-    Given the device is fully offline
-    When the game is launched with a valid cr_lang
-    Then the Loading Screen is no longer shown within 10 seconds
-    And the Match Board Screen is shown with a fully rendered trial
-
-  Scenario: Mobile layout remains contained
-    Given the game is opened on a supported mobile viewport
-    When the Match Board Screen is shown
-    Then the document has no horizontal or vertical page scroll
-    And every object remains within the visible board bounds
-    And no two objects visually overlap each other or the region divider
-
-  Scenario: Choosing a trial from the selector
-    Given the game is launched with no trial in the URL
-    Then the Trial Selector Screen is shown with at most 12 tiles
-    When the learner taps the tile for trial 2
-    Then the Match Board Screen for trial 2 is shown
-
-  Scenario: Paging through more than 12 trials
-    Given the language pack lists 13 trials
-    Then the Trial Selector Screen shows trials 1 to 12 and "1 / 2"
-    And the previous-page control is disabled
-    When the learner taps the next-page control
-    Then the selector shows trial 13 and "2 / 2"
-
-  Scenario: A completed trial is marked in the selector
-    Given every pair of trial 1 has been solved
-    When the Trial Selector Screen is shown
-    Then the tile for trial 1 is green with a checkmark
-    And its accessible name states that the trial is completed
-
-  Scenario: Returning to the selector from a trial
-    Given a trial is being played
-    When the learner taps the back control
-    Then the Trial Selector Screen is shown
-    And the trial's solved pairs are still solved when it is reopened
-
-  Scenario: Advancing to the next trial
-    Given a trial that is not the last in the index is being played
-    Then the next-trial control is not shown
-    When the learner solves the last remaining pair
-    Then the next-trial control is shown
-    And tapping it shows the Match Board Screen for the next indexed trial
+  Scenario: Trial navigation
+    Given the pack lists thirteen trials
+    Then the selector shows twelve tiles on the first page
+    And the second page shows trial thirteen
+    When a completed trial is shown in the selector
+    Then its tile has a green checkmark and completed accessible name
+    And next-trial navigation is available only after completion
 ```
-
-## 6. Open questions (UI-specific)
-
-| ID | Question |
-|---|---|
-| UI-OQ-1 | Final audio-only icon artwork to replace the interim 🔊 emoji? |
-| UI-OQ-3 | Exact highlight treatment (color, glow, scale) for Highlighted state? |
 
 ## Changelog
 
-2026-09-28 — Maria Lande (with GitHub Copilot) — Clarified that the Trial Selector Screen is contained at every supported viewport size, sizing tiles from both axes with fewer columns on narrow viewports.
-2026-09-28 — Maria Lande (with GitHub Copilot) — Added the paginated Trial Selector Screen with completed-trial marking, board back and next-trial controls, their visibility rules, interactions, and acceptance scenarios.
-2026-09-28 — Maria Lande (with GitHub Copilot) — Specified transparent surfaces for image cards and combined image segments.
-2026-09-28 — Maria Lande (with GitHub Copilot) — Specified larger image-trial cards and text cards that grow and wrap to fit longer targets.
-2026-09-28 — Maria Lande (with GitHub Copilot) — Added letter objects and the interim 🔊 audio-only treatment with a non-revealing accessible name, defined the 🔊 + letter combined tile, added the audio-to-letter matching scenario, and narrowed UI-OQ-1 to final icon artwork.
-2026-09-28 — Maria Lande (with GitHub Copilot) — Defined the Solved state as a fixed, tappable combined tile, split celebrations into a per-match and a distinct trial-complete celebration, added matching Gherkin scenarios including the generated-voice fallback, and resolved UI-OQ-2 and UI-OQ-4.
-2026-09-23 — Maria Lande (with GitHub Copilot) — Replaced aspect-ratio-preserving (letterboxed/pillarboxed) board scaling with independent width/height fill of the play area, and clarified that objects derive a single square scale factor from the more constrained axis rather than stretching with the board.
-2026-09-23 — Maria Lande (with GitHub Copilot) — Clarified that the board scales as a single aspect-ratio-preserving unit with proportionally sized (min-clamped) objects to prevent overlap on narrow viewports, and that mobile viewport containment applies to short-height landscape orientations too, not only narrow-width portrait viewports.
-2026-09-23 — Maria Lande (with GitHub Copilot) — Approved textless loading, missing-image placeholders, and mobile viewport containment.
-2026-09-23 — Maria Lande (with GitHub Copilot) — Initial draft, derived solely from Find-The-Two-That-Match-Spec-Brief.md and third-party-game-spec.md.
+2026-10-21 — Maria Lande (with GitHub Copilot) — Replaced the document with unified screens, states, accessibility rules, and acceptance scenarios for responsive repeated matching.

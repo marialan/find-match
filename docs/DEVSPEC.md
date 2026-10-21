@@ -1,61 +1,54 @@
 # DEVSPEC — Find The Two That Match
 
-|                  |                                                         |
-| ---------------- | ------------------------------------------------------- |
-| **Title**        | Find The Two That Match — Development Specification     |
-| **Status**       | Active — approved behavior                              |
-| **Version**      | 0.12.0                                                  |
-| **Last updated** | 2026-10-14                                              |
-| **Owner/Author** | Maria Lande (with GitHub Copilot)                       |
+| | |
+|---|---|
+| **Title** | Find The Two That Match — Development Specification |
+| **Status** | Active — approved behavior |
+| **Version** | 1.0.0 |
+| **Last updated** | 2026-10-21 |
+| **Owner/Author** | Maria Lande (with GitHub Copilot) |
 
-> This DEVSPEC is derived solely from `docs/Find-The-Two-That-Match-Spec-Brief.md`
-> and `docs/third-party-game-spec.md`. It is the source of truth for system
-> behavior. It references the PRD for goals but does not duplicate UI screen
-> layout, state, or visibility rules — those live in the UISPEC.
-
----
-
-# Part I — Functional Requirements
+This is the source of truth for system behavior and architecture. Product
+goals are in [PRD.md](PRD.md), visual and accessibility requirements in
+[UISPEC.md](UISPEC.md), and verification in [TESTSPEC.md](TESTSPEC.md).
+Container requirements come from [the third-party game contract](third-party-game-spec.md).
 
 ## 1. Overview
 
-Find The Two That Match renders a two-column matching board from a trial JSON
-file, lets the learner drag objects from one column onto their equivalent
-partner in the other column, and gives immediate audio/visual feedback on
-match or mismatch. The game must run entirely offline from a `file://` origin
-inside the Curious Reader container and must report trial completions through
-the container's `cr_event` bridge.
+The game loads reciprocal prompt/target pairs from a trial JSON file,
+renders all targets in a fixed responsive grid, and presents one draggable
+prompt at a time. Correct drops increment target repetition counts.
+The next prompt appears after feedback, until every required repetition is
+complete. Targets are retained, not consumed or merged.
 
-Modules are built in the order listed below; later modules assume earlier ones
-are complete.
+The client is a React/TypeScript application bundled by Vite into static
+files for the offline Curious Reader `file://` runtime.
 
 ## 2. Data schema
 
-### 2.1 Trial file
-
-One trial file describes one playable board.
+### 2.1 Trial
 
 ```json
 {
   "trial_num": 1,
+  "repetitions": 3,
   "left": [
     {
-      "object_id": "left-c-lower",
-      "pos": [120, 240],
-      "target": "c",
-      "pair_id": ["right-c-upper"],
-      "image": "images/letter-c-lower.png",
-      "audio": "audios/letter-c.mp3"
+      "object_id": "prompt-a",
+      "pos": [190, 200],
+      "target": "a",
+      "pair_id": ["target-a"],
+      "audio": "audios/a.wav"
     }
   ],
   "right": [
     {
-      "object_id": "right-c-upper",
-      "pos": [640, 240],
-      "target": "C",
-      "pair_id": ["left-c-lower"],
-      "image": "images/letter-c-upper.png",
-      "audio": "audios/letter-c.mp3"
+      "object_id": "target-a",
+      "pos": [900, 200],
+      "target": "A",
+      "pair_id": ["prompt-a"],
+      "repetitions": 5,
+      "audio": "audios/a.wav"
     }
   ]
 }
@@ -63,489 +56,337 @@ One trial file describes one playable board.
 
 | Field | Type | Rules |
 |---|---|---|
-| `trial_num` | number | Unique identifier for the trial; used to select which trial to load |
-| `left` / `right` | array of object | Objects rendered on the left/right side of the board |
-| `object_id` | string | Unique within the trial; referenced by other objects' `pair_id` |
-| `pos` | `[x, y]` number pair | Screen placement of the object at rest |
-| `target` | string | The name/value of the object's target concept (letter, word, etc.) |
-| `type` | `"letter"` \| `"audio"` | Optional; defaults to `"letter"`. A `"letter"` object displays its `target`; an `"audio"` object is audio-only (Better tier) and never displays its `target`. Any other value makes the trial invalid |
-| `pair_id` | string[] | Exactly one equivalent `object_id` on the opposite side. The relationship is reciprocal: each object's only `pair_id` references the other's `object_id`, including in rhyme trials |
-| `image` | string (relative path) | Optional; not used by `"audio"` objects. Relative to the trial's language asset root. If provided but missing or corrupt at runtime, render a neutral placeholder |
-| `audio` | string (relative path) | Optional; relative to the trial's language asset root. If absent, missing, or corrupt, use the pronunciation fallback in Module 5 |
+| `trial_num` | number | Trial identifier matching its indexed `trial-<n>.json` file |
+| `left` | object[] | Prompt definitions, in scheduling tie-break order |
+| `right` | object[] | Fixed target definitions, in grid order |
+| Trial `repetitions` | number, optional | Positive safe integer; default is `DEFAULT_REPETITIONS = 3` |
+| `object_id` | string | Unique across both arrays |
+| `pos` | `[number, number]` | Required by the content schema; does not determine responsive board placement |
+| `target` | string | Letter, word, or concept used for display and pronunciation |
+| `type` | `"letter"` or `"audio"`, optional | Defaults to `"letter"`; `"audio"` hides the target and displays a speaker affordance |
+| `pair_id` | string[] | Exactly one ID in the opposite array; partner must reference this object's ID in return |
+| Target `repetitions` | number, optional | Positive safe integer overriding the trial count; not allowed on `left` objects |
+| `image` | string, optional | Pack-relative image path; ignored for audio-only presentation |
+| `audio` | string, optional | Pack-relative pronunciation path |
 
-Equivalence rule: each object has exactly one equivalent partner. Objects A
-and B are equivalent when A's only `pair_id` is B's `object_id` and B's only
-`pair_id` is A's `object_id`. This rule applies to letters, words, pictures,
-audio objects, and rhymes; rhyme content must author one specific partner per
-object rather than a family of candidates.
+Both arrays must have equal counts and gameplay requires at least one pair.
+Invalid pairing, duplicate IDs, unknown types, invalid repetition counts, or
+empty playable content must produce an explicit content error.
 
-### 2.2 Media asset paths
+The required count for target T is:
 
-All `image`/`audio` paths in trial JSON are relative and resolve under that
-trial's language root (`lang/<langCode>/...`), consistent with
-`docs/third-party-game-spec.md` §4. No absolute or CDN URLs are permitted in
-trial data. New packs use paths such as `audios/a.wav` or `images/a.png`;
-existing English trial files may use `lang/english/...` paths. Paths must not
-escape their own language root (including encoded traversal).
+```text
+T.repetitions ?? trial.repetitions ?? DEFAULT_REPETITIONS
+```
 
-Each pack contains `lang/<langCode>/pack.json` with only `code` equal to its
-directory name and `speechLocale` set to a BCP 47 locale for offline voice
-fallback (e.g. `fr-FR`). UI labels live in the engine, not in each pack; the
-engine must not maintain a list of languages.
+Equivalence is exclusively reciprocal `pair_id` identity. It applies to
+letters, words, pictures, audio, and rhymes. Rhymes must author a specific
+partner, not a family of interchangeable candidates.
 
-### 2.3 Trial index file
+### 2.2 Language metadata and media
 
-One index file per language pack lists the trials that pack ships. A
-`file://` runtime cannot enumerate a directory, so the index is the only
-source of truth for which trials exist.
+- Each pack has `lang/<code>/pack.json` containing only `code` and
+  `speechLocale`. `code` must equal the directory name; `speechLocale` is a
+  BCP 47 locale for offline speech.
+- Language codes use lowercase letters/digits with optional hyphen-separated
+  components, begin with a letter, and have a maximum length of 32.
+- UI labels belong to the engine; the engine must not hardcode a language list.
+- Media resolves under the selected `lang/<code>/` root. Accept relative paths
+  such as `audios/a.wav` and paths already prefixed with that same language root.
+- Reject absolute paths, URL schemes, query/fragment components, backslashes,
+  encoded separators, malformed escapes, empty path segments, traversal, or
+  a reference to another language root.
+- Missing or corrupt media uses Module 5 fallbacks; it does not invalidate
+  otherwise well-formed runtime trial data.
+
+### 2.3 Trial index
+
+Each pack supplies `lang/<code>/trials/index.json`:
 
 ```json
 { "trials": [1, 2, 3] }
 ```
 
-| Field | Type | Rules |
-|---|---|---|
-| `trials` | number[] | Non-empty list of positive integers, each the `trial_num` of a `trial-<n>.json` in the same directory. Duplicates are ignored; the list is presented in ascending order |
-
-The index lives at `lang/<langCode>/trials/index.json`. A missing pack (missing
-`pack.json`) selects English; an installed pack with a missing or invalid index
-shows a content error, not an English board. A valid pack has a non-empty index.
+The list must be non-empty and contain only positive integers. De-duplicate
+and sort ascending. Each number names `trial-<n>.json` in that directory.
+A local runtime cannot enumerate a directory; this index determines trial
+availability. Missing or invalid installed indexes are content errors.
 
 ## 3. Modules
 
-### Module 1 — Trial Loader
-**Goal:** Load and validate one trial JSON file and resolve its asset paths.
+### Module 1 — Content loading and validation
 
-**Tasks:**
-- Fetch the trial JSON for the requested `trial_num` using the `file://`-safe
-  binary loader pattern (§9.3), never `window.fetch()` for local files.
-- Select the trial from the `trial` launch query parameter (positive integer)
-  and load `lang/<langCode>/trials/trial-<n>.json`; an absent or invalid value
-  shows the Trial Selector screen instead (Module 11).
-- Validate required fields (§2.1) are present on every object; reject/report a
-  trial that has an object whose `pair_id` does not contain exactly one
-  existing `object_id`, whose partner is not on the opposite side, or whose
-  partner does not reference it back; reject objects with an invalid `type`.
-  Require equal side counts.
-- Resolve every provided `image`/`audio` path to its full relative location
-  under the selected language asset root. Neither media field is required for
-  a valid object. The language is read from `cr_lang`; absent or unsupported
-  values select the English pack. Reject invalid codes and paths before
-  constructing URLs. Validate the pack metadata before loading trials.
+- Parse `trial` as a positive integer. An absent or invalid parameter opens
+  the selector; a valid parameter requests that trial directly.
+- Resolve `cr_lang` to a valid pack. Missing, invalid, or unavailable language
+  selection falls back to English. Malformed installed metadata or index
+  shows an error instead of substituting another pack.
+- Load local JSON and binaries using the `XMLHttpRequest`-based binary loader;
+  never use `window.fetch()` for `file://` content.
+- Validate schema, reciprocal pairs, repetition counts, metadata, and media
+  paths before using the data.
+- Preload pronunciation recordings with settled per-asset outcomes so one
+  failed asset cannot block other assets.
+- Expose textless loading and an explicit error screen with back navigation.
+- Ignore asynchronous load results after the board unmounts.
 
-**Exit criterion:** Given a well-formed trial file, every provided media path
-in `left` and `right` resolves under the selected language root, and every
-`pair_id` reference resolves to an existing `object_id` in the same trial.
-Absent or failed media does not invalidate the trial; Module 5 provides the
-runtime fallback.
+**Exit:** Valid content becomes playable within 10 seconds offline; invalid
+content is reported and failed media does not freeze loading.
 
-### Module 2 — Match Board Renderer
-**Goal:** Render both columns at their authored positions.
+### Module 2 — Responsive board and card placement
 
-**Tasks:**
-- Place every `left` object and every `right` object at its `pos` coordinate.
-- Constrain the render area so no object's rest position falls outside the
-  playable board.
-- The board fills the full width and height of its containing play area
-  independently on each axis. Object positions are computed from the authored 
-  `pos` coordinates as percentages of the board's current width/height, so they 
-  track the stretched board exactly.
-- Derive a single object scale factor from the more constrained of the board's
-  current width or height ratios (relative to the 1120×650 design space), and
-  apply that factor to a consistent card height. Trials containing images use
-  a larger card-size ceiling than text-only trials. Text cards widen with the
-  rendered target length, up to the available region width; labels may wrap
-  within that width. Image cards remain square. Clamp card dimensions to an
-  accessible minimum and a sensible maximum so authored spacing is preserved
-  and no objects, combined tiles, or cards overlap the region divider at any
-  supported board size or aspect ratio.
+- Use `right` objects as fixed targets and `left` objects as prompts.
+- The board fills its containing play area independently on both axes.
+  Do not position cards from authored `pos` values.
+- Landscape means viewport width greater than height: place the prompt tray
+  on the left and target region on the right. Otherwise, place targets
+  above the prompt tray.
+- Both colored regions have 12 CSS px outer board margins and a 16 CSS px
+  gap. After subtracting margins and gap on the split axis, allocate 60%
+  to targets and 40% to the tray.
+- Arrange targets in a responsive grid in authored target order. Center the
+  prompt in its tray. Use a consistent card height fitting both the target
+  cells and the tray; image/audio cards are square. Text cards may widen
+  within their cell or tray and wrap without clipping.
+- Use the available region dimensions to size cards, with a 136 CSS px
+  card-height ceiling and space for per-target progress indicators.
+- Resting cards and their indicators must not overlap or leave their region
+  at supported viewport sizes. The dragged prompt may overlap targets.
+- Resizing/rotation recomputes placement and cancels an active gesture without
+  changing repetition counts.
 
-**Exit criterion:** For every object in a loaded trial, its rendered position
-matches its authored `pos` within the tolerance used for hit-testing (Module
-3); target text is fully visible; and no two objects' rendered bounds overlap
-at any supported viewport size.
+**Exit:** Both orientations remain contained and all target concepts remain
+visible, including 12-character words, at the supported viewport sizes.
 
-### Module 3 — Drag Interaction Engine
-**Goal:** Let the learner pick up, move, and release any object without
-losing it off-screen.
+### Module 3 — Pointer interaction and collision
 
-**Tasks:**
-- Support pointer/touch drag on any object.
-- Define and apply a single proximity-tolerance value used to detect that a
-  dragged object is "over" a candidate partner.
-- While a drag is within tolerance of a candidate partner, mark both objects
-  as highlighted; when it moves out of tolerance of all candidates, clear the
-  highlight.
-- Constrain drag movement so the object's on-screen bounds never leave the
-  playable board, per the brief's constraint that a child cannot drag an
-  object off the screen.
-- Record the object's pre-drag position so it can be restored exactly on a
-  mismatch.
-- Never start a drag on a solved (combined) tile.
+- Only the current prompt can be dragged; targets never move in response
+  to a drag. Capture the active pointer and ignore unrelated pointers.
+- Record pointer-down location and the grab offset. Movement must exceed
+  10 CSS px from pointer-down to count as a drag; minor movement is a tap.
+- Dragging interrupts prompt entry motion and follows the pointer using
+  the recorded offset.
+- Clamp the entire prompt rectangle inside the board with an 8 CSS px
+  inset. Do not clamp the pointer used for aiming.
+- A target is a collision candidate when:
 
-**Exit criterion:** Dragging an object to any point on the board keeps it
-fully within the visible board bounds at every frame, and releasing it always
-resolves to either a highlighted-candidate check (Module 4) or a return to the
-untouched, invalid-drop case with no candidate in tolerance (object stays
-where released, per MVP scope — see Open Question OQ-3).
+```text
+abs(target.centerX - prompt.centerX) <= (target.width + prompt.width) / 2 + 10
+abs(target.centerY - prompt.centerY) <= (target.height + prompt.height) / 2 + 10
+```
 
-### Module 4 — Equivalence Checker
-**Goal:** Decide match/no-match when a drag ends within tolerance of a
-candidate.
+- Among qualifying targets, choose the target center nearest the current
+  finger/mouse pointer, not the clamped prompt center. Exact-distance ties
+  retain authored target order. Never prefer a target because it is correct.
+- Use the same candidate calculation for highlighting and pointer-up,
+  recalculating from the final pointer position.
+- Highlight the prompt and the single selected candidate; clear highlighting
+  when there is no candidate.
+- A long prompt must be able to aim at left, middle, and right targets even
+  when containment prevents its center from following the pointer.
+- Cancellation, lost pointer capture, and resize restore the prompt to its
+  tray without recording a match.
 
-**Tasks:**
-- On release, if exactly one candidate object is within tolerance, check
-  whether the candidate's `object_id` is present in the dragged object's
-  `pair_id` list (§2.1).
-- If multiple candidates are simultaneously within tolerance, resolve using
-  the nearest candidate by on-screen distance (see Open Question OQ-4).
-- The dragged object's single partner must be the candidate's single partner
-  in return. A successful match consumes both objects; solved objects cannot
-  be matched again.
+**Exit:** Every target can be aimed at with a wide clamped prompt, while the
+card remains visible and highlight/drop agree on the selected target.
 
-**Exit criterion:** For every authored equivalent pair in a trial, dragging
-one onto the other and releasing always reports a match; dragging one onto
-any non-equivalent object and releasing always reports no match.
+### Module 4 — Repetition scheduling and equivalence
 
-### Module 5 — Feedback & Celebration
-**Goal:** Give immediate, unambiguous feedback for match and mismatch.
+- For every target, maintain a non-negative completed-match count capped at
+  that target's requirement.
+- Present one prompt at a time. Among prompts whose targets are unfinished,
+  choose the one with the lowest completed count; use authored `left` order
+  to break ties. Equal requirements therefore produce repeated cycles.
+- A drop succeeds only when the prompt and selected target reciprocally
+  reference each other. Incorrect or empty drops do not change counts.
+- Increment only the selected target by one on success.
+- Keep targets available and in place after matches, with the prompt and
+  target retaining their separate identities.
+- Hide the consumed prompt during correct feedback; introduce the next
+  eligible prompt when feedback ends.
+- Complete the trial only when no unfinished target remains. The required
+  total is the sum of resolved target repetition requirements.
 
-**Tasks:**
-- On match: mark the pair as solved and merge the two objects into a single
-  combined tile at the partner (drop target) object's position. The combined
-  tile plays a per-match celebration and the partner's pronunciation plays
-  once.
-- When the last pair in a trial is solved, play a trial-complete celebration
-  that is visually distinct from the per-match celebration.
-- Pronunciation audio rule: play the object's `audio` file when one is
-  provided and loads; otherwise speak the object's `target` with an
-  auto-generated voice in the learning language (`speechLocale` from the
-  selected pack). Only on-device voices are used so speech works offline; if no
-  on-device voice for the learning language is available, fall back to a
-  synthesized tone. Feedback sounds with no authored audio (e.g., mismatch)
-  use synthesized tones.
-- Celebrations respect the user's reduced-motion preference.
-- On mismatch: play a negative feedback sound and animate the dragged object
-  back to the exact pre-drag position recorded by Module 3.
+**Exit:** Targets with different requirements receive exactly their
+configured practice, and wrong drops can never satisfy a requirement.
 
-**Exit criterion:** Every match produces exactly one combined tile, one
-per-match celebration, and one pronunciation; completing a trial additionally
-produces one trial-complete celebration; every mismatch plays exactly one
-negative sound and ends with the dragged object's on-screen position equal
-(pixel-exact) to its pre-drag position.
+### Module 5 — Feedback, entry, and pronunciation
 
-### Module 6 — Tap-to-Hear & Audio-Only Objects (Better tier)
-**Goal:** Support objects that have no visual glyph and support tap-to-hear on
-any object.
+- A successful drop plays a match tone, celebrates the selected target, and
+  plays its pronunciation once.
+- Correct feedback lasts 480 ms before the next prompt is presented. The
+  final match then shows a distinct board-level completion celebration.
+- A wrong or empty drop plays one negative tone and returns the prompt to
+  its tray with brief incorrect-match feedback. Do not accept another drag
+  while feedback is active.
+- Each newly presented prompt, including initial and repeated identical
+  prompts, floats into place over 400 ms. Under reduced motion, show it
+  immediately without translation. Drag start interrupts entry animation.
+- Match celebrations respect reduced motion; avoid motion-heavy effects.
+- Pronunciation uses a loaded local recording first, then on-device speech
+  in the pack's `speechLocale`, then a synthesized tone. Never select a
+  network-backed voice.
+- Failed images render a neutral placeholder and retain interaction.
+- Completion overlay dismissal does not change counts or emit events.
 
-**Tasks:**
-- Render objects with `type: "audio"` as an audio-only affordance (see UISPEC
-  for the visual treatment); their `target` is never displayed.
-- On tap (not drag) of any object, play that object's `audio`, following the
-  Module 5 pronunciation audio rule. Tapping a combined tile plays the
-  partner object's pronunciation.
-- Distinguish tap from drag by pointer travel distance, not by the presence of
-  pointer-move events: a gesture counts as a drag only once the pointer moves
-  farther than a single movement-tolerance value (10 CSS px) from its
-  pointer-down point. Touch input emits small move events during an ordinary
-  tap, so any non-zero-movement rule silently disables tap-to-hear on
-  touchscreens.
-- Suppress native touch text-selection and tap-highlight on every object,
-  including combined tiles, so a tap never renders a selection highlight.
-- Extend Module 4's equivalence check so a letter object and a letter-audio
-  object are treated as equivalent purely via the existing `pair_id`
-  mechanism — the only schema addition is the optional `type` field.
+**Exit:** Each accepted drop produces one feedback outcome, successful drops
+produce one target pronunciation, and progression never depends on an
+animation-end event.
 
-**Exit criterion:** Every object with `type: "audio"` renders and behaves
-identically to an image object for drag, drop, highlight, and equivalence
-purposes, differing only in its visual presentation and in supporting
-tap-to-hear. Tapping any object — including a combined tile — with mouse or
-touch plays exactly one pronunciation and shows no text selection.
+### Module 6 — Tap-to-hear and audio-only objects
 
-### Module 7 — Words, Pictures, and Rhymes (Great tier)
-**Goal:** Support object types beyond letters using the same data schema.
+- Tapping the prompt or a fixed target plays its pronunciation once when no
+  drag or feedback is active. Keyboard button activation also plays audio.
+- A drag must not additionally trigger tap pronunciation.
+- Audio-only objects display a speaker icon, never their `target`, and have
+  the accessible name "Play sound".
+- Audio-only prompts follow the same scheduling, collision, and matching
+  rules as text/image prompts.
+- Suppress native touch selection and tap-highlight on all cards.
 
-**Tasks:**
-- Allow `target`/`image`/`audio` to represent a word, a picture, or a rhyming
-  word; no schema change beyond what Modules 1–6 already support.
-- Confirm equivalence checking (Module 4) already generalizes to word↔picture
-  and rhyme↔rhyme pairs, since equivalence is always driven by `pair_id`
-  membership, not by object type.
+**Exit:** Minor touch movement remains a tap; audio-only objects work without
+revealing the answer or changing counts on a tap.
 
-**Exit criterion:** A trial file whose objects are words, pictures, and rhymes
-(instead of letters) plays through Modules 2–6 with no code path specific to
-letters.
+### Module 7 — Words, pictures, and rhymes
 
-### Module 8 — Progress & Session State
-**Goal:** Track which trial/object pairs are solved without scoring pressure
-on the learner.
+- Use the same pair and repetition schema for every content type.
+- Display text when an object has no image and is not audio-only.
+- Preserve long-word visibility through responsive width and wrapping.
+- Use the same reciprocal equivalence rules for word/picture and rhyme pairs.
 
-**Tasks:**
-- Persist per-trial completion state to `localStorage` (per
-  `docs/third-party-game-spec.md` §2.2 — no IndexedDB-backed network-sync
-  libraries).
-- Namespace progress by selected language and trial. On first English access,
-  migrate existing unnamespaced English progress without overwriting newer
-  language-specific records.
-- Persist each played trial's total object count alongside its solved ids, so
-  a trial's completion can be derived without loading that trial's JSON. The
-  total is `left.length + right.length`; the solved value is a set of unique
-  `object_id` strings, with both IDs from each successful pair added once.
-- A trial is complete only when the solved-ID set contains exactly the stored
-  total number of trial objects; each object ID counts once, and each solved
-  pair contributes two IDs.
-- On reload, restore a pair only when both IDs of its reciprocal `pair_id`
-  relationship are present in the solved-ID set; show it as one combined tile
-  without replaying a celebration.
+**Exit:** Rich-content trials need no letter-specific matching logic, and
+wide words can reach edge targets in both orientations.
 
-**Exit criterion:** Reloading the game mid-trial restores every previously
-solved pair as solved and leaves unsolved pairs interactive.
+### Module 8 — Progress and session state
 
-### Module 9 — Container Integration
-**Goal:** Comply with the Curious Reader runtime and reporting contract.
+- Store progress in `localStorage` per language and trial:
+  `ftm:repetition:lang:<code>:trial:<n>`.
+- A stored record contains a `signature`, target-ID `counts`, and `complete`.
+- The signature encodes authored target order, each target ID, its prompt
+  partner ID, and resolved repetition requirement.
+- On load, restore counts only for a matching signature; configuration
+  changes start fresh. Missing target counts default to zero; clamp restored
+  counts to their current requirements.
+- Reject malformed records or negative/non-integer/unsafe counts, log a
+  warning, and start with no saved counts. Storage access/write failure
+  logs a warning without blocking in-memory gameplay.
+- Save initial/restored progress, successful matches, and reset state.
+- Reloading restores progress without replaying match or completion feedback,
+  pronunciation, or completion events.
+- Reset clears the current language/trial counts and transient gesture,
+  feedback, and overlay state; it starts a new playthrough.
+- Persist completion so the selector can mark played trials without loading
+  every trial JSON. On opening a trial, reconcile against its current
+  signature and requirements.
 
-**Tasks:**
-- Parse `cr_lang`, `cr_user_id`, and `trial` (Module 1) from
-  `window.location.search` at boot;
-  select the requested language pack and fall back to English when `cr_lang` is
-  absent or unsupported.
-- Detect `file://` origin at boot and use the XHR-based `loadBinary()` pattern
-  (per `docs/third-party-game-spec.md` §2.3) for every local binary asset
-  (trial JSON, audio, fonts if any); never call `window.fetch()` or the Cache
-  Storage API on a `file://` code path.
-- Preload trial assets with `Promise.allSettled`, never `Promise.all`; missing
-  pronunciation audio must fall back to the auto-generated voice (Module 5) rather
-  than crash playback.
-- Emit exactly one `cr_event` (`user_sessions_data`,
-  `data.type: "trial_completed"`, including `lang` and the trial's identifying
-  data) when every pair in a trial is solved, via
-  `window.ReactNativeWebView.postMessage`, guarded so it silently no-ops
-  outside the container. Do not emit again for individual pairs or reloads.
-- Emit exactly one `summary_data` update for the completed trial's lifetime
-  aggregates (such as `trials_completed`) using `"add"` semantics, per
-  `docs/third-party-game-spec.md` §6.3.
-- Never perform any network I/O anywhere in the codebase.
+**Exit:** Partial and complete sessions survive reload, languages do not
+share counts, and reset permits a new playthrough.
 
-**Exit criterion:** A full offline play session (per TESTSPEC dry-run
-protocol) shows zero network requests, zero `NETGUARD_BLOCK` entries, and one
-well-formed `cr_event` per completed trial.
+### Module 9 — Offline container integration
+
+- Parse `cr_lang`, `cr_user_id`, and `trial` at launch.
+- Run from `file://` with zero runtime network I/O, no Service Worker,
+  no Cache Storage, and no analytics SDK.
+- Guard the Curious Reader bridge so a plain browser remains playable.
+- Emit one completion envelope when a successful drop transitions the trial
+  to complete, followed by one summary envelope. Emit neither per repetition
+  nor on restored completion. Reset permits a new completion transition.
+- Completion uses collection `user_sessions_data` with data:
+  `type: "trial_completed"`, `trial_num`, `lang`, `layout: "repetition"`,
+  `pairs_completed` equal to target count, and `repetitions_completed`
+  equal to the required match total.
+- Summary uses collection `summary_data` with data:
+  `type: "summary_data"`, `operation: "add"`, `trials_completed: 1`,
+  and `layout: "repetition"`.
+- Both envelopes contain `payload_id`, opaque `cr_user_id`, `sub_app_id:
+  "findmatch"`, `payload_version: "1.0"`, collection, timestamp, and data.
+- Use fire-and-forget bridge calls; bridge failure must not interrupt play.
+  Keep payloads below 64 KB and do not include full trial content or PII.
+
+**Exit:** A complete offline trial produces exactly the two required bridge
+messages and zero network requests; reload produces no duplicates.
 
 ### Module 10 — Packaging
-**Goal:** Ship the product as Curious Reader ZIPs.
 
-**Tasks:**
-- Build the engine ZIP (`<engine>-core.zip`) containing `index.html` at its
-  root, engine JS/CSS, and shared (non-language) assets; no `lang/` directory.
-- Build one language ZIP (`<engine>-lang-<langCode>.zip`) per supported
-  language discovered under `public/lang/`, containing only its
-  `lang/<langCode>/` metadata, trial data, images, and audio. Validate content
-  and media references before shipping; no engine rebuild is required to add
-  a pack to an already deployed engine.
-- Use Layout A (engine + lang packs) — the source brief describes no
-  language-agnostic shared content unit, so no core/book tier is used.
-- Emit the engine bundle as a single classic (non-module) script tag with
-  `defer` and a relative `src`. ES module scripts and `crossorigin` are
-  CORS-blocked on a `file://` origin (origin `"null"`), which leaves a blank
-  page at ship time.
+- Use registered engine slug `findmatch`.
+- Produce `findmatch-core.zip` with `index.html` at its root, engine bundle,
+  fonts/shared assets, and no `lang/` directory.
+- Discover language folders and produce `findmatch-lang-<code>.zip` containing
+  only `lang/<code>/...`; packs must not overwrite engine or other pack files.
+- Validate metadata, indexes, trial references, and referenced media before
+  packaging. Runtime media degradation does not permit shipping broken packs.
+- Use relative public path `./` and a single deferred non-module script in
+  built HTML, with no `crossorigin` attribute or source maps.
+- Adding a language pack must not require rebuilding the engine.
 
-**Exit criterion:** Extracting the engine ZIP plus one language ZIP into a
-single directory and opening
-`file://…/index.html?cr_lang=<code>&cr_user_id=<id>` plays at least one full
-trial offline with no missing assets.
+**Exit:** Extracted engine and language ZIPs play together from `file://`
+without missing assets, CORS/module failures, or network access.
 
-### Module 11 — Trial Selector & Navigation
-**Goal:** Let a learner choose any trial in the language pack and move between
-trials without editing the URL.
+### Module 11 — Trial selector and navigation
 
-**Tasks:**
-- Load the trial index (§2.3) with the `file://`-safe binary loader and show
-  the Trial Selector screen at launch when no valid `trial` parameter is
-  present; a valid `trial` parameter opens that trial's board directly.
-- Paginate the selector at a maximum of 12 trials per page, in ascending
-  trial order. Show page navigation only when more than one page exists.
-- Mark a trial as completed when its persisted progress (Module 8) shows
-  every object in that trial solved.
-- From the board, a back control returns to the selector, and a next-trial
-  control appears once the trial is complete and a following trial exists in
-  the index.
-- Keep the selected trial reflected in the `trial` query parameter so a
-  reload resumes the same trial, and clear it when returning to the selector.
+- List the selected pack's indexed trials ascending, at most 12 per page.
+- Show previous/next page controls only when more than one page exists,
+  disable unavailable directions, and display numeric page position.
+- Mark a trial complete using persisted completion from Module 8.
+- Selecting a trial updates the `trial` URL parameter where history updates
+  are supported; returning to the selector clears it.
+- Keep back and reset available. Show next-trial navigation only after final
+  feedback ends, completion is true, and a following indexed trial exists.
+- Navigation and URL updates must not perform network navigation.
 
-**Exit criterion:** With an index of more than 12 trials, every trial is
-reachable from the selector, completed trials are visibly marked, the board's
-back control returns to the selector, and the next-trial control advances to
-the next indexed trial only after the current trial is complete.
+**Exit:** All indexed trials are reachable; completion, page boundaries,
+back/reset, and next navigation remain consistent with saved progress.
 
----
+## 4. Non-functional requirements
 
-# Part II — Non-Functional Requirements
+- No reading of instructions, competitive grading, or online dependency.
+- Keep all resting objects and controls inside the visual viewport.
+- Support desktop, narrow portrait, short landscape, and rotation.
+- Provide keyboard focus indicators, meaningful accessible names, textless
+  loading status, and a polite completion announcement.
+- Handle content errors explicitly; degraded assets and unavailable optional
+  audio facilities must not prevent gameplay.
+- Use client-side computation only; treat container identity as opaque.
 
-## 4. Design principles
+## 5. Architecture and files
 
-- No reading is required to operate the game (per PRD goal); all instruction
-  is conveyed through visual highlight and audio feedback.
-- Drag is forgiving: an incorrect drop never loses or destroys the dragged
-  object — it always returns exactly to its pre-drag position.
-- The learner is never scored or ranked in a way visible to them.
-- Every local-asset load path assumes zero network connectivity from process
-  start (per `docs/third-party-game-spec.md` §2.2).
-
-## 5. Error handling
-
-- A malformed trial file (schema violation per §2.1) must be rejected with a
-  logged error and must not crash the board renderer for other, valid trials.
-- A missing or corrupt audio/image asset must not stop the trial from loading.
-  If `audio` is absent, missing, or corrupt, use the Module 5 pronunciation
-  fallback: speak `target` with an on-device voice in the learning language,
-  then use a synthesized tone if no suitable voice is available. If a provided
-  image is missing or corrupt, render the neutral placeholder specified by
-  UISPEC §1.2; keep the object available for normal interaction.
-- `cr_event` emission failures must never affect gameplay — every emission
-  call is wrapped in try/catch and is fire-and-forget.
-
-## 6. Constraints
-
-- **Runtime:** `file://` origin only at ship time; no Service Worker, no
-  Cache Storage API, no `window.fetch()` for local assets.
-- **Compute:** client-side only, no server-side component.
-- **Regulatory/privacy:** no PII is collected or stored; `cr_user_id` is
-  treated as opaque and is never combined with any other identifying data.
-- **Reporting:** the only permitted outbound channel is the `cr_event`
-  `postMessage` bridge; direct analytics SDKs are forbidden
-  (`docs/third-party-game-spec.md` §3).
-
-## 7. Risks and mitigations
-
-| Risk | Mitigation |
+| Area | Responsibility |
 |---|---|
-| A single missing asset freezes the loading screen | Use `Promise.allSettled` for all preloads (Module 9) |
-| `window.fetch()` silently fails on Android WebView for `file://` | Use the XHR `loadBinary()` pattern for every local binary (Module 9) |
-| A content author authors an object with no equivalent partner | Trial Loader validation rejects/report trials with orphaned `pair_id` references (Module 1) |
-| Multiple candidate objects in tolerance range at release | Resolve deterministically by nearest on-screen distance (Module 4); documented as Open Question OQ-4 until confirmed |
-| `cr_event` payload exceeds 64 KB | Keep `data` to primitive fields only (trial id, lang, counts); never include full trial JSON in an event |
+| `src/App.tsx` | Pack/index loading, selected trial, and screen navigation |
+| `src/components/RepetitionBoard.tsx` | Board lifecycle, pointer gestures, feedback, and completion transition |
+| `src/components/MatchObject.tsx` | Card content, visual states, and audio affordances |
+| `src/components/TrialSelector.tsx` | Pagination and completion marking |
+| `src/game/repetition.ts` | Region geometry, candidate selection, repetition scheduling, and progress records |
+| `src/game/trials.ts` | Trial/index/metadata validation and media resolution |
+| `src/game/assets.ts`, `src/game/audio.ts` | Offline binary loading and pronunciation/feedback |
+| `src/game/container.ts` | Container event envelopes |
+| `public/lang/<code>/` | Pack metadata, trial index, trial JSON, images, and recordings |
+| `dist/` | Regenerable standalone build |
+| `artifacts/` | Regenerable delivery ZIPs |
 
----
+## 6. Build and release runbook
 
-# Part III — Implementation Guide
+1. Install dependencies using the project's package manager.
+2. Run typecheck, lint, tests, and standalone build as specified in
+   [TESTSPEC.md](TESTSPEC.md).
+3. Open built HTML from `file://` offline. Desktop Chrome requires
+   `--allow-file-access-from-files` with a throwaway profile; the container
+   WebView supplies the required local-file access.
+4. Verify a full trial for letters, audio-only, and rich content, plus reload,
+   orientation, long-word aiming, and reporting.
+5. Build engine/language ZIPs, extract into a clean directory, and repeat the
+   offline dry-run. Packaging may recreate its output directory; do not
+   overwrite unrelated files.
 
-## 8. Directory structure
+## 7. Delivery mapping
 
-Functional tree (by purpose) mapped to an artifact-lifecycle classification:
-
-| Path | Purpose | Lifecycle |
-|---|---|---|
-| `index.html` | Entry point, ZIP root | Versioned |
-| `<engine bundle>.js`, `*.css` | Engine runtime | Versioned |
-| `assets/audios/`, `assets/images/` | Shared, non-language assets | Versioned |
-| `lang/<langCode>/<trial files>.json` | Per-language trial data | Versioned |
-| `lang/<langCode>/audios/`, `lang/<langCode>/images/` | Per-language media | Versioned |
-| Build output (`dist/` or equivalent) | Compiled bundle prior to zipping | Ephemeral (regenerate from source in under a minute) |
-| ZIP artifacts (`<engine>-core.zip`, `<engine>-lang-<code>.zip`) | Upload artifacts | Ephemeral (regenerate from build output) |
-| `localStorage` progress state (device-local, not a repo path) | Learner's in-progress/completed trial state | Durable on-device only; never committed |
-
-## 9. Environment and configuration
-
-- `engineSlug` and `sub_app_id` are the registered stable identifier
-  `findmatch`; use it for package artifact names and every `cr_event` envelope.
-- Build must produce a **standalone** target: bundler public path `./`, no
-  `.map` files, no analytics/feature-flag SDK network code.
-
-## 10. Technology stack (rationale deferred to Resolved Decisions once chosen)
-
-- Client-side only, bundled to static assets servable from `file://`.
-- Must support: relative-path asset resolution, `FontFace`/`XMLHttpRequest`
-  for binary loads, Web Audio or `<audio>` playback, `localStorage`
-  persistence.
-- Must NOT depend on Service Workers, Cache Storage API, or any network SDK at
-  runtime.
-
-## 11. Runbook (from a clean machine)
-
-1. Install project dependencies.
-2. Run the standalone build (bundler public path `./`).
-3. Open the build output's `index.html` directly via
-   `file:///…/index.html?cr_lang=<code>` in a browser with DevTools Network
-   set to Offline. Desktop Chrome blocks `XMLHttpRequest` to `file://` by
-   default, so launch it with `--allow-file-access-from-files` (and a throwaway
-   `--user-data-dir`); the container WebView grants this access itself.
-4. Confirm the loading screen clears within 10 seconds and at least one trial
-   is fully playable end-to-end.
-5. Package the engine ZIP and one language ZIP per §Module 10 and repeat step
-   3 against the extracted ZIP contents.
-
-## 12. Deliverables per milestone
-
-| Milestone (PRD §8) | Devspec modules covered |
+| Product milestone | Modules |
 |---|---|
-| M1 — MVP interaction | Modules 1–5, 8, 11 |
-| M2 — Better interaction | Module 6 |
-| M3 — Great interaction | Module 7 |
-| M4 — Container compliance | Modules 9–10 |
+| M1 — Repeated matching | 1–5, 8, 11 |
+| M2 — Audio interaction | 5–6 |
+| M3 — Rich content | 3–4, 7 |
+| M4 — Container delivery | 9–10 |
 
----
+## Changelog
 
-# Part IV — Appendices
-
-## 13. Open Questions
-
-| ID | Question | Blocks |
-|---|---|---|
-| OQ-1 | What is the exact proximity-tolerance value (pixels or board-relative units) for drag-over-candidate highlighting? | Module 3, Module 4 |
-| OQ-2 | What celebration animation and negative-feedback sound assets are used, and are they shared (`assets/`) or per-language? | Module 5 |
-| OQ-3 | When a drag ends with no candidate in tolerance range at all, does the object stay where dropped or return to its pre-drag position? | Module 3 |
-| OQ-4 | When a drag ends within tolerance of more than one candidate, is nearest-distance the correct tie-break, or should the first-encountered candidate win? | Module 4 |
-| OQ-5 | What technology stack/bundler will be used for the standalone build? | Part III §10 |
-
-## 14. Resolved Decisions
-
-- The registered `engineSlug` and `sub_app_id` are `findmatch`; engine and
-  language-package artifact names use the same slug.
-- `cr_lang` selects the language pack; absent or unsupported values fall back
-  to English.
-- Better supports audio-only objects, marked with `type: "audio"`, and
-  tap-to-hear. Objects without `type` default to `"letter"`. Great supports
-  words, pictures, and rhymes through the existing `pair_id` schema.
-- The trial to play is chosen on the Trial Selector screen (Module 11), which
-  lists the trials named by the language pack's trial index (§2.3), 12 per
-  page. The `trial` query parameter still opens one trial directly and is
-  kept in sync with the learner's selection (resolves OQ-7).
-- Missing/corrupt audio falls back to an offline auto-generated voice in the learning language (tone if no on-device voice); missing/corrupt images use
-  a neutral placeholder; `Promise.allSettled` allows loading to continue.
-- Each completed trial emits exactly one `trial_completed` event and one
-  `summary_data` update.
-- Loading is a textless visual state.
-- The mobile game shell is contained in the visual viewport with no page-level
-  scroll, and object bounds remain inside the board. This containment applies
-  whenever either viewport dimension is phone-sized — including a short-height
-  landscape orientation with a width above the narrow-portrait breakpoint —
-  not only a narrow-width portrait viewport.
-- The board scales as a single unit that fills the width and height of its
-  containing play area independently on each axis (not letterboxed to the
-  authored 1120×650 proportions), while object visual size scales uniformly
-  from a single scale factor derived from the more constrained axis, clamped
-  to an accessible minimum and a sensible maximum, so objects stay square and
-  never overlap each other or the region divider at any supported viewport
-  size or board aspect ratio.
-
-## 15. Out of Scope
-
-- Any content-authoring UI inside the game itself (§ PRD Non-goals).
-- Any scoring, ranking, or leaderboard feature.
-- Any online/CDN-hosted build target (only the offline container target is
-  specified by the two source documents).
-- Any non-drag input modality.
-
-## 16. Changelog
-
-2026-10-14 — Maria Lande (with GitHub Copilot) — Resolved OQ-6 by setting the registered engine slug and `sub_app_id` to `findmatch` and using it for package artifact names.
-2026-10-12 — Maria Lande (with GitHub Copilot) — Clarified that `audio` and `image` are optional media fields, specified their runtime fallbacks, and aligned language-pack contents with optional per-language images.
-2026-09-30 — Maria Lande (with GitHub Copilot) — Required the engine bundle to ship as a single relative, deferred, non-module script (ES module scripts are CORS-blocked on `file://`) and documented Chrome's `--allow-file-access-from-files` requirement in the runbook.
-2026-09-30 — Maria Lande (with GitHub Copilot) — Defined tap-versus-drag as a 10 px pointer-travel tolerance (rather than the presence of pointer-move events) and required suppression of native touch text-selection and tap-highlight on all objects, so tap-to-hear works on touchscreens.
-2026-09-28 — Maria Lande (with GitHub Copilot) — Added the per-language trial index file (§2.3) and Module 11 (Trial Selector & Navigation) with paginated trial selection, persisted trial size for completion marking, back and next-trial navigation, and resolved OQ-7.
-2026-09-28 — Maria Lande (with GitHub Copilot) — Defined larger image-trial cards and target-length-aware text widths with wrapping and collision constraints.
-2026-09-28 — Maria Lande (with GitHub Copilot) — Added the optional `type` (`letter`/`audio`) object field to mark audio-only objects, made `image` optional for all objects, added `trial` query-parameter trial selection with default 1, and added OQ-7 for a future trial selector screen.
-2026-09-28 — Maria Lande (with GitHub Copilot) — Added combined-tile matching with per-match and distinct trial-complete celebrations, non-draggable tap-to-hear solved tiles, reduced-motion support, combined-tile restore on reload, and an authored-audio → offline on-device voice → tone pronunciation fallback in the learning language.
-2026-09-23 — Maria Lande (with GitHub Copilot) — Replaced aspect-ratio-preserving (letterboxed) board scaling with independent width/height fill of the play area, and clarified that object size derives from a single scale factor (based on the more constrained axis) so objects remain square without forcing the board's own aspect ratio.
-2026-09-23 — Maria Lande (with GitHub Copilot) — Documented aspect-ratio-preserving board scaling and proportional/min-size object footprint (Module 2) to prevent object overlap on narrow viewports, and clarified that mobile containment (Design Principle) applies to short-height landscape orientations too, not only narrow-width portrait viewports.
-2026-09-23 — Maria Lande (with GitHub Copilot) — Resolved approved language, tier, asset-fallback, event-count, loading-state, and mobile-containment behavior.
-2026-09-23 — Maria Lande (with GitHub Copilot) — Initial draft, derived solely from Find-The-Two-That-Match-Spec-Brief.md and third-party-game-spec.md.
+2026-10-21 — Maria Lande (with GitHub Copilot) — Replaced the document with integrated requirements for responsive repeated matching, pointer collision, configurable counts, saved progress, and offline delivery.

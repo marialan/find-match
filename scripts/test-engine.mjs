@@ -115,38 +115,23 @@ console.log('trial selection: ok')
 // TC-1.6 / TC-11.1 / TC-11.3: trial index parsing, pagination, and next-trial lookup.
 const shippedIndex = JSON.parse(fs.readFileSync(path.join(root, 'public', 'lang', 'english', 'trials', 'index.json'), 'utf8'))
 assert.deepEqual(validateTrialIndex(shippedIndex), shippedIndex.trials)
-assert.equal(shippedIndex.trials.length, 10)
-const reviewGroups = ['aeiou', 'bdfgh', 'cjklm', 'npqrs', 'tvwxyz']
-let alphabet = ''
+const testFixtureIndex = JSON.parse(fs.readFileSync(path.join(root, 'test-trials', 'english', 'index.json'), 'utf8'))
+assert.deepEqual(shippedIndex, testFixtureIndex)
+assert.equal(shippedIndex.trials.length, 13)
 for (const trialNum of shippedIndex.trials) {
   const file = path.join(root, 'public', buildTrialPath('english', trialNum))
   assert.ok(fs.existsSync(file), `Missing trial-${trialNum}.json`)
   const shipped = validateTrial(JSON.parse(fs.readFileSync(file, 'utf8')))
   assert.equal(shipped.trial_num, trialNum)
-  assert.ok(shipped.left.length >= 5 && shipped.left.length <= 6)
   assert.equal(shipped.left.length, shipped.right.length)
-  const letters = shipped.left.map((item) => item.target)
-  if (trialNum <= 5) alphabet += letters.join('')
-  else {
-    assert.equal(letters.join(''), reviewGroups[trialNum - 6])
-    const uppercase = shipped.right.map((item) => item.target)
-    assert.notDeepEqual(uppercase, [...uppercase].sort())
-  }
-  for (const item of shipped.left) {
-    const partner = shipped.right.find((other) => other.object_id === item.pair_id[0])
-    assert.equal(item.target, item.target.toLowerCase())
-    assert.equal(partner?.target, item.target.toUpperCase())
-    assert.ok(partner.pair_id.includes(item.object_id))
-  }
+  const fixture = validateTrial(JSON.parse(fs.readFileSync(path.join(root, 'test-trials', 'english', `trial-${trialNum}.json`), 'utf8')))
+  assert.deepEqual(shipped, fixture, `Shipped trial-${trialNum}.json differs from its test fixture`)
   for (const item of [...shipped.left, ...shipped.right]) {
     for (const asset of [item.image, item.audio].filter(Boolean)) {
       assert.ok(fs.existsSync(path.join(root, 'public', asset)), `Missing ${asset} in trial-${trialNum}.json`)
     }
   }
 }
-assert.equal(alphabet, 'abcdefghijklmnopqrstuvwxyz')
-assert.equal(reviewGroups.join('').split('').sort().join(''), 'abcdefghijklmnopqrstuvwxyz')
-const testFixtureIndex = JSON.parse(fs.readFileSync(path.join(root, 'test-trials', 'english', 'index.json'), 'utf8'))
 for (const trialNum of testFixtureIndex.trials) {
   const file = path.join(root, 'test-trials', 'english', `trial-${trialNum}.json`)
   assert.ok(fs.existsSync(file), `Missing test fixture trial-${trialNum}.json`)

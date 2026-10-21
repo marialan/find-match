@@ -4,23 +4,27 @@ import {
   pageCount,
   trialsForPage,
 } from "../game.ts";
+import { isRepetitionCompleted } from "../game/repetition.ts";
 
 type TrialSelectorProps = {
   trials: number[];
   langCode: string;
   onSelect: (trialNum: number) => void;
+  repetition?: boolean;
 };
 
 export function TrialSelector({
   trials,
   langCode,
   onSelect,
+  repetition = false,
 }: TrialSelectorProps) {
   const [page, setPage] = useState(0);
   const pages = pageCount(trials.length);
   const visible = trialsForPage(trials, page);
+  const isCompleted = repetition ? isRepetitionCompleted : isTrialCompleted;
   const completedCount = trials.filter((trialNum) =>
-    isTrialCompleted(trialNum, langCode),
+    isCompleted(trialNum, langCode),
   ).length;
 
   return (
@@ -40,7 +44,7 @@ export function TrialSelector({
       <section className="selector-area">
         <ul className="trial-grid">
           {visible.map((trialNum) => {
-            const completed = isTrialCompleted(trialNum, langCode);
+            const completed = isCompleted(trialNum, langCode);
             return (
               <li key={trialNum}>
                 <button

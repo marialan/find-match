@@ -1,182 +1,176 @@
 # PRD — Find The Two That Match
 
-|                  |                                                     |
-| ---------------- | --------------------------------------------------- |
-| **Title**        | Find The Two That Match — Product Requirements Document |
-| **Status**       | Active — approved behavior                          |
-| **Version**      | 0.5.0                                               |
-| **Last updated** | 2026-09-30                                          |
-| **Owner/Author** | Maria Lande (with GitHub Copilot)                   |
+| | |
+|---|---|
+| **Title** | Find The Two That Match — Product Requirements Document |
+| **Status** | Active — approved behavior |
+| **Version** | 1.0.0 |
+| **Last updated** | 2026-10-21 |
+| **Owner/Author** | Maria Lande (with GitHub Copilot) |
 
-> This PRD is derived exclusively from two source-of-truth documents:
-> `docs/Find-The-Two-That-Match-Spec-Brief.md` (the interaction/product brief)
-> and `docs/third-party-game-spec.md` (the delivery container the product must
-> run inside). It does not reference the DEVSPEC, UISPEC, or TESTSPEC by
-> filename — those documents reference back to this one. It does not describe
-> any existing implementation; it specifies the product from scratch.
-
----
+This document defines product goals and scope for Find The Two That Match.
+The product brief supplies the literacy goals, approved product decisions
+define the matching interaction, and [the third-party game contract](third-party-game-spec.md)
+defines offline delivery and container integration.
 
 ## 1. Product summary
 
-Find The Two That Match is an **offline literacy web game for early readers**
-(the brief targets beginner reading skills; no strict age range is given in the
-source brief). The screen is split into two sides — a left set of objects and a
-right set of objects. Each object on one side has exactly one equivalent
-partner on the other side. The learner drags an object across the divide and
-releases it near its partner. If the two are equivalent (e.g., lowercase `c`
-matched to uppercase `C`), the pair celebrates and the target's audio plays.
-If they are not equivalent, a negative sound plays and the dragged object
-returns to its original position.
+Find The Two That Match is an offline literacy game for early readers.
+Learners drag one prompt onto its equivalent target among a fixed set of
+letters, words, pictures, or audio objects. A correct match celebrates the
+target, plays its pronunciation, and introduces another prompt. Targets stay
+in place so the learner can practise the same relationship multiple times
+within one trial.
 
-The game is distributed as a **third-party game inside the Curious Reader
-container** — an offline-first literacy app that loads the game's `index.html`
-from a `file://` URI with no network access. The product must be fully
-playable offline and must report completion/usage events through the
-container's `cr_event` bridge.
+The board has two visually separate areas:
+
+- Portrait and square viewports: targets above, prompt below.
+- Landscape viewports: prompt on the left, targets on the right.
+
+Incorrect drops return the prompt to its tray without losing progress.
+The trial finishes when every target has received its required repetitions.
+The default is three successful matches per target; content authors can
+change this per trial and per target.
+
+The game runs entirely offline inside the Curious Reader container from a
+`file://` URI and reports trial completions through the `cr_event` bridge.
 
 ## 2. Goals
 
-- Teach equivalence between paired objects (starting with lowercase/uppercase
-  letters; expanding to letter-audio, then words/pictures/rhymes) through a
-  drag-and-drop matching interaction.
-- Require no reading or written instructions to operate — the interaction
-  must be discoverable by a non-reading child through visual/audio feedback
-  alone.
-- Run identically well fully offline, inside the Curious Reader container's
-  `file://` WebView, with zero network calls.
-- Let content authors define new matching trials and languages by supplying
-  JSON files and media assets, without game-code changes.
+- Teach equivalence through repeated, forgiving drag-and-drop practice.
+- Support letter/letter, letter/audio, word/picture, and rhyme relationships.
+- Require no reading of instructions to operate; convey interaction through
+  layout, highlighting, motion, and audio.
+- Preserve progress without scoring, ranking, or performance pressure.
+- Remain usable in portrait and landscape, including narrow phones and
+  short-height screens.
+- Let authors supply new trials, media, repetition counts, and languages
+  without changing game code.
+- Run with no network access, including media playback and pronunciation
+  fallbacks.
 
 ## 3. Personas
 
-| Persona | Description | Needs |
-|---|---|---|
-| **Learner** | A child who cannot yet reliably read, ages roughly 4–8 | Simple, forgiving drag interaction; immediate audio/visual feedback; cannot lose progress or be scored against |
-| **Content author** | A non-engineer who prepares trial content (object pairs, images, audio) | A documented JSON schema and a predictable media-asset naming convention they can produce without touching game code |
-| **Container integrator (Curious Reader team)** | The team that packages, uploads, and ships the game inside the Curious Reader CMS | A game that complies with the third-party game spec's offline rules, ZIP packaging layout, and `cr_event` reporting contract |
+| Persona | Needs |
+|---|---|
+| Learner, roughly ages 4–8, not yet reliably reading | A discoverable interaction, clear feedback, repeated practice, and no loss of progress after an incorrect attempt |
+| Content author | A documented JSON schema, reciprocal pair relationships, configurable practice counts, and local media paths |
+| Curious Reader integrator | Offline engine/language ZIPs and compliant completion reporting |
 
 ## 4. Key user scenarios
 
-1. A learner opens a trial and sees two columns of objects with no on-screen
-   text instructions. They pick up an object, see it and a candidate partner
-   highlight as they drag it near, and drop it. If correct, they see a
-   celebration and hear the target pronounced. If incorrect, the object
-   glides back to where they picked it up.
-2. A content author authors a new trial JSON file with `left` and `right`
-   arrays of objects, each with a `target`, screen `pos`, and `pair_id` list of
-   equivalent object IDs, plus image/audio asset paths, and the game loads it
-   without any code change.
-3. A container integrator installs the game's engine + language ZIPs offline,
-   launches `index.html?cr_lang=english&cr_user_id=...`, and observes the game
-   fully play through several trials with zero network requests and a
-   `cr_event` emitted at least once per completed trial.
+1. A learner chooses a trial and sees fixed targets and one prompt. The prompt
+   floats into its tray. Dragging it over a target highlights the candidate.
+   A correct drop celebrates and pronounces the target, updates its progress,
+   and replaces the prompt after feedback.
+2. A learner repeats matches across the targets. Targets remain visible and
+   available throughout; prompts for satisfied targets stop appearing.
+3. A learner drags a long word towards an edge target. The word remains inside
+   the board, while the finger/mouse position selects among overlapping
+   targets. The center target must not prevent aiming at either edge.
+4. A learner makes an incorrect or empty drop. The prompt returns to its tray
+   and can be tried again; no repetition is credited.
+5. A learner rotates the device or leaves and returns to the trial.
+   Placement adapts to orientation and saved repetition counts remain intact.
+6. An author supplies `left` prompt definitions, `right` target definitions,
+   reciprocal `pair_id` values, optional media, and repetition overrides.
+7. An integrator installs the engine and language ZIPs, plays offline, and
+   observes exactly one completion event and one summary update when a trial
+   transitions to complete.
 
-## 5. KPIs / success signals
+## 5. Success criteria
 
-- Loading screen clears and the first trial is playable within 10 seconds
-  offline (per third-party-game-spec.md §7b).
-- Zero attempted network requests and zero `NETGUARD_BLOCK` log entries during
-  a full offline play session.
-- 100% of authored object pairs in a trial are matchable by the equivalence
-  rule described in the JSON `pair_id` field — no orphaned objects.
-- Exactly one well-formed `cr_event` (`user_sessions_data`) and exactly one
-  `summary_data` update are emitted per completed trial, with no additional
-  emissions per pair or reload.
-- A child can complete the MVP letter-matching interaction without needing an
-  adult to explain the controls (informal usability signal — not
-  automatically measurable, verified via manual test per TESTSPEC).
+- The selector or requested trial becomes playable within 10 seconds offline.
+- No attempted network requests or `NETGUARD_BLOCK` entries occur.
+- Every authored reciprocal pair is matchable at supported viewport sizes,
+  including long prompts and targets near board edges.
+- Correct matches increment only the selected target's repetition count.
+- Completion requires all configured repetitions, not just one match per pair.
+- Reloading restores counts without replaying feedback or completion events.
+- Exactly one `user_sessions_data` completion event and one `summary_data`
+  update occur per completion transition; none occur per intermediate match.
+- The learner can operate the game without reading instructions.
+- The shell, target grid, tray, and selector fit without page scrolling.
 
-## 6. Scope tiers (from the source brief)
+## 6. Functional scope
 
-The brief defines three cumulative implementation tiers. Each later tier
-assumes the previous tier's requirements are met.
+### 6.1 Matching and repetition
 
-### MVP
-- Split-screen layout; objects placed at JSON-specified positions.
-- Starting objects are limited to lowercase and uppercase letters.
-- Drag any object; while dragging, if it comes within a defined tolerance of
-  another object, both highlight.
-- On release: if within tolerance of another object, check equivalence via the
-  JSON `pair_id` relationship.
-  - Match: the two objects combine into one tile that gives clear visual
-    feedback that the match is correct, and the target's pronunciation plays.
-    The combined tile stays on the board, cannot be dragged, and can be
-    tapped to replay its pronunciation.
-  - When every pair is matched, a trial-complete celebration plays that is
-    distinct from the per-match feedback.
-  - No match: negative feedback sound + the dragged object animates back to
-    its exact pre-drag position.
-- An object cannot be dragged off-screen.
-- Trial content (both columns, positions, and equivalences) is supplied via a
-  JSON input file.
-- A trial selector lists the trials the language pack ships, a maximum of 12
-  per page with page navigation when there are more, and marks trials the
-  learner has already completed. A trial can be left at any time and, once
-  complete, leads directly into the next trial.
+- Show all fixed targets and one draggable prompt.
+- Generate placement from the available space rather than authored positions.
+- Use equal outer margins for the colored regions and a consistent gap.
+- Float each newly presented prompt into place; disable entry motion under
+  reduced motion and interrupt it when dragging starts.
+- Match by reciprocal IDs, not by text equality or an answer-aware target bias.
+- Use full-card proximity for collision eligibility and pointer-based aiming
+  when several targets qualify.
+- On success, play feedback and target pronunciation, retain the target,
+  increment its count, and replenish the prompt.
+- Cycle through unfinished targets with the lowest completed count, using
+  authored prompt order to break ties.
+- Default to three repetitions, overridden by the trial count and then by
+  each target's own count.
+- On an incorrect or empty drop, return the prompt without changing counts.
+- Keep the dragged card on-screen; cancellation never credits a match.
+- Show per-target practice progress and aggregate completed/required matches,
+  without presenting them as a score.
 
-### Better (adds to MVP)
-- Audio-only objects can be displayed in the UI (an object with no visible
-  glyph, represented for a spoken word/letter).
-- Tapping any object plays its pronunciation audio.
-- Equivalence checking extends to letter ↔ letter-audio pairs.
+### 6.2 Content and audio
 
-### Great (adds to Better)
-- Objects can be words, pictures, or rhyming words in addition to letters.
-- Equivalence checking extends to word ↔ picture pairs.
-- Equivalence checking extends to rhyming-word pairs.
+- Support letters, words, images, rhymes, and audio-only objects.
+- Tap a prompt or target to hear its pronunciation when no feedback is active.
+- Audio-only objects use a speaker affordance without revealing their target.
+- Use local recordings first, then on-device speech in the learning language,
+  then a synthesized tone.
+- Failed media does not block the trial; failed images use a neutral placeholder.
+- Trial content and language metadata are supplied as local JSON and media.
+
+### 6.3 Progress and navigation
+
+- Persist counts per language and trial on the device.
+- Reset counts when the target/pair/repetition configuration changes.
+- Offer a trial selector with ascending trial numbers, at most 12 per page,
+  navigation between pages, and completion marking.
+- Provide back and reset controls at all times on the board.
+- Show next-trial navigation only after completion and only when a following
+  indexed trial exists.
+- Preserve the selected trial in the launch URL where supported.
 
 ## 7. Non-goals
 
-- No scoring, ranking, leaderboards, or performance grading visible to the
-  learner or reported as a competitive metric.
-- No user account creation, login, or profile management — identity is
-  whatever opaque `cr_user_id` the container supplies.
-- No in-game content authoring UI — trial JSON and media assets are prepared
-  externally by content authors.
-- No multiplayer or networked interaction of any kind.
-- No non-drag input modality (e.g., click-to-select-then-click-to-place) is
-  required by the source brief; only continuous drag is specified.
-- No online/CDN-hosted asset or telemetry path — this product only targets
-  the offline Curious Reader container runtime described in
-  `docs/third-party-game-spec.md`.
+- Competitive scoring, rankings, leaderboards, or grading.
+- Account creation, login, multiplayer, or networked interaction.
+- In-game trial or language-pack authoring.
+- Online media, cloud speech, analytics SDKs, or network telemetry.
+- A separate non-drag matching input method; tap and keyboard activation
+  serve pronunciation and navigation, not click-to-select matching.
 
-## 8. Milestones (conceptual, not a build order)
+## 8. Delivery milestones
 
-1. **M1 — MVP interaction**: letters-only drag-and-match with celebration and
-   repel feedback, driven by trial JSON.
-2. **M2 — Better interaction**: audio-only objects, tap-to-hear, letter↔audio
-   equivalence.
-3. **M3 — Great interaction**: words, pictures, rhymes, and their equivalence
-   rules.
-4. **M4 — Container compliance**: offline runtime compliance, `cr_event`
-   reporting, and Curious Reader ZIP packaging, so the product can be uploaded
-   and played inside the container end-to-end.
+1. **M1 — Repeated matching:** letters, fixed targets, replenishing prompts,
+   configurable counts, feedback, responsive placement, and saved progress.
+2. **M2 — Audio interaction:** audio-only objects, tap-to-hear, and offline
+   pronunciation fallbacks.
+3. **M3 — Rich content:** words, pictures, rhymes, and long-word edge aiming.
+4. **M4 — Container delivery:** offline runtime, completion reporting,
+   language-pack discovery, ZIP packaging, and extracted-package verification.
 
-## 9. Constraints inherited from the container
+## 9. Container and content constraints
 
-- The product must run from a `file://` origin with no server, no Service
-  Worker, and no network calls of any kind at runtime.
-- The product must emit usage data only through the `cr_event`
-  `postMessage` bridge, never via direct network analytics.
-- The product must read `cr_lang` and `cr_user_id` from its launch URL query
-  string.
-- `cr_lang` selects the language pack; absent or unsupported values fall back
-  to English.
-- Game chrome and accessible control names remain shared English text; only
-  trial content and speech locale vary per language pack. The trial selector
-  uses a numeric page indicator.
-- The loading state is textless and the responsive game shell remains within
-  the mobile visual viewport without page-level scrolling.
-- The product must be packaged as an **engine ZIP** plus **one language ZIP
-  per language** (no shared core/book unit is implied by the source brief),
-  per the Layout A model in `docs/third-party-game-spec.md` §5.1.
-
----
+- Ship as static files loaded from `file://`, without a server, Service Worker,
+  Cache Storage, or runtime network I/O.
+- Read `cr_lang`, `cr_user_id`, and optional `trial` launch parameters.
+- Use English when the requested language is absent or unavailable; report
+  malformed installed content rather than silently substituting another pack.
+- Keep interface labels and accessible control names in shared English;
+  language packs provide learning content and speech locale.
+- Treat `cr_user_id` as opaque; collect no additional identifying information.
+- Report only through the Curious Reader `postMessage` bridge.
+- Deliver `findmatch-core.zip` plus a separate `findmatch-lang-<code>.zip`
+  for each language, following Layout A of the container contract.
+- The checked-in English content is development/test material, not approved
+  learning content for release.
 
 ## Changelog
 
-2026-09-28 — Maria Lande (with GitHub Copilot) — Added the paginated trial selector with completed-trial marking and in-trial back/next navigation to MVP scope.
-2026-09-28 — Maria Lande (with GitHub Copilot) — Specified that a correct match combines the pair into one tappable, non-draggable tile with match feedback, and that trial completion has its own distinct celebration.
-2026-09-23 — Maria Lande (with GitHub Copilot) — Approved language fallback, tier support, degraded asset handling, event counts, textless loading, and mobile viewport containment.
-2026-09-23 — Maria Lande (with GitHub Copilot) — Initial draft, derived solely from Find-The-Two-That-Match-Spec-Brief.md and third-party-game-spec.md.
+2026-10-21 — Maria Lande (with GitHub Copilot) — Replaced the document with a unified specification of repeated matching, responsive regions, configurable practice, and pointer-aimed interaction.

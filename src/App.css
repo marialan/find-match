@@ -1,3 +1,61 @@
+.repetition-top,
+.repetition-tray {
+  position: absolute;
+  pointer-events: none;
+  border-radius: 24px;
+  border: 1px solid rgba(112, 168, 153, 0.2);
+  background: rgba(224, 238, 230, 0.45);
+}
+.repetition-tray {
+  border: 1px dashed rgba(227, 110, 73, 0.3);
+  background: rgba(255, 245, 218, 0.6);
+}
+.repetition-target .match-object {
+  cursor: pointer;
+}
+.repetition-board {
+  --prompt-enter-x: 0px;
+  --prompt-enter-y: 18px;
+}
+.repetition-board.is-landscape {
+  --prompt-enter-x: -18px;
+  --prompt-enter-y: 0px;
+}
+.repetition-board .match-object.is-entering {
+  animation: prompt-float-in 400ms ease-out;
+}
+@keyframes prompt-float-in {
+  from {
+    opacity: 0;
+    transform: translate(
+      calc(-50% + var(--prompt-enter-x)),
+      calc(-50% + var(--prompt-enter-y))
+    );
+  }
+  to {
+    opacity: 1;
+    transform: translate(-50%, -50%);
+  }
+}
+.repetition-board .match-object.is-dragging,
+.repetition-board .match-object:active {
+  transform: translate(-50%, -50%);
+}
+.repetition-meter {
+  position: absolute;
+  width: 44px;
+  height: 6px;
+  transform: translateX(-50%);
+  border-radius: 9px;
+  background: #d3dcd2;
+  overflow: hidden;
+}
+.repetition-meter > span {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: #527f65;
+}
 #root {
   min-height: 100vh;
 }
@@ -595,6 +653,9 @@
   }
 }
 @media (prefers-reduced-motion: reduce) {
+  .repetition-board .match-object.is-entering {
+    animation: none;
+  }
   .match-object.is-celebrating {
     animation: match-glow 600ms ease-in-out;
   }

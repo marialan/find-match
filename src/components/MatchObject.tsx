@@ -1,4 +1,4 @@
-import type { AnimationEvent, CSSProperties, PointerEvent } from "react";
+import type { AnimationEvent, CSSProperties, MouseEvent, PointerEvent } from "react";
 import {
   BOARD_HEIGHT,
   BOARD_WIDTH,
@@ -25,7 +25,11 @@ type MatchObjectProps = {
   onImageError: (objectId: string) => void;
   onPointerDown: (event: PointerEvent<HTMLButtonElement>) => void;
   onAnimationEnd: (event: AnimationEvent<HTMLButtonElement>) => void;
-  onClick: () => void;
+  onClick: (event: MouseEvent<HTMLButtonElement>) => void;
+  widthOverride?: number;
+  onPointerCancel?: (event: PointerEvent<HTMLButtonElement>) => void;
+  onLostPointerCapture?: (event: PointerEvent<HTMLButtonElement>) => void;
+  entering?: boolean;
 };
 
 export function MatchObject({
@@ -43,6 +47,10 @@ export function MatchObject({
   onPointerDown,
   onAnimationEnd,
   onClick,
+  widthOverride,
+  onPointerCancel,
+  onLostPointerCapture,
+  entering = false,
 }: MatchObjectProps) {
   const merged = objects.find((other) => other.mergedInto === item.object_id);
   const pair = merged
@@ -50,7 +58,7 @@ export function MatchObject({
       ? [item, merged]
       : [merged, item]
     : null;
-  const itemWidth = boardObjectWidth(
+  const itemWidth = widthOverride ?? boardObjectWidth(
     item,
     objects,
     scale,
@@ -81,7 +89,7 @@ export function MatchObject({
 
   return (
     <button
-      className={`match-object ${item.side} ${item.image ? "has-image" : ""} ${active ? "is-dragging" : ""} ${isReturning ? "is-returning" : ""} ${highlighted ? "is-highlighted" : ""} ${item.solved ? "is-solved" : ""} ${pair ? "is-combined" : ""} ${isCelebrating ? "is-celebrating" : ""}`}
+      className={`match-object ${item.side} ${item.image ? "has-image" : ""} ${active ? "is-dragging" : ""} ${isReturning ? "is-returning" : ""} ${highlighted ? "is-highlighted" : ""} ${item.solved ? "is-solved" : ""} ${pair ? "is-combined" : ""} ${isCelebrating ? "is-celebrating" : ""} ${entering ? "is-entering" : ""}`}
       style={{
         left: pair
           ? !fitsHalf(combinedWidth / pxPerUnit)
@@ -107,6 +115,8 @@ export function MatchObject({
         } as CSSProperties),
       }}
       onPointerDown={onPointerDown}
+      onPointerCancel={onPointerCancel}
+      onLostPointerCapture={onLostPointerCapture}
       onAnimationEnd={onAnimationEnd}
       onClick={onClick}
       aria-label={

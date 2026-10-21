@@ -9,6 +9,7 @@ import {
 import type { LanguagePack } from "./game.ts";
 import { TrialBoard } from "./components/TrialBoard.tsx";
 import { TrialSelector } from "./components/TrialSelector.tsx";
+import { RepetitionBoard } from "./components/RepetitionBoard.tsx";
 import "./App.css";
 
 function syncTrialParam(trialNum: number | null): void {
@@ -23,6 +24,7 @@ function syncTrialParam(trialNum: number | null): void {
 }
 
 function App() {
+  const repetition = new URLSearchParams(window.location.search).get("layout") !== "classic";
   const [trials, setTrials] = useState<number[] | null>(null);
   const [languagePack, setLanguagePack] = useState<LanguagePack | null>(null);
   const [loadError, setLoadError] = useState<string | null>(null);
@@ -83,12 +85,14 @@ function App() {
         trials={trials}
         langCode={languagePack.code}
         onSelect={select}
+        repetition={repetition}
       />
     );
 
   const next = nextTrialNumber(trials, selected);
+  const Board = repetition ? RepetitionBoard : TrialBoard;
   return (
-    <TrialBoard
+    <Board
       key={selected}
       trialNum={selected}
       languagePack={languagePack}

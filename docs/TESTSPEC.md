@@ -1,317 +1,293 @@
 # TESTSPEC — Find The Two That Match
 
-|                  |                                                     |
-| ---------------- | --------------------------------------------------- |
-| **Title**        | Find The Two That Match — Test Specification         |
-| **Status**       | Active — approved verification criteria             |
-| **Version**      | 0.11.0                                              |
-| **Last updated** | 2026-10-14                                          |
-| **Owner/Author** | Maria Lande (with GitHub Copilot)                   |
+| | |
+|---|---|
+| **Title** | Find The Two That Match — Test Specification |
+| **Status** | Active — approved verification criteria |
+| **Version** | 1.0.0 |
+| **Last updated** | 2026-10-21 |
+| **Owner/Author** | Maria Lande (with GitHub Copilot) |
 
-> This TESTSPEC is derived solely from `docs/Find-The-Two-That-Match-Spec-Brief.md`
-> and `docs/third-party-game-spec.md`, and verifies the DEVSPEC and UISPEC
-> requirements. It supports those documents; it does not redefine behavior.
+This document verifies the product in [PRD.md](PRD.md), system behavior in
+[DEVSPEC.md](DEVSPEC.md), and interface in [UISPEC.md](UISPEC.md). Tests must
+verify repeated matching as a complete interaction, not merely that a pair
+can be matched once. A criterion below is a required check, not a claim
+that every criterion is automated.
 
----
-
-## 1. Fixtures
+## 1. Fixtures and tooling
 
 | Fixture | Purpose |
 |---|---|
-| `trial-letters-basic.json` | 2 objects per side, lowercase/uppercase letter pairs only (MVP) — covers Module 1–5 |
-| `trial-letters-orphan.json` | Contains one object whose `pair_id` references a non-existent `object_id` — negative test for Module 1 validation |
-| `trial-audio-only.json` | Includes at least one `type: "audio"` object (Better tier) — covers Module 6. Shipped as `lang/english/trials/trial-2.json` (audio a/m/s left, lowercase letters right) |
-| `trial-mixed-great.json` | Includes word, picture, and rhyme objects (Great tier) — covers Module 7 |
-| `trial-missing-asset.json` | References an audio/image path that does not exist on disk — covers DEVSPEC §5 error handling |
-| Sample audio/image files under `lang/english/audios/` and `lang/english/images/` matching the fixtures above | Referenced by the fixtures |
-| `trials-index.json` | Trial index listing the shipped trials (DEVSPEC §2.3). Shipped as `lang/english/trials/index.json` — covers Module 11 |
-| `trials-index-13.json` | Index listing 13 trials — pagination test input for Module 11 |
+| `test-trials/english/` | Thirteen development trials mirrored by the public English pack |
+| English trial 1 | Letter prompts and fixed letter targets |
+| English trial 2 | Audio-only prompts paired with letters |
+| English trial 3 | Word prompts, four picture targets, and long-word pointer aiming |
+| English trials 8 and 13 | Long text and mixed word/image coverage |
+| Generated malformed trials | Unknown partner, duplicate ID, non-reciprocal/same-array pair, unequal counts, invalid type/count, and empty playable content |
+| Generated repetition trial | Trial requirement of two with one target overridden to four |
+| Generated missing-media trial | Absent/broken audio and image fallback |
+| Generated non-English pack | Metadata, locale, path isolation, language progress, and packaging discovery |
+| Thirteen-entry index | Selector pagination at the 12-tile boundary |
+| Bridge mock | Capture completion and summary envelopes |
 
-## 2. Unit test cases (per DEVSPEC module)
+- Use the existing Node engine/layout/repetition checks through `npm test`.
+- Use real browser pointer input for card movement and collision checks;
+  a geometry helper test alone is not proof that an edge target is usable.
+- Use a browser with touch emulation or a physical touch device for tap drift.
+- Cover desktop, 320×568, 360×640, 414×896, 812×375, 568×320, and a square
+  viewport. Allow at most 1 CSS px rounding error in geometry assertions.
+- Keep fixture/media content local. Temporary fixtures must not modify
+  unrelated authored content or delivery artifacts.
 
-### Module 1 — Trial Loader
-- TC-1.1: Loading `trial-letters-basic.json` resolves every provided `image`
-  and `audio` path under the language root; an otherwise valid object with no
-  `audio` field is accepted. Missing or corrupt provided media does not reject
-  the trial (see TC-6.6, TC-9.4).
-- TC-1.2: Loading `trial-letters-orphan.json` is rejected/reported as invalid
-  and does not crash the loader.
-- TC-1.3: Loader never calls `window.fetch()` when `window.location.protocol
-  === 'file:'` (assert via spy/mock).
-- TC-1.4: An object with no `type` loads as `"letter"`; an object with an
-  unknown `type` makes the trial invalid.
-- TC-1.5: `?trial=2` selects `trial-2.json`; an absent or invalid `trial`
-  value selects no trial and the Trial Selector screen is shown instead.
-- TC-1.6: A valid trial index parses to an ascending, de-duplicated list of
-  trial numbers; an index that is missing, unparsable, empty, or contains a
-  non-positive/non-integer entry shows a pack content error. A missing pack
-  metadata file falls back to English; malformed metadata does not.
-- TC-1.7: A generated, test-only non-English pack verifies metadata validation,
-  trial loading, relative media-path resolution, and traversal rejection;
-  invalid language codes fall back to English.
-- TC-1.8: The loader rejects unequal side counts, any object with zero or
-  multiple `pair_id` values, same-side or non-reciprocal partner references,
-  and partners that do not exist.
+## 2. Module verification
 
-### Module 2 — Match Board Renderer
-- TC-2.1: Every object in a loaded trial renders at its authored `pos`
-  (pixel-exact, within a documented tolerance for coordinate rounding).
-- TC-2.2: At the supported viewport sizes (see UI-TC-8), the board's rendered
-  width and height each match the containing play area's corresponding
-  dimension independently, even when the resulting ratio differs from the
-  authored 1120:650 design ratio. Authored object positions track the board as
-  percentages of its current width and height, and no two objects' (including
-  combined tiles') rendered bounding boxes overlap each other or the region
-  divider.
-- TC-2.3: Image-trial cards render larger than the text-only baseline; text
-  card width grows with target length, a 12-character target remains fully
-  visible, and its combined tile stays within the board and its region at
-  desktop, narrow-portrait, and short-landscape viewports.
+### Module 1 — Content loading
 
-### Module 3 — Drag Interaction Engine
-- TC-3.1: Dragging an object beyond the board's edge clamps its rendered
-  position to the board bounds at every simulated pointer-move event.
-- TC-3.2: The pre-drag position recorded at drag start equals the object's
-  authored `pos` (or its last-solved/rest position after a reload).
-- TC-3.3: An object enters the Highlighted state exactly when a candidate
-  object is within the tolerance value resolved from DEVSPEC OQ-1, and exits
-  it exactly when it leaves that range.
+- **TC-1.1:** Valid trials retain prompt/target definitions and resolve media
+  under the selected language root; optional media may be absent.
+- **TC-1.2:** Reject duplicate IDs, missing partners, non-reciprocal pairs,
+  multiple/zero partners, same-array pairs, and unequal array counts.
+- **TC-1.3:** Default absent `type` to `"letter"` and reject unknown types.
+- **TC-1.4:** A valid `trial` parameter selects its file; absent/invalid values
+  open the selector.
+- **TC-1.5:** Parse indexes ascending and de-duplicated. Missing, malformed,
+  empty, or non-positive/non-integer indexes show a content error.
+- **TC-1.6:** Verify language metadata and fallback for invalid/unavailable
+  language selection. Malformed installed metadata must not silently switch
+  languages.
+- **TC-1.7:** Reject absolute/cross-language/traversing media paths, including
+  encoded traversal and separators, malformed escapes, and URL schemes.
+- **TC-1.8:** Verify default three repetitions, trial override, and target
+  override precedence. Reject zero, negative, fractional, string, null,
+  unsafe, or non-finite counts and prompt-level overrides.
+- **TC-1.9:** Empty playable content produces an explicit recoverable error.
+  Failed individual media still allows the trial to load.
+- **TC-1.10:** Local `file://` loading uses XHR, not `window.fetch()`, and
+  loading clears within 10 seconds.
 
-### Module 4 — Equivalence Checker
-- TC-4.1: For every pair in `trial-letters-basic.json`, dragging one object
-  onto its `pair_id` partner and releasing reports a match.
-- TC-4.2: Dragging an object onto any non-`pair_id` object and releasing
-  reports no match.
-- TC-4.3 (pending OQ-4 resolution): construct a case with two simultaneous
-  in-tolerance candidates and assert the documented tie-break rule.
+### Module 2 — Responsive placement
 
-### Module 5 — Feedback & Celebration
-- TC-5.1: A match produces exactly one combined tile (the pair's two separate
-  objects are no longer rendered), one match-celebration start, and one
-  pronunciation play for the partner's audio.
-- TC-5.6: In a combined word/image tile, the image is clipped to the rounded
-  outer corners of its segment and remains above the play-area decorations.
-- TC-5.7: Standalone image cards and image segments in combined cards have no
-  colored surface behind the image, while the paired text segment retains its
-  side color.
-- TC-5.3: Solving the last pair triggers the trial-complete celebration,
-  which is distinguishable from the match celebration.
-- TC-5.4: Pointer down/move on a combined tile does not start a drag or change
-  its position.
-- TC-5.5: Under reduced motion, a match still produces the combined tile
-  without motion-heavy animation.
-- TC-5.2: A mismatch triggers exactly one negative-feedback audio-play call
-  and the dragged object's final on-screen position equals its recorded
-  pre-drag position exactly.
+- **TC-2.1:** All targets appear in authored order; only one prompt appears
+  in the centered tray. Changing `pos` does not change responsive placement.
+- **TC-2.2:** Portrait/square uses targets above the prompt; landscape uses
+  targets right and prompt left, based on viewport dimensions.
+- **TC-2.3:** Assert 12 px outer margins, 16 px inter-region gap, and 60/40
+  target/tray allocation after subtracting margins/gap.
+- **TC-2.4:** At all supported sizes, assert no page scroll, no resting
+  card/indicator overlap, no gap crossing, and no region overflow.
+- **TC-2.5:** Images/audio cards remain square; long text widens/wraps and
+  stays fully visible. Check both 12-character text and image trials.
+- **TC-2.6:** Rotate a partially completed trial. Assert retained counts,
+  cancelled active drag, recomputed positions, and correct subsequent hits.
 
-### Module 6 — Tap-to-Hear & Audio-Only Objects (Better tier)
-- TC-6.1: An object with `type: "audio"` renders without error, shows 🔊 and
-  not its `target`, and responds to drag/highlight/match identically to a
-  letter object.
-- TC-6.8: A combined tile for an audio ↔ letter pair shows 🔊 and the letter.
-- TC-6.2: A tap (down+up with less than 10 px of pointer travel) on any
-  object plays that object's `audio` exactly once and produces no state
-  change.
-- TC-6.9: A tap whose pointer emits move events but stays within 10 px of the
-  down point is still treated as a tap and plays the pronunciation; travel
-  beyond 10 px is treated as a drag and plays no tap pronunciation.
-- TC-6.10: Every object, including a combined tile, suppresses native touch
-  text-selection and tap-highlight (`user-select: none`,
-  `-webkit-tap-highlight-color: transparent`).
-- TC-6.3: A letter object matched against its corresponding letter-audio
-  object (via `pair_id`) reports a match (Better-tier equivalence).
-- TC-6.4: Tapping a combined tile plays the partner's pronunciation exactly
-  once and produces no state change.
-- TC-6.5: An object with a loadable `audio` file plays that file.
-- TC-6.6: An object with absent, missing, or broken `audio` speaks its
-  `target` with an on-device voice in the learning language; network-backed
-  voices are never used.
-- TC-6.7: With no on-device voice for the learning language (or no speech
-  support), the synthesized tone plays instead.
-- TC-6.11: The pack's `speechLocale` selects an on-device voice for a
-  non-English language when pronunciation audio is unavailable.
+### Module 3 — Drag and collision
 
-### Module 7 — Words, Pictures, and Rhymes (Great tier)
-- TC-7.1: Loading `trial-mixed-great.json` renders and plays through Modules
-  2–6 with no letter-specific code path invoked.
-- TC-7.2: A word object matched against its picture partner (via `pair_id`)
-  reports a match.
-- TC-7.3: A word object matched against a rhyming-word partner (via
-  its single reciprocal `pair_id`) reports a match; all other rhyme objects
-  remain non-equivalent to it.
+- **TC-3.1:** At every pointer move, the entire prompt stays at least 8 px
+  inside the board, including long text cards.
+- **TC-3.2:** Maintain grab offset and distinguish taps at up to 10 px travel
+  from drags beyond 10 px, including final pointer-up movement.
+- **TC-3.3:** Verify the rectangle proximity formula with the inclusive
+  10 px tolerance and a case immediately outside it.
+- **TC-3.4:** If several rectangles qualify, select the target nearest the
+  actual pointer, not the clamped prompt center. Exact ties retain authored
+  target order. No answer-aware preference is allowed.
+- **TC-3.5:** Highlight and release select the same candidate, using the
+  final pointer position rather than stale move state.
+- **TC-3.6:** In portrait trial 3, reach the long-word prompt, then move it
+  over every first-row icon. Assert each pointed-at icon highlights,
+  including either edge while the word center is constrained near the middle.
+- **TC-3.7:** Cancel a real active pointer gesture, lose capture, and resize.
+  Each returns the prompt without incrementing counts or playing success.
+- **TC-3.8:** Unrelated pointer IDs cannot move or finish the active gesture.
 
-### Module 8 — Progress & Session State
-- TC-8.1: Completing a pair persists both distinct `object_id` values once in
-  the trial's solved-ID set in `localStorage`.
-- TC-8.2: Reloading the page restores every previously solved pair as a
-  combined tile with no celebration and leaves other pairs Idle; this also
-  verifies the one-to-one rhyming pairs in `trial-9.json`.
-- TC-8.3: Playing a trial persists `left.length + right.length` as the total
-  object count. Completion is true only when the unique solved-ID set contains
-  exactly that many IDs; each pair contributes two IDs. Resetting clears the
-  set and makes the trial incomplete.
-- TC-8.4: Two languages with the same trial number retain separate progress;
-  existing unscoped English completion records migrate to English only.
+### Module 4 — Scheduling and equivalence
 
-### Module 9 — Container Integration
-- TC-9.1: Launching with `?cr_lang=english&cr_user_id=abc123` results in the
-  game reading both values from `window.location.search`; an absent or
-  unsupported `cr_lang` selects English.
-- TC-9.2: With `window.ReactNativeWebView.postMessage` mocked, completing a
-  trial results in exactly one `cr_event` `postMessage` call and exactly one
-  `summary_data` update, with neither repeated per pair or reload. The event
-  JSON parses to a valid envelope (`payload_id`, `cr_user_id`, `sub_app_id`,
-  `payload_version`, `collection`, `timestamp`, `data`); `sub_app_id` is
-  exactly `findmatch` per
-  `docs/third-party-game-spec.md` §6.2.
-- TC-9.3: With `window.ReactNativeWebView` undefined (plain browser), no
-  `postMessage`-related error is thrown and no attempt is made to call it.
-- TC-9.4: Loading `trial-missing-asset.json` completes the loading screen
-  (does not hang), uses the auto-generated voice fallback for audio and a neutral image placeholder,
-  and the trial still renders every asset that did resolve.
-- TC-9.5: A full run using `Promise.allSettled` semantics — one deliberately
-  broken asset must not prevent the other assets from loading.
-- TC-9.6: The loading state exposes no text and is replaced by the board within
-  10 seconds offline.
+- **TC-4.1:** Reciprocal prompt/target drops increment only the chosen target
+  by one; non-partner and empty drops leave all counts unchanged.
+- **TC-4.2:** Schedule unfinished targets by lowest completed count, breaking
+  ties by authored prompt order. Equal requirements produce full cycles.
+- **TC-4.3:** With unequal target requirements, stop presenting satisfied
+  targets and continue the remaining target for its full requirement.
+- **TC-4.4:** Complete only at the exact sum of requirements. Counts never
+  exceed requirements; targets retain their content and fixed grid positions.
+- **TC-4.5:** Verify letters, audio, word/picture, and reciprocal rhyme pairs
+  use the same equivalence mechanism.
+
+### Module 5 — Feedback and pronunciation
+
+- **TC-5.1:** Success plays one match tone and one target pronunciation,
+  briefly celebrates the target, updates its indicator, and hides the
+  consumed prompt during the 480 ms feedback interval.
+- **TC-5.2:** Wrong/empty drops play one negative tone, return the same prompt
+  to its exact tray center, and retain counts.
+- **TC-5.3:** No new gesture is accepted during feedback; the next prompt
+  becomes available after feedback without relying on animation-end.
+- **TC-5.4:** Initial/replacement prompts float in for 400 ms, including
+  consecutive identical prompts. Starting a drag interrupts entry motion.
+- **TC-5.5:** Reduced motion disables entry translation and motion-heavy
+  match effects while keeping feedback and progression functional.
+- **TC-5.6:** The last repetition produces a distinct trial celebration after
+  match feedback, with no further prompt. Dismissal changes no counts.
+- **TC-5.7:** Loaded recordings play first. Missing/corrupt/absent audio uses
+  on-device speech in the learning locale, then tone if no local voice exists.
+  Never use a network-backed voice.
+- **TC-5.8:** Missing/corrupt images use an interactive neutral placeholder.
+  Image cards retain rounded clipping and a transparent card surface.
+
+### Module 6 — Tap and audio-only presentation
+
+- **TC-6.1:** Audio-only cards display a speaker icon, hide their target,
+  and use "Play sound" as the accessible name.
+- **TC-6.2:** Tap an idle prompt and fixed target; each produces exactly one
+  pronunciation without changing counts.
+- **TC-6.3:** Small touch drift still counts as a tap. Dragging suppresses the
+  subsequent click pronunciation. Keyboard activation can play pronunciation.
+- **TC-6.4:** Tap behavior is suppressed during feedback.
+- **TC-6.5:** All cards suppress native text selection and tap-highlight.
+- **TC-6.6:** Matching audio prompts increments counts and replenishes prompts
+  without changing audio-only presentation rules.
+
+### Module 7 — Rich content
+
+- **TC-7.1:** Complete word/picture and rhyme trials through the same repeated
+  interaction without text-equality matching.
+- **TC-7.2:** At supported portrait and landscape sizes, long-word aiming
+  reaches edge targets while the card remains inside the board.
+- **TC-7.3:** A long word aimed at a wrong icon highlights that wrong icon
+  and rejects on release; it must not automatically select its correct pair.
+
+### Module 8 — Progress
+
+- **TC-8.1:** Persist counts, configuration signature, and completion per
+  language and trial. Different languages/trials do not share progress.
+- **TC-8.2:** Reload partial counts and resume the correct next prompt without
+  replaying feedback or pronunciation.
+- **TC-8.3:** Restore completed counts with no prompt, no celebration, and
+  no repeated completion events.
+- **TC-8.4:** Changed target IDs, pairing, order, or resolved requirements
+  invalidate saved counts when the trial is opened.
+- **TC-8.5:** Reject malformed progress with a warning; absent counts start
+  at zero and restored counts are capped at current requirements.
+- **TC-8.6:** Unavailable storage logs a warning but in-memory play continues.
+- **TC-8.7:** Reset affects only the current language/trial and clears
+  feedback, drag, completion overlay, and saved counts.
+- **TC-8.8:** Selector completion reads the saved completion record; opening
+  a trial reconciles it against its current configuration.
+
+### Module 9 — Offline and reporting
+
+- **TC-9.1:** Read language/user/trial launch parameters correctly and keep
+  the user ID opaque.
+- **TC-9.2:** With a mocked bridge, intermediate matches emit no messages.
+  The final match emits exactly one completion and one summary envelope.
+- **TC-9.3:** Validate envelope keys, `sub_app_id: "findmatch"`, collection
+  names, `payload_version`, timestamp, and `layout: "repetition"` data.
+  Completion reports target count and required repetition total; summary
+  uses `"add"` and `trials_completed: 1`.
+- **TC-9.4:** Reloading completion emits nothing. After reset, a new completed
+  playthrough emits one new pair of messages.
+- **TC-9.5:** Missing or failing bridge must not interrupt browser gameplay.
+- **TC-9.6:** Settled media preloads tolerate a deliberately broken asset.
+- **TC-9.7:** Full offline play attempts no network calls, uses no Service
+  Worker/Cache Storage, and produces no uncaught errors or `NETGUARD_BLOCK`.
 
 ### Module 10 — Packaging
-- TC-10.1: `findmatch-core.zip` contains `index.html` at its root and no
-  `lang/` directory.
-- TC-10.2: Each `findmatch-lang-<langCode>.zip` contains only
-  `lang/<langCode>/...` paths.
-- TC-10.3: Extracting the engine ZIP and one language ZIP into a single
-  directory produces no overwritten files.
-- TC-10.4: The built `index.html` references its bundle with a single
-  relative, deferred, non-module `<script>` tag and contains no `type="module"`
-  or `crossorigin` attribute.
-- TC-10.5: Opening the built `index.html` from a `file://` URL renders the
-  Trial Selector and plays a trial, with zero console errors.
-- TC-10.6: Packaging discovers language folders (using a temporary
-  non-English fixture) and emits separate ZIPs with no cross-language files.
-  Invalid metadata, index, references, or missing referenced media prevent packaging.
 
-### Module 11 — Trial Selector & Navigation
-- TC-11.1: With 13 indexed trials, page 1 yields trials 1–12 and page 2
-  yields trial 13; page count is 2. With 12 or fewer trials, page count is 1.
-- TC-11.2: A trial whose persisted progress marks every object solved reports
-  completed; a partially solved and an unplayed trial do not.
-- TC-11.3: The next trial for a given trial is the next number in the index;
-  the last indexed trial has none.
-- TC-11.4: Selecting a trial sets the `trial` query parameter and returning to
-  the selector clears it, with no network request in either direction.
-- TC-11.5: At every viewport size used by UI-TC-8 (including 320×568,
-  360×640, 414×896, 812×375, and 568×320), all 12 tiles of a full selector
-  page render inside the selector panel with no page-level or panel scroll.
+- **TC-10.1:** Engine ZIP has root `index.html`, bundle and shared assets,
+  with no `lang/` directory.
+- **TC-10.2:** Each language ZIP contains only its `lang/<code>/...` paths.
+- **TC-10.3:** Engine and language ZIPs extract together without overwrites.
+- **TC-10.4:** Built HTML uses one relative deferred non-module script,
+  without `type="module"` or `crossorigin`.
+- **TC-10.5:** Built and extracted HTML load from `file://` and play offline
+  with no missing assets or uncaught errors.
+- **TC-10.6:** Generated additional language content is discovered and packaged
+  separately; invalid metadata/index/trial/media prevents packaging.
 
-## 3. UI acceptance test cases (per UISPEC Gherkin scenarios)
+### Module 11 — Selector and navigation
 
-Each Gherkin scenario in `UISPEC.md` §5 maps to one manual or automated
-end-to-end test case, executed against a real or emulated pointer/touch
-input:
+- **TC-11.1:** Thirteen trials produce pages 1–12 and 13, with edge controls
+  disabled correctly; twelve or fewer hide pagination.
+- **TC-11.2:** Completed trials show green checkmarks and completed accessible
+  names; partial/unplayed trials remain neutral.
+- **TC-11.3:** Selecting a trial updates the query parameter; back clears it
+  where history updates are supported and preserves progress without network
+  navigation.
+- **TC-11.4:** Back/reset stay available. Next remains hidden until all
+  repetitions and final feedback finish; it opens the next indexed trial
+  and is absent on the last trial.
+- **TC-11.5:** A full 12-tile page fits without page/panel scroll at every
+  supported viewport size.
 
-- UI-TC-1: "Dragging an object onto its equivalent partner" — automate via
-  simulated pointer down/move/up events against fixture
-  `trial-letters-basic.json`.
-- UI-TC-2: "Dragging an object onto a non-equivalent object" — same fixture,
-  drag onto a non-partner object.
-- UI-TC-3: "Highlighting during drag" — assert Highlighted state toggles at
-  the tolerance boundary.
-- UI-TC-4: "Dragging never leaves the board" — drag pointer coordinates
-  beyond the board's rendered bounding box; assert clamped rendering.
-- UI-TC-5: "Tap-to-hear on an audio-only object" — fixture
-  `trial-audio-only.json`; simulate tap (no movement between down/up). Also
-  covers "Matching an audio-only object to its letter" via `?trial=2`.
-- UI-TC-15: "A touch tap with minor finger movement still plays
-  pronunciation" — on a real Android device (or touch-emulating browser), tap
-  an Idle object and a combined tile; assert pronunciation plays each time and
-  no selection highlight appears.
-- UI-TC-6: "Reloading mid-trial preserves solved pairs" — solve one pair,
-  reload, assert Solved/Idle states per object.
-- UI-TC-7: "Loading screen clears offline within budget" — dry-run protocol,
-  §4 below.
-- UI-TC-8: "Mobile layout remains contained" — run at the supported mobile
-  viewport sizes and assert no page scroll, no object overflow, and no
-  object-to-object or object-to-divider overlap (TC-2.2).
-- UI-TC-9 through UI-TC-12: "A combined tile cannot be dragged", "Tapping a
-  combined tile replays its pronunciation", "Completing the trial shows a
-  distinct celebration", and "Pronunciation falls back to a generated voice" — same
-  fixtures as UI-TC-1.
-- UI-TC-13: "Choosing a trial from the selector" and "Paging through more than
-  12 trials" — launch with no `trial` parameter; assert at most 12 tiles, the
-  numeric page indicator, disabled edge controls, and that tapping a tile opens that
-  trial.
-- UI-TC-14: "A completed trial is marked in the selector", "Returning to the
-  selector from a trial", and "Advancing to the next trial" — complete a
-  trial, assert the green checkmark tile, the back control returns to the
-  selector with progress intact, and the next-trial control appears only on
-  completion and never on the last indexed trial.
+## 3. UI acceptance mapping
 
-## 4. Dry-run protocol (offline verification)
+Use real or emulated pointer/touch input against the scenarios in
+[UISPEC.md](UISPEC.md) §5:
 
-Executed manually (or scripted via a headless browser with network disabled)
-before any release candidate is approved:
+| Scenario | Verification |
+|---|---|
+| Matching the current prompt | TC-4.1, TC-5.1–5.4 |
+| Configurable repetition | TC-1.8, TC-4.2–4.4 |
+| A long word can aim at edge targets | TC-3.3–3.6, TC-7.2–7.3 |
+| Incorrect or empty drop | TC-4.1, TC-5.2 |
+| Cancelling a drag | TC-3.7–3.8 |
+| Changing orientation | TC-2.2–2.6 |
+| Tap-to-hear with minor movement | TC-3.2, TC-6.2–6.5 |
+| Audio-only presentation | TC-6.1, TC-6.6 |
+| Completing and restoring a trial | TC-4.4, TC-5.6, TC-8.2–8.3, TC-9.2–9.4 |
+| Reduced-motion entry | TC-5.4–5.5 |
+| Trial navigation | TC-11.1–11.5 |
 
-1. Build the standalone target.
-2. Open the built `index.html` via a `file://` URL with
-   `?cr_lang=english&cr_user_id=test-user`. In desktop Chrome, launch with
-   `--allow-file-access-from-files` and a throwaway `--user-data-dir`, since
-   Chrome otherwise blocks `XMLHttpRequest` to `file://`.
-3. Set the browser's network condition to **Offline** before navigation.
-4. Confirm the Loading Screen clears within 10 seconds (UI-TC-7).
-5. Play through at least one full trial per tier fixture (letters, audio-only,
-   mixed) confirming match (combined tile + match celebration), trial-complete
-   celebration, mismatch, tap-to-hear (including combined tiles), audio file vs.
-   generated-voice fallback (while offline), and reload behaviors.
-6. Inspect the Network tab: zero requests must appear.
-7. Inspect the console: zero uncaught errors (analytics-failure warnings, if
-   any, are acceptable per `docs/third-party-game-spec.md` §7b).
-8. Confirm progress persists in `localStorage` across a manual reload
-   (TC-8.2).
-9. Repeat the board check at supported mobile viewport sizes (including
-  narrow widths such as 320px, 360px, and 414px, and short-height landscape
-  sizes such as 812x375 and 667x320) and confirm no page-level scroll, no
-  object overflow, and no object visually overlapping another object or the
-  region divider (UI-TC-8, TC-2.2).
+Also verify accessible names, focus visibility, polite completion announcement,
+and textless loading described by UISPEC §§1–3.
+
+## 4. Offline dry-run protocol
+
+Before release approval:
+
+1. Run the standalone build.
+2. Launch built `index.html` from `file://` with
+   `?cr_lang=english&cr_user_id=test-user`. Desktop Chrome needs
+   `--allow-file-access-from-files` and a throwaway user profile.
+3. Set the browser offline before navigation.
+4. Confirm selector/board availability within 10 seconds.
+5. Complete letters, audio-only, and rich-content trials for their full
+   repetition totals, exercising correct/wrong/empty drops, target retention,
+   prompt replacement, tap audio, missing-media fallback, and final celebration.
+6. Verify no attempted network requests, uncaught errors, or `NETGUARD_BLOCK`
+   entries. Required local-file reads are not network I/O.
+7. Inspect the bridge messages: one completion and one additive summary per
+   completion transition, none on partial progress or reload.
+8. Reload partial and completed sessions; verify counts and no replayed events.
+9. Verify portrait/landscape geometry, rotation, long-word aiming, and
+   containment at the supported sizes.
+10. Package engine/language ZIPs into an output location safe to regenerate.
+    Extract into a clean directory and repeat this protocol from extracted HTML.
 
 ## 5. Build-and-test sequence
 
-1. Run static/type checks and unit tests (Modules 1–10 test cases, §2).
-2. Run UI/acceptance tests (§3) against a headless or real browser.
-3. Build the standalone target and run the dry-run protocol (§4).
-4. Build the engine and language ZIPs and run packaging test cases (TC-10.1
-   –10.3).
-5. Extract the built ZIPs into a clean directory and repeat the dry-run
-   protocol (§4) against the extracted `index.html`.
+1. Run `npm run typecheck` and `npm run lint`.
+2. Run `npm test` for engine/data, layout, and repetition checks.
+3. Run focused browser acceptance checks for affected behavior.
+4. Run `npm run build` and the built-file dry-run.
+5. For release verification, run `npm run package`, packaging checks, and
+   the extracted-file dry-run.
 
-## 6. Validation criteria
+Documentation-only tasks require a consistency review, not runtime tests:
+check requirement references, terminology, metadata/changelog, and absence
+of conflicting behavior across the four specifications.
 
-A milestone (PRD §8) is considered verified when every DEVSPEC exit criterion
-for its covered modules (DEVSPEC §12) passes its corresponding test case(s)
-above, every relevant UISPEC Gherkin scenario passes, and the dry-run protocol
-(§4) completes with zero network requests and zero uncaught console errors.
+## 6. Acceptance and evidence
 
-## 7. Open items pending DEVSPEC/UISPEC resolution
-
-- TC-3.3, TC-4.3 depend on DEVSPEC OQ-1 and OQ-4 being resolved with concrete
-  values before they can be made precise/automatable.
-- UI-TC-3 depends on UISPEC UI-OQ-3 (exact highlight treatment) to define a
-  visual assertion.
+- A delivery milestone is verified only when its DEVSPEC exit criteria and
+  corresponding UI scenarios pass.
+- Record automated results and browser/manual checks separately; do not
+  imply helper tests cover full pointer or offline-container behavior.
+- Product playtest acceptance does not replace release packaging/offline
+  verification or imply publishing authorization.
+- English fixtures are development content and must be replaced with
+  approved learning content before release.
 
 ## Changelog
-2026-10-14 — Maria Lande (with GitHub Copilot) — Added verification for the registered `findmatch` event identifier and matching engine/language ZIP names.
-2026-10-12 — Maria Lande (with GitHub Copilot) — Replaced candidate-list pairing with exactly one reciprocal partner per object, including rhymes, and updated loader, matching, and reload coverage.
-2026-10-12 — Maria Lande (with GitHub Copilot) — Specified candidate-based equivalence, disjoint solved pairs, exact object-ID completion accounting, and reload coverage for many-candidate pairings.
-2026-10-12 — Maria Lande (with GitHub Copilot) — Clarified optional media-field validation and verified that absent or failed audio and image assets use their specified runtime fallbacks.
-2026-10-12 — Maria Lande (with GitHub Copilot) — Updated TC-2.2 to verify independent board fill on both axes and percentage-based position tracking, consistent with DEVSPEC Module 2 and UISPEC §1.3.
-2026-09-30 — Maria Lande (with GitHub Copilot) — Added TC-10.4 and TC-10.5 for the non-module `file://`-loadable build, noted Chrome's `--allow-file-access-from-files` requirement in the dry-run protocol, and renumbered the touch-tap case to UI-TC-15 to remove a duplicate id.
-2026-09-30 — Maria Lande (with GitHub Copilot) — Restated TC-6.2 in terms of the 10 px tap tolerance and added TC-6.9, TC-6.10, and UI-TC-14 covering touch taps with minor finger drift and suppression of native selection/tap highlights.
-2026-09-28 — Maria Lande (with GitHub Copilot) — Added TC-11.5 verifying that a full page of selector tiles stays visible and scroll-free at every supported viewport size.
-2026-09-28 — Maria Lande (with GitHub Copilot) — Added trial-index fixtures and coverage for trial-index parsing and fallback, persisted trial size for completion marking, selector pagination and navigation (TC-1.6, TC-8.3, TC-11.1–11.4, UI-TC-13–14), and updated TC-1.5 for selector-first launch.
-2026-09-28 — Maria Lande (with GitHub Copilot) — Added coverage for transparent image surfaces in standalone and combined cards.
-2026-09-28 — Maria Lande (with GitHub Copilot) — Added regression coverage for clipped combined-image corners and board/decorative stacking.
-2026-09-28 — Maria Lande (with GitHub Copilot) — Added coverage for larger image cards, long target text, and bounded combined-tile layout across viewport sizes.
-2026-09-28 — Maria Lande (with GitHub Copilot) — Mapped the audio-only fixture to trial-2 and added verification for object `type` validation, `trial` parameter selection, and audio-only rendering and combined tiles (TC-1.4, TC-1.5, TC-6.1, TC-6.8, UI-TC-5).
-2026-09-28 — Maria Lande (with GitHub Copilot) — Added verification for combined tiles, distinct match and trial-complete celebrations, non-draggable solved tiles, reduced motion, combined-tile reload, and the audio file → offline voice → tone fallback (TC-5.3–5.5, TC-6.4–6.7, UI-TC-9–12).
-2026-09-23 — Maria Lande (with GitHub Copilot) — Added TC-2.2 and extended UI-TC-8/Dry-Run Protocol §4 to verify aspect-ratio-preserving board scaling and absence of object/divider overlap at narrow viewport widths, including short-height landscape sizes.
-2026-09-23 — Maria Lande (with GitHub Copilot) — Added verification for approved language fallback, tier asset degradation, exact event counts, textless loading, and mobile containment.
-2026-09-23 — Maria Lande (with GitHub Copilot) — Initial draft, derived solely from Find-The-Two-That-Match-Spec-Brief.md and third-party-game-spec.md.
+
+2026-10-21 — Maria Lande (with GitHub Copilot) — Replaced the document with module-aligned verification of repetition, responsive placement, pointer aiming, persistence, accessibility, and offline delivery.

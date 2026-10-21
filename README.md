@@ -19,6 +19,41 @@ Vite prints a local URL, usually `http://localhost:5173/`. Open it in a browser.
 
 The dev server runs on your PC and does not require internet access after dependencies have been installed. It is for development; use the built output below to check the standalone offline game.
 
+### Alternative top/bottom layout experiment
+
+The `experiment/top-bottom-repetition` branch defaults to fixed targets at
+the top and a single draggable prompt below in portrait. Landscape places
+targets on the right and the prompt on the left. Both colored areas have
+equal edge margins, and each new prompt gently floats in (disabled under
+reduced motion). Each correct match replenishes
+the prompt; the trial ends after all targets receive their required matches.
+Use `?layout=classic` (or `?layout=classic&trial=1`) to compare the unchanged
+left/right layout. Navigation preserves the layout; saved progress is separate.
+
+The default is `DEFAULT_REPETITIONS = 3` in `src/game/repetition.ts`.
+Content authors can override it without changing code:
+
+```json
+{
+  "trial_num": 1,
+  "repetitions": 3,
+  "left": [
+    { "object_id": "prompt-a", "pos": [190, 200], "target": "a", "pair_id": ["target-a"] }
+  ],
+  "right": [
+    { "object_id": "target-a", "pos": [900, 200], "target": "A", "pair_id": ["prompt-a"], "repetitions": 5 }
+  ]
+}
+```
+
+Here A requires five matches. A target without an override uses the trial's
+count, or three if neither specifies one. Counts must be positive safe integers;
+only `right` targets accept object-level overrides. `right` objects become
+top targets and `left` objects become bottom prompts; authored positions
+remain in use only for classic mode. Prompts cycle through unfinished targets.
+Changing target IDs, pairings, or counts restarts experimental progress on load.
+The existing English trials need no changes.
+
 ### Run the standalone offline build
 
 Build the app, then open `dist/index.html` in a desktop browser. In PowerShell:
@@ -117,7 +152,7 @@ The authoritative schema, validation behavior, and media-path rules are in [DEVS
 
 ## Current implementation notes
 
-- The checked-in English trial index lists trials 1 through 13. The content includes letter matching, audio-only objects, and word/image matching.
+- The checked-in English trial index lists trials 1 through 13 and mirrors the development fixtures in `test-trials/english/`. This test content includes letter matching, audio-only objects, and word/image matching; it is placeholder content and is not approved learning content.
 - `cr_lang` selects the pack. An absent or unsupported code falls back to English; an installed but broken pack shows an error instead of silently showing English content. Only English is checked in; replace its placeholder content with reviewed learning content before publishing.
 - `?trial=<number>` opens a trial directly. With no valid trial number, the selector is shown.
 - Learner progress is stored in browser `localStorage` on the device running the game.

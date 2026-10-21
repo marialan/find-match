@@ -7,6 +7,14 @@ const SPEECH_LOCALE_PATTERN =
   /^(?:[A-Za-z]{2,3}|[A-Za-z]{4}|[A-Za-z]{5,8})(?:-[A-Za-z0-9]{1,8})*$/;
 const OBJECT_TYPES: readonly string[] = ["letter", "audio"];
 
+function validateRepetitions(value: unknown): number | undefined {
+  if (value === undefined) return undefined;
+  if (typeof value !== "number" || !Number.isSafeInteger(value) || value < 1) {
+    throw new Error("repetitions must be a positive safe integer");
+  }
+  return value;
+}
+
 function isObject(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null;
 }
@@ -201,6 +209,9 @@ function validateObject(value: unknown, ids: Set<string>): TrialObject {
     pair_id: value.pair_id as string[],
     ...(typeof value.image === "string" ? { image: value.image } : {}),
     ...(typeof value.audio === "string" ? { audio: value.audio } : {}),
+    ...(value.repetitions === undefined
+      ? {}
+      : { repetitions: validateRepetitions(value.repetitions) }),
   };
 }
 
@@ -216,6 +227,10 @@ export function validateTrial(value: unknown): Trial {
   const ids = new Set<string>();
   const left = value.left.map((item) => validateObject(item, ids));
   const right = value.right.map((item) => validateObject(item, ids));
+  const repetitions = validateRepetitions(value.repetitions);
+  if (left.some((item) => item.repetitions !== undefined)) {
+    throw new Error("Only right-side targets may override repetitions");
+  }
   if (left.length !== right.length)
     throw new Error("Trial sides must contain the same number of objects");
   const allIds = new Set([...left, ...right].map((item) => item.object_id));
@@ -245,5 +260,10 @@ export function validateTrial(value: unknown): Trial {
       }
     }
   }
-  return { trial_num: value.trial_num, left, right };
+  return {
+    trial_num: value.trial_num,
+    left,
+    right,
+    ...(repetitions === undefined ? {} : { repetitions }),
+  };
 }

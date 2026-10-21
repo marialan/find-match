@@ -14,12 +14,14 @@ export interface TrialObject {
   pair_id: string[];
   image?: string;
   audio?: string;
+  repetitions?: number;
 }
 
 export interface Trial {
   trial_num: number;
   left: TrialObject[];
   right: TrialObject[];
+  repetitions?: number;
 }
 
 export interface BoardObject extends TrialObject {
