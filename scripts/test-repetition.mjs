@@ -5,7 +5,8 @@ import { isTrialCompleted, writeSolvedIds, writeTrialTotal } from '../src/game/p
 import {
   DEFAULT_REPETITIONS, isRepetitionCompleted, nextRepetitionPrompt,
   readRepetitionCounts, recordRepetition, repetitionCount, repetitionKey,
-  repetitionCandidate, repetitionLayout, repetitionSignature, repetitionTotal, requiredRepetitions, writeRepetitionCounts,
+  repetitionCandidate, repetitionGridColumns, repetitionLayout, repetitionSignature,
+  repetitionTotal, requiredRepetitions, writeRepetitionCounts,
 } from '../src/game/repetition.ts'
 
 const storage = new Map()
@@ -17,6 +18,10 @@ globalThis.localStorage = {
 const raw = JSON.parse(fs.readFileSync(new URL('../test-trials/english/trial-1.json', import.meta.url), 'utf8'))
 const trial = validateTrial(raw)
 assert.equal(DEFAULT_REPETITIONS, 3)
+assert.equal(repetitionGridColumns(4, 740, 500), 2)
+assert.equal(repetitionGridColumns(6, 740, 500), 3)
+assert.equal(repetitionGridColumns(2, 740, 500), 2)
+assert.equal(repetitionGridColumns(6, 160, 300), 1)
 const edgeTargets = [
   { id: 'left', x: 50, y: 100, width: 60, height: 60 },
   { id: 'right', x: 270, y: 100, width: 60, height: 60 },

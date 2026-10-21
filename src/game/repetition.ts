@@ -37,6 +37,14 @@ export function repetitionLayout(width: number, height: number, landscape: boole
   return { target, tray };
 }
 
+export function repetitionGridColumns(count: number, width: number, height: number): number {
+  const responsiveColumns = Math.max(1, Math.min(
+    Math.floor(width / 88),
+    Math.ceil(Math.sqrt(count * width / height)),
+  ));
+  return Math.min(count, Math.ceil(Math.sqrt(count)), responsiveColumns);
+}
+
 export function requiredRepetitions(trial: Trial, target: TrialObject): number {
   return target.repetitions ?? trial.repetitions ?? DEFAULT_REPETITIONS;
 }

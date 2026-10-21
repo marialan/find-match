@@ -117,7 +117,7 @@ const shippedIndex = JSON.parse(fs.readFileSync(path.join(root, 'public', 'lang'
 assert.deepEqual(validateTrialIndex(shippedIndex), shippedIndex.trials)
 const testFixtureIndex = JSON.parse(fs.readFileSync(path.join(root, 'test-trials', 'english', 'index.json'), 'utf8'))
 assert.deepEqual(shippedIndex, testFixtureIndex)
-assert.equal(shippedIndex.trials.length, 13)
+assert.equal(shippedIndex.trials.length, 14)
 for (const trialNum of shippedIndex.trials) {
   const file = path.join(root, 'public', buildTrialPath('english', trialNum))
   assert.ok(fs.existsSync(file), `Missing trial-${trialNum}.json`)

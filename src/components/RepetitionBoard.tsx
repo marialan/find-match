@@ -7,7 +7,8 @@ import {
 import type { BoardObject, LanguagePack, Trial, TrialObject } from "../game.ts";
 import {
   nextRepetitionPrompt, readRepetitionCounts, recordRepetition, repetitionCount,
-  repetitionCandidate, repetitionLayout, repetitionTotal, requiredRepetitions, writeRepetitionCounts,
+  repetitionCandidate, repetitionGridColumns, repetitionLayout, repetitionTotal,
+  requiredRepetitions, writeRepetitionCounts,
 } from "../game/repetition.ts";
 import type { RepetitionCounts } from "../game/repetition.ts";
 import { MatchObject } from "./MatchObject.tsx";
@@ -113,9 +114,9 @@ export function RepetitionBoard({ trialNum, languagePack, onBack, onNext }: Prop
     sum + repetitionCount(counts, target.object_id), 0);
   const { width, height, landscape } = dimensions;
   const { target: targetArea, tray } = repetitionLayout(width, height, landscape);
-  const columns = Math.min(trial.right.length, Math.max(1,
-    Math.min(Math.floor(targetArea.width / 88),
-      Math.ceil(Math.sqrt(trial.right.length * targetArea.width / targetArea.height)))));
+  const columns = repetitionGridColumns(
+    trial.right.length, targetArea.width, targetArea.height,
+  );
   const rows = Math.ceil(trial.right.length / columns);
   const cellWidth = targetArea.width / columns;
   const cellHeight = targetArea.height / rows;
