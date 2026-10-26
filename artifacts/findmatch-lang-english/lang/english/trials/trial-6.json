@@ -1,17 +1,17 @@
 {
   "trial_num": 6,
   "left": [
-    { "object_id": "left-a-lower", "pos": [190, 190], "target": "a", "pair_id": ["right-a-upper"] },
-    { "object_id": "left-e-lower", "pos": [390, 190], "target": "e", "pair_id": ["right-e-upper"] },
-    { "object_id": "left-i-lower", "pos": [190, 350], "target": "i", "pair_id": ["right-i-upper"] },
-    { "object_id": "left-o-lower", "pos": [390, 350], "target": "o", "pair_id": ["right-o-upper"] },
-    { "object_id": "left-u-lower", "pos": [290, 510], "target": "u", "pair_id": ["right-u-upper"] }
+    { "object_id": "left-a-lower", "pos": [190, 190], "target": "a", "pair_id": ["right-a-upper"], "audio": "lang/english/audios/letters/A.mp3" },
+    { "object_id": "left-e-lower", "pos": [390, 190], "target": "e", "pair_id": ["right-e-upper"], "audio": "lang/english/audios/letters/E.mp3" },
+    { "object_id": "left-i-lower", "pos": [190, 350], "target": "i", "pair_id": ["right-i-upper"], "audio": "lang/english/audios/letters/I.mp3" },
+    { "object_id": "left-o-lower", "pos": [390, 350], "target": "o", "pair_id": ["right-o-upper"], "audio": "lang/english/audios/letters/O.mp3" },
+    { "object_id": "left-u-lower", "pos": [290, 510], "target": "u", "pair_id": ["right-u-upper"], "audio": "lang/english/audios/letters/U.mp3" }
   ],
   "right": [
-    { "object_id": "right-o-upper", "pos": [870, 350], "target": "O", "pair_id": ["left-o-lower"] },
-    { "object_id": "right-a-upper", "pos": [670, 510], "target": "A", "pair_id": ["left-a-lower"] },
-    { "object_id": "right-u-upper", "pos": [870, 190], "target": "U", "pair_id": ["left-u-lower"] },
-    { "object_id": "right-e-upper", "pos": [670, 350], "target": "E", "pair_id": ["left-e-lower"] },
-    { "object_id": "right-i-upper", "pos": [870, 510], "target": "I", "pair_id": ["left-i-lower"] }
+    { "object_id": "right-o-upper", "pos": [870, 350], "target": "O", "pair_id": ["left-o-lower"], "audio": "lang/english/audios/letters/O.mp3" },
+    { "object_id": "right-a-upper", "pos": [670, 510], "target": "A", "pair_id": ["left-a-lower"], "audio": "lang/english/audios/letters/A.mp3" },
+    { "object_id": "right-u-upper", "pos": [870, 190], "target": "U", "pair_id": ["left-u-lower"], "audio": "lang/english/audios/letters/U.mp3" },
+    { "object_id": "right-e-upper", "pos": [670, 350], "target": "E", "pair_id": ["left-e-lower"], "audio": "lang/english/audios/letters/E.mp3" },
+    { "object_id": "right-i-upper", "pos": [870, 510], "target": "I", "pair_id": ["left-i-lower"], "audio": "lang/english/audios/letters/I.mp3" }
   ]
 }

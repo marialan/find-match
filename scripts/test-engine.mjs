@@ -139,6 +139,9 @@ for (const trialNum of shippedIndex.trials) {
     assert.ok(partner.pair_id.includes(item.object_id))
   }
   for (const item of [...shipped.left, ...shipped.right]) {
+    const letter = item.target.toUpperCase()
+    const filename = `${letter}.mp3`
+    assert.equal(item.audio, `lang/english/audios/letters/${filename}`)
     for (const asset of [item.image, item.audio].filter(Boolean)) {
       assert.ok(fs.existsSync(path.join(root, 'public', asset)), `Missing ${asset} in trial-${trialNum}.json`)
     }
