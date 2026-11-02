@@ -3,9 +3,9 @@
 |                  |                                                   |
 | ---------------- | ------------------------------------------------- |
 | **Title**        | Find The Two That Match — UI Specification         |
-| **Status**       | Active — approved behavior                        |
-| **Version**      | 0.9.1                                             |
-| **Last updated** | 2026-10-05                                        |
+| **Status**       | Active — approved behavior and responsive typography |
+| **Version**      | 0.12.0                                            |
+| **Last updated** | 2026-11-02                                        |
 | **Owner/Author** | Maria Lande (with GitHub Copilot)                 |
 
 > This UISPEC is derived solely from `docs/Find-The-Two-That-Match-Spec-Brief.md`
@@ -26,9 +26,8 @@
 
 ### 1.2 Match Board Screen
 - Split into a **left region** and a **right region**.
-- Every object from the trial's `left` array renders in the left region at its
-  authored `pos`; every object from `right` renders in the right region at its
-  authored `pos` (DEVSPEC Module 2).
+- Objects start from their authored `pos` in their corresponding left/right
+  region; crowded positions are resolved to avoid overlap (DEVSPEC Module 2).
 - Objects render as one of:
   - **Letter object** — `type` absent or `"letter"`; renders its `target`.
   - **Image object** — has an `image`; renders that image.
@@ -37,12 +36,24 @@
     name is "Play sound" so it does not reveal the answer.
 - If an image is missing or corrupt, the object renders a neutral placeholder
   that remains available for dragging, highlighting, matching, and tap-to-hear.
-- Image-containing trials use larger cards. Text cards widen with their target
-  text, and long targets wrap within the available region width; image cards
-  remain square. Combined cards allocate room for both contents without
-  crossing the region divider.
-- Image-backed cards and image segments in combined cards have a transparent
-  surface; text segments retain their side color.
+- Authored English word trials show 3–4 text words, each paired with a speaker
+  or a real picture on the opposite side. A recorded word without a real
+  picture appears only with a speaker; a recorded word with a real picture
+  appears once with each partner type across the pack. Word-placeholder
+  images are not shown in these trials. Existing letter trials are unchanged.
+- Letters, words, images, and speakers use the same responsive square base:
+  a 176px design size and a common 68px minimum height. Word cards widen to
+  keep their text on one line. Text prefers at least 20px and grows up to 72px;
+  widen the card before reducing the font. Only when the word and its partner
+  cannot fit within their region may text shrink below its preferred size,
+  including below 20px if necessary. Words never wrap or clip.
+  Matching a word to audio instead of an image does not change its card or
+  text size at the same board dimensions.
+  Combined cards retain each object's width without crossing the divider.
+- Image-backed cards and image segments in combined cards have a white
+  surface. Images preserve their intrinsic aspect ratio and fit inside the
+  available area without cropping or distortion; text segments retain their
+  side color.
 - The board's usable area never allows an object's rest or dragged position to
   extend past its visible bounds (DEVSPEC Module 3).
 
@@ -58,10 +69,11 @@
   object's rendered bounds inside the board.
 - The board fills the full width and height of its containing play area
   independently on each axis. Card height scales uniformly from a single scale
-  factor derived from the more constrained axis (width or height). Text-card
-  width may grow with target length, bounded by available region space; image
-  cards stay square. This keeps authored positions usable without object or
-  divider overlap at supported viewport sizes.
+  factor derived from the more constrained axis (width or height), with a
+  shared portrait adjustment that uses available region width. Non-text cards
+  stay square; word cards widen for single-line labels. The board uses the full
+  available shell width even above 1120px. Crowded positions are resolved
+  without object or divider overlap at supported viewport sizes.
 
 ### 1.4 Celebrations
 Two distinct celebrations exist (DEVSPEC Module 5):
@@ -286,6 +298,9 @@ Feature: Matching two equivalent objects
 
 ## Changelog
 
+2026-11-02 — GitHub Copilot — Specified shared square card bases, larger preferred text, single-line word-card expansion before constrained font reduction, full-width boards, and bounded crowded-position reflow.
+2026-11-02 — GitHub Copilot — Added approved 3–4-word English boards with speaker-only partners for words without real pictures and one speaker plus one picture appearance for pictured words.
+2026-11-02 — Maria Lande (with GitHub Copilot) — Specified white image surfaces and undistorted contain behavior for standalone and combined image cards.
 2026-09-28 — Maria Lande (with GitHub Copilot) — Clarified that the Trial Selector Screen is contained at every supported viewport size, sizing tiles from both axes with fewer columns on narrow viewports.
 2026-09-28 — Maria Lande (with GitHub Copilot) — Added the paginated Trial Selector Screen with completed-trial marking, board back and next-trial controls, their visibility rules, interactions, and acceptance scenarios.
 2026-09-28 — Maria Lande (with GitHub Copilot) — Specified transparent surfaces for image cards and combined image segments.

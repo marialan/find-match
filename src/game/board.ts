@@ -1,21 +1,22 @@
 import type { BoardObject, Side, Trial } from "./types.ts";
 
 export const PROXIMITY_TOLERANCE = 64;
-export const BOARD_OBJECT_SIZE = 84;
-export const BOARD_IMAGE_OBJECT_SIZE = 176;
-export const BOARD_OBJECT_MIN_SIZE = 56;
+export const BOARD_OBJECT_SIZE = 176;
+export const BOARD_OBJECT_MIN_SIZE = 68;
 export const BOARD_WIDTH = 1120;
 export const BOARD_HEIGHT = 650;
-export const MIN_WORD_FONT_SIZE = 16;
+export const MIN_PREFERRED_WORD_FONT_SIZE = 20;
 
-const WORD_CHAR_WIDTH = 0.62;
-const WORD_INSET = 22;
+const WORD_CHAR_WIDTH = 0.7;
+const WORD_INSET = 14;
 const BOARD_CENTER = BOARD_WIDTH / 2;
 const DIVIDER_CLEARANCE = 12;
-const TILE_GAP = 8;
+const TILE_GAP = 4;
 const SEARCH_STEP = 10;
 
 type Rect = { x: number; y: number; w: number; h: number };
+let wordContext: CanvasRenderingContext2D | null = null;
+const wordWidths = new Map<string, number>();
 
 export interface LayoutMetrics {
   scale: number;
@@ -30,14 +31,42 @@ export function boardObjectSize(
   return Math.min(maxSize, Math.max(BOARD_OBJECT_MIN_SIZE, maxSize * scale));
 }
 
-export function wordFontSize(
-  width: number,
+function preferredWordFontSize(
   targetLength: number,
   height: number,
 ): number {
-  const fit =
-    (width - WORD_INSET) / (Math.max(1, targetLength) * WORD_CHAR_WIDTH);
-  return Math.max(MIN_WORD_FONT_SIZE, Math.min(54, height * 0.5, fit));
+  const preferred = Math.min(72, height * 0.68);
+  for (let font = preferred; font >= MIN_PREFERRED_WORD_FONT_SIZE; font -= 0.5) {
+    const charactersPerLine = Math.max(
+      1,
+      Math.floor((height - WORD_INSET) / (font * WORD_CHAR_WIDTH)),
+    );
+    const lines = Math.ceil(Math.max(1, targetLength) / charactersPerLine);
+    if (lines * font * 1.05 <= height - 4) return font;
+  }
+  return MIN_PREFERRED_WORD_FONT_SIZE;
+}
+
+function wordWidth(target: string, fontSize: number): number {
+  let width = wordWidths.get(target);
+  if (width === undefined) {
+    if (!wordContext) {
+      wordContext = document.createElement("canvas").getContext("2d");
+      if (!wordContext) throw new Error("Unable to measure word text");
+      wordContext.font = "700 100px Andika, sans-serif";
+    }
+    width = wordContext.measureText(target).width / 100;
+    wordWidths.set(target, width);
+  }
+  return width * fontSize;
+}
+
+export function wordFontSize(width: number, target: string, height: number): number {
+  const preferred = preferredWordFontSize(target.length, height);
+  const measured = wordWidth(target, preferred);
+  return measured > width - WORD_INSET
+    ? preferred * Math.max(0, width - WORD_INSET) / measured
+    : preferred;
 }
 
 export function boardObjectWidth(
@@ -45,54 +74,28 @@ export function boardObjectWidth(
   objects: BoardObject[],
   scale: number,
   maxSize = BOARD_OBJECT_SIZE,
-  pxPerUnit?: number,
+  pxPerUnit = boardObjectSize(scale, maxSize) / maxSize,
 ): number {
   const size = boardObjectSize(scale, maxSize);
   if (item.type === "audio" || item.image) return size;
-
-  const scaleFactor = pxPerUnit ?? size / maxSize;
-  const desiredWidth =
-    size + Math.max(0, item.target.length - 3) * size * 0.3;
-  const sideWidth = (x: number) =>
-    Math.max(
-      0,
-      2 *
-        Math.min(
-          x,
-          BOARD_WIDTH - x,
-          Math.abs(x - BOARD_CENTER) - DIVIDER_CLEARANCE,
-        ) *
-        scaleFactor,
-    );
-  const ownLimit = sideWidth(item.pos[0]);
-  const partnerLimit = item.pair_id
-    .map((id) => objects.find((candidate) => candidate.object_id === id))
-    .filter((candidate): candidate is BoardObject => candidate !== undefined)
-    .map((candidate) => {
-      const candidateDesiredWidth =
-        candidate.type === "audio" || candidate.image
-          ? size
-          : size + Math.max(0, candidate.target.length - 3) * size * 0.3;
-      const candidateWidth = Math.min(
-        candidateDesiredWidth,
-        sideWidth(candidate.pos[0]),
-      );
-      return sideWidth(candidate.pos[0]) - candidateWidth;
-    })
-    .reduce((widest, limit) => Math.max(widest, limit), 0);
-  const maxWidth = Math.min(ownLimit, partnerLimit || ownLimit);
-  return Math.max(size, Math.min(desiredWidth, maxWidth));
+  const desired = (object: BoardObject) => object.type === "audio" || object.image
+    ? size
+    : Math.max(size, wordWidth(object.target, preferredWordFontSize(object.target.length, size)) + WORD_INSET);
+  const regionWidth = (BOARD_CENTER - DIVIDER_CLEARANCE) * pxPerUnit;
+  const partner = objects.find((object) => item.pair_id.includes(object.object_id));
+  const partnerWidth = partner ? desired(partner) : size;
+  const available = partnerWidth > size ? regionWidth / 2 : regionWidth - size;
+  return Math.max(size, Math.min(desired(item), available));
 }
 
 export function boardScale(
   width: number,
   height: number,
-  hasImages: boolean,
 ): number {
   const scale = Math.min(width / BOARD_WIDTH, height / BOARD_HEIGHT, 1);
-  if (!hasImages || height <= width) return scale;
+  if (height <= width) return scale;
   const pairFit =
-    (width / 2 - DIVIDER_CLEARANCE) / 2 / BOARD_IMAGE_OBJECT_SIZE;
+    (width / 2 - DIVIDER_CLEARANCE) / 2 / BOARD_OBJECT_SIZE;
   return Math.min(height / BOARD_HEIGHT, 1, Math.max(scale, pairFit));
 }
 
@@ -169,12 +172,12 @@ function tileSize(
 ): { w: number; h: number; combined: boolean } {
   const { scale, maxSize, unitsPerPx: [ux, uy] } = metrics;
   const merged = objects.find((other) => other.mergedInto === item.object_id);
-  const width =
-    boardObjectWidth(item, objects, scale, maxSize, 1 / ux) +
-    (merged ? boardObjectWidth(merged, objects, scale, maxSize, 1 / ux) : 0);
+  const size = boardObjectSize(scale, maxSize);
+  const width = boardObjectWidth(item, objects, scale, maxSize, 1 / ux)
+    + (merged ? boardObjectWidth(merged, objects, scale, maxSize, 1 / ux) : 0);
   return {
     w: width * ux,
-    h: boardObjectSize(scale, maxSize) * uy,
+    h: size * uy,
     combined: merged !== undefined,
   };
 }
@@ -336,6 +339,42 @@ export function resolveOverlaps(
     queue = [stuck, ...queue.filter((tile) => tile !== stuck)];
     latest = attempt(queue);
     if (latest.stuck.length < best.stuck.length) best = latest;
+  }
+  // Nearest-position placement can fragment a small board even when a regular
+  // arrangement fits. Repack only when keeping the current anchor cannot fit.
+  if (best.stuck.length > 0) {
+    const rows: Record<Side, { y: number; used: number }[]> = {
+      left: [],
+      right: [],
+    };
+    const moves = new Map<string, [number, number]>();
+    const ordered = [...tiles].sort((a, b) => b.rect.w - a.rect.w);
+    for (const tile of ordered) {
+      const { w, h } = tile.rect;
+      const sides: Side[] = tile.side === "left"
+        ? ["left", "right"]
+        : ["right", "left"];
+      for (const side of sides) {
+        const regionWidth = BOARD_CENTER - DIVIDER_CLEARANCE;
+        if (w > regionWidth) continue;
+        let row = rows[side].find((candidate) =>
+          candidate.used + w <= regionWidth &&
+          candidate.y + h / 2 <= BOARD_HEIGHT,
+        );
+        if (!row) {
+          const y = rows[side].length * (h + TILE_GAP) + h / 2;
+          if (y + h / 2 > BOARD_HEIGHT) continue;
+          row = { y, used: 0 };
+          rows[side].push(row);
+        }
+        const x = (side === "left" ? 0 : BOARD_CENTER + DIVIDER_CLEARANCE)
+          + row.used + w / 2;
+        moves.set(tile.id, [x, row.y]);
+        row.used += w + TILE_GAP;
+        break;
+      }
+    }
+    if (moves.size === tiles.length) best = { moves, stuck: [] };
   }
   const { moves } = best;
   if (moves.size === 0) return objects;

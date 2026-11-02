@@ -1,0 +1,107 @@
+{
+  "trial_num": 15,
+  "left": [
+    {
+      "object_id": "word-map-audio",
+      "pos": [
+        140,
+        180
+      ],
+      "target": "map",
+      "pair_id": [
+        "audio-map"
+      ],
+      "audio": "lang/english/audios/other/map.mp3"
+    },
+    {
+      "object_id": "word-sit-audio",
+      "pos": [
+        420,
+        180
+      ],
+      "target": "sit",
+      "pair_id": [
+        "audio-sit"
+      ],
+      "audio": "lang/english/audios/actions/sit.mp3"
+    },
+    {
+      "object_id": "word-pin-audio",
+      "pos": [
+        140,
+        470
+      ],
+      "target": "pin",
+      "pair_id": [
+        "audio-pin"
+      ],
+      "audio": "lang/english/audios/other/pin.mp3"
+    },
+    {
+      "object_id": "word-mop-audio",
+      "pos": [
+        420,
+        470
+      ],
+      "target": "mop",
+      "pair_id": [
+        "audio-mop"
+      ],
+      "audio": "lang/english/audios/other/mop.mp3"
+    }
+  ],
+  "right": [
+    {
+      "object_id": "audio-map",
+      "pos": [
+        980,
+        180
+      ],
+      "target": "map",
+      "pair_id": [
+        "word-map-audio"
+      ],
+      "type": "audio",
+      "audio": "lang/english/audios/other/map.mp3"
+    },
+    {
+      "object_id": "audio-sit",
+      "pos": [
+        700,
+        470
+      ],
+      "target": "sit",
+      "pair_id": [
+        "word-sit-audio"
+      ],
+      "type": "audio",
+      "audio": "lang/english/audios/actions/sit.mp3"
+    },
+    {
+      "object_id": "audio-pin",
+      "pos": [
+        980,
+        470
+      ],
+      "target": "pin",
+      "pair_id": [
+        "word-pin-audio"
+      ],
+      "type": "audio",
+      "audio": "lang/english/audios/other/pin.mp3"
+    },
+    {
+      "object_id": "audio-mop",
+      "pos": [
+        700,
+        180
+      ],
+      "target": "mop",
+      "pair_id": [
+        "word-mop-audio"
+      ],
+      "type": "audio",
+      "audio": "lang/english/audios/other/mop.mp3"
+    }
+  ]
+}

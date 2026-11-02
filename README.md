@@ -117,10 +117,21 @@ The authoritative schema, validation behavior, and media-path rules are in [DEVS
 
 ## Current implementation notes
 
-- The checked-in English trial index lists trials 1 through 13. The content includes letter matching, audio-only objects, and word/image matching.
+- The English trial index lists trials 1 through 22: ten unchanged letter
+  trials, three word/image trials, and nine word/audio trials. Each word trial
+  has four matching pairs. Only the 36 existing words with recordings are
+  included; all appear once with a speaker, and the 12 with real pictures
+  also appear once with their picture. Word-placeholder images are not used.
+  The vocabulary in `public/lang/english/words.md` remains a source list;
+  words without recordings are omitted from playable trials.
 - `cr_lang` selects the pack. An absent or unsupported code falls back to English; an installed but broken pack shows an error instead of silently showing English content. Only English is checked in; replace its placeholder content with reviewed learning content before publishing.
 - `?trial=<number>` opens a trial directly. With no valid trial number, the selector is shown.
 - Learner progress is stored in browser `localStorage` on the device running the game.
+- All object types share a responsive square base (176px design size, 68px
+  minimum height). Text prefers at least 20px and grows up to 72px. Word cards
+  widen to keep words on one line; only constrained region space reduces
+  the font, below 20px if necessary to avoid overflow. Word/audio and word/image
+  boards use the same sizing, and the play area uses the full available shell width.
 
 ## Specifications
 

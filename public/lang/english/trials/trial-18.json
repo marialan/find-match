@@ -1,0 +1,107 @@
+{
+  "trial_num": 18,
+  "left": [
+    {
+      "object_id": "word-hot-audio",
+      "pos": [
+        140,
+        180
+      ],
+      "target": "hot",
+      "pair_id": [
+        "audio-hot"
+      ],
+      "audio": "lang/english/audios/other/hot.mp3"
+    },
+    {
+      "object_id": "word-sun-audio",
+      "pos": [
+        420,
+        180
+      ],
+      "target": "sun",
+      "pair_id": [
+        "audio-sun"
+      ],
+      "audio": "lang/english/audios/nature/sun.mp3"
+    },
+    {
+      "object_id": "word-bug-audio",
+      "pos": [
+        140,
+        470
+      ],
+      "target": "bug",
+      "pair_id": [
+        "audio-bug"
+      ],
+      "audio": "lang/english/audios/animals/bug.mp3"
+    },
+    {
+      "object_id": "word-pen-audio",
+      "pos": [
+        420,
+        470
+      ],
+      "target": "pen",
+      "pair_id": [
+        "audio-pen"
+      ],
+      "audio": "lang/english/audios/other/pen.mp3"
+    }
+  ],
+  "right": [
+    {
+      "object_id": "audio-hot",
+      "pos": [
+        980,
+        180
+      ],
+      "target": "hot",
+      "pair_id": [
+        "word-hot-audio"
+      ],
+      "type": "audio",
+      "audio": "lang/english/audios/other/hot.mp3"
+    },
+    {
+      "object_id": "audio-sun",
+      "pos": [
+        700,
+        470
+      ],
+      "target": "sun",
+      "pair_id": [
+        "word-sun-audio"
+      ],
+      "type": "audio",
+      "audio": "lang/english/audios/nature/sun.mp3"
+    },
+    {
+      "object_id": "audio-bug",
+      "pos": [
+        980,
+        470
+      ],
+      "target": "bug",
+      "pair_id": [
+        "word-bug-audio"
+      ],
+      "type": "audio",
+      "audio": "lang/english/audios/animals/bug.mp3"
+    },
+    {
+      "object_id": "audio-pen",
+      "pos": [
+        700,
+        180
+      ],
+      "target": "pen",
+      "pair_id": [
+        "word-pen-audio"
+      ],
+      "type": "audio",
+      "audio": "lang/english/audios/other/pen.mp3"
+    }
+  ]
+}

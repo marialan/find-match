@@ -3,9 +3,9 @@
 |                  |                                                     |
 | ---------------- | --------------------------------------------------- |
 | **Title**        | Find The Two That Match — Product Requirements Document |
-| **Status**       | Active — approved behavior                          |
-| **Version**      | 0.5.0                                               |
-| **Last updated** | 2026-09-30                                          |
+| **Status**       | Active — approved behavior and English word content  |
+| **Version**      | 0.6.0                                               |
+| **Last updated** | 2026-11-02                                          |
 | **Owner/Author** | Maria Lande (with GitHub Copilot)                   |
 
 > This PRD is derived exclusively from two source-of-truth documents:
@@ -125,6 +125,10 @@ assumes the previous tier's requirements are met.
 - Objects can be words, pictures, or rhyming words in addition to letters.
 - Equivalence checking extends to word ↔ picture pairs.
 - Equivalence checking extends to rhyming-word pairs.
+- English word content uses only words with recorded audio. Each word appears
+  once against an audio-only object and, if a real picture is available, once
+  more against that picture. Word trials contain 3–4 matching pairs; the
+  existing ten letter trials remain unchanged.
 
 ## 7. Non-goals
 
@@ -176,6 +180,7 @@ assumes the previous tier's requirements are met.
 
 ## Changelog
 
+2026-11-02 — GitHub Copilot — Added the approved recorded-audio-only English vocabulary, conditional picture appearances, and 3–4-pair word trials while preserving letter trials.
 2026-09-28 — Maria Lande (with GitHub Copilot) — Added the paginated trial selector with completed-trial marking and in-trial back/next navigation to MVP scope.
 2026-09-28 — Maria Lande (with GitHub Copilot) — Specified that a correct match combines the pair into one tappable, non-draggable tile with match feedback, and that trial completion has its own distinct celebration.
 2026-09-23 — Maria Lande (with GitHub Copilot) — Approved language fallback, tier support, degraded asset handling, event counts, textless loading, and mobile viewport containment.

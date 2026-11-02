@@ -3,9 +3,9 @@
 |                  |                                                         |
 | ---------------- | ------------------------------------------------------- |
 | **Title**        | Find The Two That Match — Development Specification     |
-| **Status**       | Active — approved behavior                              |
-| **Version**      | 0.12.0                                                  |
-| **Last updated** | 2026-10-14                                              |
+| **Status**       | Active — approved behavior and responsive typography     |
+| **Version**      | 0.14.0                                                  |
+| **Last updated** | 2026-11-02                                              |
 | **Owner/Author** | Maria Lande (with GitHub Copilot)                       |
 
 > This DEVSPEC is derived solely from `docs/Find-The-Two-That-Match-Spec-Brief.md`
@@ -111,6 +111,24 @@ The index lives at `lang/<langCode>/trials/index.json`. A missing pack (missing
 `pack.json`) selects English; an installed pack with a missing or invalid index
 shows a content error, not an English board. A valid pack has a non-empty index.
 
+### 2.4 English word content
+
+- Keep the ten existing letter trials unchanged.
+- Retain only existing trial words with a recorded audio file in the English
+  pack; omit words without recordings even when they have an image.
+- Each retained word has exactly one text ↔ audio-only pair across the pack.
+  If a real image is available, it also has exactly one text ↔ image pair.
+  Word-placeholder images do not count as real images and are not used.
+- Both objects in every word pair reference the same recording and target.
+  Text objects have no image; audio partners use `type: "audio"` without an
+  image, and picture partners reference the real image.
+- Each word trial contains 3–4 reciprocal pairs with distinct words. A word's
+  audio and image appearances may be in different trials. Repack these pairs
+  into as few trials as possible and remove superseded trial files and index
+  entries.
+- These are authored English content rules, not stricter runtime schema rules.
+  Optional media and runtime fallbacks in §2.1 and Module 5 remain supported.
+
 ## 3. Modules
 
 ### Module 1 — Trial Loader
@@ -152,18 +170,28 @@ runtime fallback.
   track the stretched board exactly.
 - Derive a single object scale factor from the more constrained of the board's
   current width or height ratios (relative to the 1120×650 design space), and
-  apply that factor to a consistent card height. Trials containing images use
-  a larger card-size ceiling than text-only trials. Text cards widen with the
-  rendered target length, up to the available region width; labels may wrap
-  within that width. Image cards remain square. Clamp card dimensions to an
-  accessible minimum and a sensible maximum so authored spacing is preserved
-  and no objects, combined tiles, or cards overlap the region divider at any
-  supported board size or aspect ratio.
+  apply that factor to a shared square base for letters, words, pictures, and
+  audio objects. All use the same 176px design size and 68px minimum height;
+  word cards widen when their single-line text needs more room. Portrait boards
+  may grow the common scale to use the space available for a pair within one
+  region. The play area uses the available shell width without a 1120px maximum.
+- Text prefers a shared minimum of 20 CSS px (previously 16px) and grows up to
+  72px. Keep the larger preferred font by widening the word card first; never
+  split a word across lines. Measure the loaded font to determine the required
+  width. Reserve room for the partner within one region, including combined
+  tiles; only reduce the font when that space cannot fit the widened word.
+  Exceptionally constrained words may go below the preferred minimum rather
+  than wrap, clip, or cross the divider. Audio and image partners use the same
+  square base, so the partner type does not change text sizing.
+  Combined tiles retain each object's computed width. Resolve crowded positions
+  without changing the common card height, leaving all cards inside the board without overlap or
+  crossing the region divider. Preserve the drop anchor when nearby placement
+  fits; if that placement fragments a small board, repack the cards into rows
+  within the two regions, moving the anchor only when necessary to fit.
 
-**Exit criterion:** For every object in a loaded trial, its rendered position
-matches its authored `pos` within the tolerance used for hit-testing (Module
-3); target text is fully visible; and no two objects' rendered bounds overlap
-at any supported viewport size.
+**Exit criterion:** Authored positions are preserved where the cards fit;
+crowded positions are resolved as above. Target text is fully visible on one
+line, and no two objects' rendered bounds overlap at any supported viewport size.
 
 ### Module 3 — Drag Interaction Engine
 **Goal:** Let the learner pick up, move, and release any object without
@@ -537,6 +565,8 @@ Functional tree (by purpose) mapped to an artifact-lifecycle classification:
 
 ## 16. Changelog
 
+2026-11-02 — GitHub Copilot — Unified card base sizing and larger preferred typography across object types, specified measured single-line word expansion with constrained font reduction, removed the board width cap, and clarified crowded-board reflow.
+2026-11-02 — GitHub Copilot — Added English content rules for recorded vocabulary, exact audio/picture pair coverage, compact 3–4-pair boards, and obsolete-trial removal without changing runtime media fallbacks.
 2026-10-14 — Maria Lande (with GitHub Copilot) — Resolved OQ-6 by setting the registered engine slug and `sub_app_id` to `findmatch` and using it for package artifact names.
 2026-10-12 — Maria Lande (with GitHub Copilot) — Clarified that `audio` and `image` are optional media fields, specified their runtime fallbacks, and aligned language-pack contents with optional per-language images.
 2026-09-30 — Maria Lande (with GitHub Copilot) — Required the engine bundle to ship as a single relative, deferred, non-module script (ES module scripts are CORS-blocked on `file://`) and documented Chrome's `--allow-file-access-from-files` requirement in the runbook.

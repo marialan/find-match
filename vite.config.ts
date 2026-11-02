@@ -29,6 +29,8 @@ export default defineConfig({
     watch: {
       ignored: [
         '**/*.ttf', '**/*.woff', '**/*.woff2', '**/*.png', '**/*.jpg', '**/*.jpeg',
+        '**/public/lang/**/audios/**',
+        '**/docs/**', '**/pack-check-*/**',
         '**/src/assets/fonts/**', '**/dist/**', '**/artifacts/**',
       ],
     },

@@ -6,28 +6,27 @@
       "pos": [220, 170],
       "target": "bat",
       "pair_id": ["picture-bat"],
-      "audio": "lang/english/audios/bat.wav"
+      "audio": "lang/english/audios/animals/bat.mp3"
     },
     {
       "object_id": "word-cat",
       "pos": [430, 170],
       "target": "cat",
       "pair_id": ["picture-cat"],
-      "audio": "lang/english/audios/cat.wav"
+      "audio": "lang/english/audios/animals/cat.mp3"
     },
     {
       "object_id": "word-hat",
       "pos": [220, 540],
       "target": "hat",
       "pair_id": ["picture-hat"],
-      "audio": "lang/english/audios/hat.wav"
+      "audio": "lang/english/audios/clothing/hat.mp3"
     },
     {
       "object_id": "word-hippopotamus",
       "pos": [350, 350],
       "target": "hippopotamus",
-      "pair_id": ["picture-hippopotamus"],
-      "audio": "lang/english/audios/hippopotamus.wav"
+      "pair_id": ["picture-hippopotamus"]
     }
   ],
   "right": [
@@ -37,7 +36,7 @@
       "target": "bat",
       "pair_id": ["word-bat"],
       "image": "lang/english/images/bat.png",
-      "audio": "lang/english/audios/bat.wav"
+      "audio": "lang/english/audios/animals/bat.mp3"
     },
     {
       "object_id": "picture-cat",
@@ -45,7 +44,7 @@
       "target": "cat",
       "pair_id": ["word-cat"],
       "image": "lang/english/images/cat.png",
-      "audio": "lang/english/audios/cat.wav"
+      "audio": "lang/english/audios/animals/cat.mp3"
     },
     {
       "object_id": "picture-hat",
@@ -53,15 +52,14 @@
       "target": "hat",
       "pair_id": ["word-hat"],
       "image": "lang/english/images/hat.png",
-      "audio": "lang/english/audios/hat.wav"
+      "audio": "lang/english/audios/clothing/hat.mp3"
     },
     {
       "object_id": "picture-hippopotamus",
       "pos": [820, 470],
       "target": "hippopotamus",
       "pair_id": ["word-hippopotamus"],
-      "image": "lang/english/images/hippopotamus.png",
-      "audio": "lang/english/audios/hippopotamus.wav"
+      "image": "lang/english/images/hippopotamus.png"
     }
   ]
 }

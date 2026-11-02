@@ -3,9 +3,9 @@
 |                  |                                                     |
 | ---------------- | --------------------------------------------------- |
 | **Title**        | Find The Two That Match — Test Specification         |
-| **Status**       | Active — approved verification criteria             |
-| **Version**      | 0.11.0                                              |
-| **Last updated** | 2026-10-14                                          |
+| **Status**       | Active — approved verification and responsive typography |
+| **Version**      | 0.14.0                                              |
+| **Last updated** | 2026-11-02                                          |
 | **Owner/Author** | Maria Lande (with GitHub Copilot)                   |
 
 > This TESTSPEC is derived solely from `docs/Find-The-Two-That-Match-Spec-Brief.md`
@@ -54,8 +54,9 @@
   and partners that do not exist.
 
 ### Module 2 — Match Board Renderer
-- TC-2.1: Every object in a loaded trial renders at its authored `pos`
-  (pixel-exact, within a documented tolerance for coordinate rounding).
+- TC-2.1: Objects whose authored positions fit render at their `pos`
+  (within coordinate-rounding tolerance); crowded positions are resolved to
+  keep every card inside the board without overlap.
 - TC-2.2: At the supported viewport sizes (see UI-TC-8), the board's rendered
   width and height each match the containing play area's corresponding
   dimension independently, even when the resulting ratio differs from the
@@ -63,10 +64,28 @@
   percentages of its current width and height, and no two objects' (including
   combined tiles') rendered bounding boxes overlap each other or the region
   divider.
-- TC-2.3: Image-trial cards render larger than the text-only baseline; text
-  card width grows with target length, a 12-character target remains fully
-  visible, and its combined tile stays within the board and its region at
-  desktop, narrow-portrait, and short-landscape viewports.
+- TC-2.3: Letter, word/audio, and word/image trials share a square base and
+  equal heights at equal board dimensions. Word cards widen before reducing
+  their font; a 12-character target stays on one fully visible line in idle
+  and combined states at desktop, narrow-portrait, and short-landscape viewports.
+- TC-2.4: After dropping a tile onto an occupied position or creating a
+  combined tile beside another object, overlapping neighbors move aside.
+  Preserve the drop anchor when a local arrangement fits; allow the crowded
+  row-packing fallback when necessary. Verify displacement after release,
+  not during the drag.
+- TC-2.5: All object types share a 176px design size and 68px minimum, with
+  the same portrait growth rule. At supported viewports, verify idle and
+  partial-progress and restored layouts for all shipped trials remain contained
+  and non-overlapping, including the row-packing fallback on crowded boards.
+- TC-2.6: Text prefers at least 20 CSS px. Single letters and short
+  words grow toward 72px when space permits; the same word at the same board
+  size has the same font whether paired with an image or speaker. Verify
+  rendered text bounds, including single-line long words and combined segments,
+  rather than checking only the CSS minimum. Verify that only region-space
+  constraints reduce the preferred font, with permission to go below 20px for
+  exceptional narrow-screen fits instead of wrapping or overflowing.
+  Above 1120px available width, verify the board fills the shell's play area
+  instead of remaining capped.
 
 ### Module 3 — Drag Interaction Engine
 - TC-3.1: Dragging an object beyond the board's edge clamps its rendered
@@ -91,9 +110,10 @@
   pronunciation play for the partner's audio.
 - TC-5.6: In a combined word/image tile, the image is clipped to the rounded
   outer corners of its segment and remains above the play-area decorations.
-- TC-5.7: Standalone image cards and image segments in combined cards have no
-  colored surface behind the image, while the paired text segment retains its
-  side color.
+- TC-5.7: Standalone image cards and image segments in combined cards have a
+  white surface behind the image, while the paired text segment retains its
+  side color. Images preserve their intrinsic aspect ratio with contain
+  behavior and show no cropping or distortion.
 - TC-5.3: Solving the last pair triggers the trial-complete celebration,
   which is distinguishable from the match celebration.
 - TC-5.4: Pointer down/move on a combined tile does not start a drag or change
@@ -102,7 +122,8 @@
   without motion-heavy animation.
 - TC-5.2: A mismatch triggers exactly one negative-feedback audio-play call
   and the dragged object's final on-screen position equals its recorded
-  pre-drag position exactly.
+  pre-drag position exactly. After the return finishes, subsequent drags work
+  and after-drop displacement still runs. Verify with normal animation settings.
 
 ### Module 6 — Tap-to-Hear & Audio-Only Objects (Better tier)
 - TC-6.1: An object with `type: "audio"` renders without error, shows 🔊 and
@@ -139,6 +160,17 @@
 - TC-7.3: A word object matched against a rhyming-word partner (via
   its single reciprocal `pair_id`) reports a match; all other rhyme objects
   remain non-equivalent to it.
+- TC-7.4: Shipped English word trials contain 3–4 distinct words per board.
+  Every word and its reciprocal partner reference the same existing recorded
+  audio and target. Across the pack, each retained recorded word has exactly
+  one audio-only partner and, only when a real image exists, one image partner;
+  no word-placeholder image or unrecorded word is used. Verify the retained
+  vocabulary against the authored word list plus the introductory bat/hat
+  words, not just against the generated trials. Verify the index matches the
+  trial files, the pairs occupy the minimum possible number of trials, and
+  the ten letter trials are unchanged. Exercise speaker and picture matching,
+  completion/reload, selector navigation, and mobile containment (UI-TC-5,
+  UI-TC-6, UI-TC-8, UI-TC-14).
 
 ### Module 8 — Progress & Session State
 - TC-8.1: Completing a pair persists both distinct `object_id` values once in
@@ -272,6 +304,10 @@ before any release candidate is approved:
   sizes such as 812x375 and 667x320) and confirm no page-level scroll, no
   object overflow, and no object visually overlapping another object or the
   region divider (UI-TC-8, TC-2.2).
+10. Restore temporary browser overrides after layout-only measurements. Never
+    leave animation/transition-disabling styles or emulated media settings on
+    a shared page; animation-driven return and celebration completion must be
+    verified without those overrides.
 
 ## 5. Build-and-test sequence
 
@@ -298,6 +334,9 @@ above, every relevant UISPEC Gherkin scenario passes, and the dry-run protocol
   visual assertion.
 
 ## Changelog
+2026-11-02 — GitHub Copilot — Added common-base and single-line typography checks, expanded partial/restored viewport coverage, specified after-drop displacement and continued dragging after mismatch, and required cleanup of browser animation overrides.
+2026-11-02 — GitHub Copilot — Added TC-7.4 for independently verified recorded vocabulary, exact conditional media pairings, minimal 3–4-pair word trials, unchanged letter trials, and gameplay/layout regression coverage.
+2026-11-02 — Maria Lande (with GitHub Copilot) — Updated image rendering checks for white surfaces and undistorted contain behavior.
 2026-10-14 — Maria Lande (with GitHub Copilot) — Added verification for the registered `findmatch` event identifier and matching engine/language ZIP names.
 2026-10-12 — Maria Lande (with GitHub Copilot) — Replaced candidate-list pairing with exactly one reciprocal partner per object, including rhymes, and updated loader, matching, and reload coverage.
 2026-10-12 — Maria Lande (with GitHub Copilot) — Specified candidate-based equivalence, disjoint solved pairs, exact object-ID completion accounting, and reload coverage for many-candidate pairings.

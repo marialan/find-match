@@ -2,7 +2,6 @@ import { useEffect, useRef, useState } from "react";
 import type { PointerEvent } from "react";
 import {
   BOARD_HEIGHT,
-  BOARD_IMAGE_OBJECT_SIZE,
   BOARD_OBJECT_SIZE,
   BOARD_WIDTH,
   boardObjectSize,
@@ -62,27 +61,20 @@ export function useMatchBoard({ trialNum, languagePack }: UseMatchBoardOptions) 
   const completesTrialAfterMatchRef = useRef(false);
   const downPointRef = useRef<{ x: number; y: number } | null>(null);
   const userId = new URLSearchParams(window.location.search).get("cr_user_id");
-  const maxObjectSize = objects.some((item) => item.image)
-    ? BOARD_IMAGE_OBJECT_SIZE
-    : BOARD_OBJECT_SIZE;
+  const maxObjectSize = BOARD_OBJECT_SIZE;
 
   useEffect(() => {
     const playArea = playAreaRef.current;
     if (!playArea) return undefined;
     const updateScale = (width: number, height: number) => {
-      const hasImages = [...(trial?.left ?? []), ...(trial?.right ?? [])].some(
-        (item) => item.image,
-      );
-      const nextScale = boardScale(width, height, hasImages);
+      const nextScale = boardScale(width, height);
       setScale(nextScale);
       if (width > 0) setPxPerUnit(width / BOARD_WIDTH);
       if (width > 0 && height > 0)
         setObjects((current) =>
           resolveOverlaps(current, null, {
             scale: nextScale,
-            maxSize: current.some((item) => item.image)
-              ? BOARD_IMAGE_OBJECT_SIZE
-              : BOARD_OBJECT_SIZE,
+            maxSize: BOARD_OBJECT_SIZE,
             unitsPerPx: [BOARD_WIDTH / width, BOARD_HEIGHT / height],
           }),
         );
@@ -100,6 +92,9 @@ export function useMatchBoard({ trialNum, languagePack }: UseMatchBoardOptions) 
     loadTrial(trialPath(languagePack.code, trialNum), languagePack.code)
       .then(async (loaded) => {
         await preloadAudio(loaded);
+        await document.fonts.load("700 100px Andika").catch((reason: unknown) =>
+          console.warn("Unable to load Andika; measuring the fallback font", reason),
+        );
         setTrial(loaded);
         writeTrialTotal(
           loaded.trial_num,
@@ -126,9 +121,7 @@ export function useMatchBoard({ trialNum, languagePack }: UseMatchBoardOptions) 
     const board = boardRef.current;
     return {
       scale,
-      maxSize: objects.some((item) => item.image)
-        ? BOARD_IMAGE_OBJECT_SIZE
-        : BOARD_OBJECT_SIZE,
+      maxSize: BOARD_OBJECT_SIZE,
       unitsPerPx: [
         BOARD_WIDTH / (board?.clientWidth || BOARD_WIDTH),
         BOARD_HEIGHT / (board?.clientHeight || BOARD_HEIGHT),

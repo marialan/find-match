@@ -66,8 +66,13 @@ globalThis.window = {
 }
 globalThis.SpeechSynthesisUtterance = class { constructor(text) { this.text = text } }
 globalThis.XMLHttpRequest = FakeXHR
+globalThis.document = {
+  createElement: () => ({
+    getContext: () => ({ font: '', measureText: (text) => ({ width: text.length * 70 }) }),
+  }),
+}
 
-const { MIN_WORD_FONT_SIZE, boardObjectSize, boardObjectWidth, boardScale, isTrialCompleted, loadLanguagePack, loadTrial, loadTrialIndex, makeBoardObjects, nearestCandidate, nextTrialNumber, pageCount, playPronunciation, preloadAudio, progressKey, readSolvedIds, resolveMediaPath, resolveOverlaps, totalKey, trialIndexPath: buildTrialIndexPath, trialNumberFromSearch, trialPath: buildTrialPath, trialsForPage, validateLanguagePack, validateTrial, validateTrialIndex, validLanguageCode, wordFontSize, writeSolvedIds, writeTrialTotal } = await import('../src/game.ts')
+const { BOARD_OBJECT_SIZE, BOARD_OBJECT_MIN_SIZE, MIN_PREFERRED_WORD_FONT_SIZE, boardObjectSize, boardObjectWidth, boardScale, isTrialCompleted, loadLanguagePack, loadTrial, loadTrialIndex, makeBoardObjects, nearestCandidate, nextTrialNumber, pageCount, playPronunciation, preloadAudio, progressKey, readSolvedIds, resolveMediaPath, resolveOverlaps, totalKey, trialIndexPath: buildTrialIndexPath, trialsForPage, trialNumberFromSearch, trialPath: buildTrialPath, validateLanguagePack, validateTrial, validateTrialIndex, validLanguageCode, wordFontSize, writeSolvedIds, writeTrialTotal } = await import('../src/game.ts')
 const { ENGINE_SLUG } = await import('../src/game/container.ts')
 const { validatePacks } = await import('./validate-packs.mjs')
 
@@ -115,7 +120,7 @@ console.log('trial selection: ok')
 // TC-1.6 / TC-11.1 / TC-11.3: trial index parsing, pagination, and next-trial lookup.
 const shippedIndex = JSON.parse(fs.readFileSync(path.join(root, 'public', 'lang', 'english', 'trials', 'index.json'), 'utf8'))
 assert.deepEqual(validateTrialIndex(shippedIndex), shippedIndex.trials)
-assert.equal(shippedIndex.trials.length, 10)
+assert.equal(shippedIndex.trials.length, 22)
 const reviewGroups = ['aeiou', 'bdfgh', 'cjklm', 'npqrs', 'tvwxyz']
 let alphabet = ''
 for (const trialNum of shippedIndex.trials) {
@@ -123,30 +128,128 @@ for (const trialNum of shippedIndex.trials) {
   assert.ok(fs.existsSync(file), `Missing trial-${trialNum}.json`)
   const shipped = validateTrial(JSON.parse(fs.readFileSync(file, 'utf8')))
   assert.equal(shipped.trial_num, trialNum)
-  assert.ok(shipped.left.length >= 5 && shipped.left.length <= 6)
-  assert.equal(shipped.left.length, shipped.right.length)
-  const letters = shipped.left.map((item) => item.target)
-  if (trialNum <= 5) alphabet += letters.join('')
-  else {
-    assert.equal(letters.join(''), reviewGroups[trialNum - 6])
-    const uppercase = shipped.right.map((item) => item.target)
-    assert.notDeepEqual(uppercase, [...uppercase].sort())
-  }
-  for (const item of shipped.left) {
-    const partner = shipped.right.find((other) => other.object_id === item.pair_id[0])
-    assert.equal(item.target, item.target.toLowerCase())
-    assert.equal(partner?.target, item.target.toUpperCase())
-    assert.ok(partner.pair_id.includes(item.object_id))
+  if (trialNum <= 10) {
+    assert.ok(shipped.left.length >= 5 && shipped.left.length <= 6)
+    assert.equal(shipped.left.length, shipped.right.length)
+    const letters = shipped.left.map((item) => item.target)
+    if (trialNum <= 5) alphabet += letters.join('')
+    else {
+      assert.equal(letters.join(''), reviewGroups[trialNum - 6])
+      const uppercase = shipped.right.map((item) => item.target)
+      assert.notDeepEqual(uppercase, [...uppercase].sort())
+    }
+    for (const item of shipped.left) {
+      const partner = shipped.right.find((other) => other.object_id === item.pair_id[0])
+      assert.equal(item.target, item.target.toLowerCase())
+      assert.equal(partner?.target, item.target.toUpperCase())
+      assert.ok(partner.pair_id.includes(item.object_id))
+    }
   }
   for (const item of [...shipped.left, ...shipped.right]) {
-    const letter = item.target.toUpperCase()
-    const filename = `${letter}.mp3`
-    assert.equal(item.audio, `lang/english/audios/letters/${filename}`)
+    if (trialNum <= 10) {
+      const letter = item.target.toUpperCase()
+      const filename = `${letter}.mp3`
+      assert.equal(item.audio, `lang/english/audios/letters/${filename}`)
+    }
     for (const asset of [item.image, item.audio].filter(Boolean)) {
       assert.ok(fs.existsSync(path.join(root, 'public', asset)), `Missing ${asset} in trial-${trialNum}.json`)
     }
   }
 }
+const wordLevels = new Map(
+  [...fs.readFileSync(path.join(root, 'public', 'lang', 'english', 'words.md'), 'utf8')
+    .matchAll(/^\|\s*([a-z]+)\s*\|\s*(\d+)\s*\|$/gm)]
+    .map(([, word, level]) => [word, Number(level)]),
+)
+// TC-7.4: Derive expected vocabulary from authored words and actual media,
+// independently of the shipped trials so omissions cannot pass unnoticed.
+const englishRoot = path.join(root, 'public', 'lang', 'english')
+const recordedWords = new Map(fs.readdirSync(path.join(englishRoot, 'audios'), { recursive: true })
+  .filter((file) => !file.startsWith('letters') && file.endsWith('.mp3'))
+  .map((file) => [path.basename(file, '.mp3'), `lang/english/audios/${file.split(path.sep).join('/')}`]))
+const realImages = new Map(fs.readdirSync(path.join(englishRoot, 'images'), { withFileTypes: true })
+  .filter((entry) => entry.isFile())
+  .map((entry) => [path.parse(entry.name).name, `lang/english/images/${entry.name}`]))
+const expectedWords = [...new Set([...wordLevels.keys(), 'bat', 'hat'])]
+  .filter((word) => recordedWords.has(word))
+assert.equal(expectedWords.length, 36)
+const wordPairings = new Map(expectedWords.map((word) => [word, []]))
+for (const trialNum of shippedIndex.trials.filter((num) => num >= 11)) {
+  const shipped = validateTrial(JSON.parse(fs.readFileSync(
+    path.join(root, 'public', buildTrialPath('english', trialNum)),
+    'utf8',
+  )))
+  assert.ok(shipped.left.length >= 3 && shipped.left.length <= 4)
+  assert.equal(new Set(shipped.left.map((item) => item.target)).size, shipped.left.length)
+  const objectsById = new Map([...shipped.left, ...shipped.right].map((item) => [item.object_id, item]))
+  for (const word of shipped.left) {
+    assert.ok(wordPairings.has(word.target), `Unexpected or unrecorded word ${word.target}`)
+    assert.equal(word.type, 'letter')
+    assert.equal(word.image, undefined)
+    assert.equal(word.audio, recordedWords.get(word.target))
+    const partner = objectsById.get(word.pair_id[0])
+    assert.equal(partner.target, word.target)
+    assert.equal(partner.audio, word.audio)
+    const pairing = partner.type === 'audio' ? 'audio' : partner.image ? 'image' : null
+    assert.ok(pairing, `Missing audio or image pairing for ${word.target} in trial ${trialNum}`)
+    if (pairing === 'audio') assert.equal(partner.image, undefined)
+    else {
+      assert.equal(partner.type, 'letter')
+      assert.ok(realImages.has(word.target), `No real image for ${word.target}`)
+      assert.equal(partner.image, realImages.get(word.target))
+    }
+    wordPairings.get(word.target).push(pairing)
+  }
+}
+for (const [word, pairings] of wordPairings) {
+  assert.deepEqual(pairings.sort(), realImages.has(word) ? ['audio', 'image'] : ['audio'],
+    `Incorrect media appearances for ${word}`)
+}
+const expectedPairCount = expectedWords.reduce((count, word) => count + (realImages.has(word) ? 2 : 1), 0)
+assert.equal(expectedPairCount, 48)
+assert.equal(shippedIndex.trials.length - 10, Math.ceil(expectedPairCount / 4))
+assert.deepEqual(
+  fs.readdirSync(path.join(englishRoot, 'trials')).filter((file) => /^trial-\d+\.json$/.test(file)).sort(),
+  shippedIndex.trials.map((num) => `trial-${num}.json`).sort(),
+)
+console.log(`recorded word coverage and pairings: ok (${wordPairings.size} words, ${expectedPairCount} pairs)`)
+for (const num of shippedIndex.trials) {
+  const content = validateTrial(JSON.parse(fs.readFileSync(path.join(englishRoot, 'trials', `trial-${num}.json`), 'utf8')))
+  for (const [width, height] of [[1120, 650], [294, 460], [334, 532], [388, 788], [786, 267], [542, 212]]) {
+    const maxSize = BOARD_OBJECT_SIZE
+    const scale = boardScale(width, height)
+    const metrics = { scale, maxSize, unitsPerPx: [1120 / width, 650 / height] }
+    const solvedStates = Array.from({ length: content.left.length + 1 }, (_, count) =>
+      new Set(content.left.slice(0, count).flatMap((item) => [item.object_id, item.pair_id[0]])),
+    )
+    for (const solved of solvedStates) {
+      const all = resolveOverlaps(makeBoardObjects(content, solved), null, metrics)
+      const rects = all.filter((item) => !item.mergedInto).map((item) => {
+        const merged = all.find((other) => other.mergedInto === item.object_id)
+        const w = boardObjectWidth(item, all, scale, maxSize, width / 1120)
+          + (merged ? boardObjectWidth(merged, all, scale, maxSize, width / 1120) : 0)
+        const half = w * 1120 / width / 2
+        const x = merged
+          ? item.x < 560 ? Math.min(Math.max(item.x, half), 560 - half)
+            : Math.min(Math.max(item.x, 560 + half), 1120 - half)
+          : item.x
+        return { x: x * width / 1120, y: item.y * height / 650, w, h: boardObjectSize(scale, maxSize) }
+      })
+      const context = `trial ${num}, ${width}x${height}, ${solved.size} solved IDs`
+      for (const [i, a] of rects.entries()) {
+        assert.ok(a.x - a.w / 2 >= -1 && a.x + a.w / 2 <= width + 1
+          && a.y - a.h / 2 >= -1 && a.y + a.h / 2 <= height + 1, `Out of bounds: ${context}`)
+        assert.ok(a.x + a.w / 2 <= width / 2 + 1 || a.x - a.w / 2 >= width / 2 - 1,
+          `Crosses divider: ${context}`)
+        for (const b of rects.slice(i + 1)) {
+          assert.ok(Math.abs(a.x - b.x) >= (a.w + b.w) / 2 - 1
+            || Math.abs(a.y - b.y) >= (a.h + b.h) / 2 - 1, `Overlapping cards: ${context}`)
+        }
+      }
+    }
+  }
+}
+console.log('all trial idle/partial/restored layout across six board sizes: ok')
 assert.equal(alphabet, 'abcdefghijklmnopqrstuvwxyz')
 assert.equal(reviewGroups.join('').split('').sort().join(''), 'abcdefghijklmnopqrstuvwxyz')
 const testFixtureIndex = JSON.parse(fs.readFileSync(path.join(root, 'test-trials', 'english', 'index.json'), 'utf8'))
@@ -273,58 +376,53 @@ for (const word of trial3.left) {
   assert.ok(picture.pair_id.includes(word.object_id), `Pair is not reciprocal for ${word.target}`)
   assert.equal(picture.target, word.target)
   assert.ok(fs.existsSync(path.join(root, 'public', picture.image)), `Missing image ${picture.image}`)
-  assert.ok(fs.existsSync(path.join(root, 'public', word.audio)), `Missing pronunciation ${word.audio}`)
+  if (word.audio) assert.ok(fs.existsSync(path.join(root, 'public', word.audio)), `Missing pronunciation ${word.audio}`)
   assert.equal(nearestCandidate({ ...wordObject, x: picture.x, y: picture.y }, trial3Objects)?.object_id, picture.object_id)
 }
 assert.ok(fs.existsSync(path.join(root, 'public', 'lang/english/images/hippopotamus.png')))
-assert.ok(fs.existsSync(path.join(root, 'public', 'lang/english/audios/hippopotamus.wav')))
+assert.ok(trial3Objects.filter((item) => item.target === 'hippopotamus').every((item) => !item.audio))
 console.log('word-image trial and media: ok')
 
-// TC-2.3: long text cards grow while the combined word/image card stays in its region.
-const longWordTrial = validateTrial({
-  trial_num: 4,
-  left: [
-    { object_id: 'word-cat-short', pos: [250, 190], target: 'cat', pair_id: ['picture-cat-short'] },
-    { object_id: 'word-hippopotamus', pos: [250, 460], target: 'hippopotamus', pair_id: ['picture-hippopotamus'] },
-  ],
-  right: [
-    { object_id: 'picture-cat-short', pos: [820, 190], target: 'cat', image: 'cat.png', pair_id: ['word-cat-short'] },
-    { object_id: 'picture-hippopotamus', pos: [820, 460], target: 'hippopotamus', image: 'hippopotamus.png', pair_id: ['word-hippopotamus'] },
-  ],
-})
-const longWordObjects = makeBoardObjects(longWordTrial, new Set())
-const shortWord = longWordObjects.find((item) => item.object_id === 'word-cat-short')
-const longWord = longWordObjects.find((item) => item.object_id === 'word-hippopotamus')
-const shortPicture = longWordObjects.find((item) => item.object_id === 'picture-cat-short')
-const longPicture = longWordObjects.find((item) => item.object_id === 'picture-hippopotamus')
-assert.ok(shortWord && longWord && shortPicture && longPicture)
-for (const scale of [1, 0.409, 0.325]) {
-  const size = boardObjectSize(scale, 176)
-  const shortWidth = boardObjectWidth(shortWord, longWordObjects, scale, 176)
-  const longWidth = boardObjectWidth(longWord, longWordObjects, scale, 176)
-  assert.ok(longWidth > shortWidth)
-  const combinedWidth = longWidth + boardObjectWidth(longPicture, longWordObjects, scale, 176)
-  assert.ok(combinedWidth <= 496 * size / 176 + 0.01)
-  assert.ok(combinedWidth <= 1120 * scale || scale < 0.2)
-  const font = wordFontSize(longWidth, 12, size)
-  assert.ok(font >= MIN_WORD_FONT_SIZE)
-  assert.equal(boardObjectWidth(longPicture, longWordObjects, scale, 176), size)
+// TC-2.3 / TC-2.6: widen first; only region constraints reduce single-line text.
+assert.equal(MIN_PREFERRED_WORD_FONT_SIZE, 20)
+assert.equal(BOARD_OBJECT_MIN_SIZE, 68)
+assert.equal(BOARD_OBJECT_SIZE, 176)
+for (const [width, height] of [[1470, 850], [294, 460], [542, 212]]) {
+  const scale = boardScale(width, height)
+  const size = boardObjectSize(scale)
+  for (const target of ['a', 'cat', 'elephant', 'hippopotamus']) {
+    const word = { ...trial3Objects[0], target, image: undefined }
+    const picture = { ...trial3Objects[1], object_id: word.pair_id[0], image: 'cat.png', target }
+    const audio = { ...picture, image: undefined, type: 'audio' }
+    const cardWidth = boardObjectWidth(word, [word, picture], scale, BOARD_OBJECT_SIZE, width / 1120)
+    const audioWidth = boardObjectWidth(word, [word, audio], scale, BOARD_OBJECT_SIZE, width / 1120)
+    assert.equal(cardWidth, audioWidth)
+    assert.ok(cardWidth >= size)
+    assert.ok(cardWidth + size <= width / 2)
+    const font = wordFontSize(cardWidth, target, size)
+    const preferred = wordFontSize(10000, target, size)
+    const desiredWidth = Math.max(size, target.length * 0.7 * preferred + 14)
+    assert.ok(target.length * 0.7 * font <= cardWidth - 14 + 0.01)
+    assert.equal(font < preferred, cardWidth < desiredWidth)
+    if (width === 1470 && target.length > 3) assert.ok(cardWidth > size)
+  }
 }
-for (const length of [1, 3, 8, 12, 20]) {
-  const width = boardObjectWidth({ ...shortWord, target: 'x'.repeat(length) }, [], 0.2, 84)
-  assert.ok(wordFontSize(width, length, 56) >= MIN_WORD_FONT_SIZE)
-}
-console.log('long target tile sizing: ok')
+assert.equal(wordFontSize(176, 'a', 176), 72)
+assert.equal(wordFontSize(176, 'cat', 176), 72)
+assert.ok(wordFontSize(68, 'a', 68) >= 44)
+assert.ok(wordFontSize(68, 'cat', 68) >= 25)
+console.log('shared base sizing and single-line text fitting: ok')
 
-// TC-2.5: portrait image boards grow cards until a combined pair fills half the board width.
+// TC-2.5: the portrait growth rule is common to every object type.
 for (const [w, h] of [[320, 568], [360, 740], [390, 844], [414, 896]]) {
-  const size = boardObjectSize(boardScale(w, h, true), 176)
-  assert.ok(size > boardObjectSize(boardScale(w, h, false), 176), `${w}x${h} image cards did not grow`)
+  const size = boardObjectSize(boardScale(w, h))
+  assert.ok(size >= BOARD_OBJECT_MIN_SIZE)
+  assert.ok(size > boardObjectSize(Math.min(w / 1120, h / 650)), `${w}x${h} portrait cards did not grow`)
   assert.ok(size * 2 <= w / 2, `${w}x${h} combined pair crosses the divider`)
 }
-assert.equal(boardScale(1118, 743, true), boardScale(1118, 743, false))
-assert.equal(boardScale(812, 375, true), boardScale(812, 375, false))
-console.log('portrait image sizing: ok')
+assert.equal(boardScale(1118, 743), 1118 / 1120)
+assert.equal(boardScale(812, 375), 375 / 650)
+console.log('shared portrait sizing: ok')
 
 // TC-8.2: solved pairs restore as one combined tile hosted by the partner (later id).
 const board = makeBoardObjects(validateTrial(trial), new Set(['left-a-lower', 'right-a-upper']))
@@ -339,7 +437,8 @@ console.log('combined tile restore: ok')
   const metrics = { scale: 1, maxSize: 84, unitsPerPx: [1, 1] }
   const tileRect = (item, all) => {
     const merged = all.find((other) => other.mergedInto === item.object_id)
-    const w = boardObjectWidth(item, all, 1, 84) + (merged ? boardObjectWidth(merged, all, 1, 84) : 0)
+    const w = boardObjectWidth(item, all, 1, 84)
+      + (merged ? boardObjectWidth(merged, all, 1, 84) : 0)
     const x = merged
       ? item.x < 560 ? Math.min(Math.max(item.x, w / 2), 560 - w / 2) : Math.min(Math.max(item.x, 560 + w / 2), 1120 - w / 2)
       : item.x

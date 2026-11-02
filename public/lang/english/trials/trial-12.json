@@ -1,0 +1,107 @@
+{
+  "trial_num": 12,
+  "left": [
+    {
+      "object_id": "word-map-image",
+      "pos": [
+        140,
+        180
+      ],
+      "target": "map",
+      "pair_id": [
+        "image-map"
+      ],
+      "audio": "lang/english/audios/other/map.mp3"
+    },
+    {
+      "object_id": "word-sit-image",
+      "pos": [
+        420,
+        180
+      ],
+      "target": "sit",
+      "pair_id": [
+        "image-sit"
+      ],
+      "audio": "lang/english/audios/actions/sit.mp3"
+    },
+    {
+      "object_id": "word-pin-image",
+      "pos": [
+        140,
+        470
+      ],
+      "target": "pin",
+      "pair_id": [
+        "image-pin"
+      ],
+      "audio": "lang/english/audios/other/pin.mp3"
+    },
+    {
+      "object_id": "word-mop-image",
+      "pos": [
+        420,
+        470
+      ],
+      "target": "mop",
+      "pair_id": [
+        "image-mop"
+      ],
+      "audio": "lang/english/audios/other/mop.mp3"
+    }
+  ],
+  "right": [
+    {
+      "object_id": "image-map",
+      "pos": [
+        980,
+        180
+      ],
+      "target": "map",
+      "pair_id": [
+        "word-map-image"
+      ],
+      "image": "lang/english/images/map.png",
+      "audio": "lang/english/audios/other/map.mp3"
+    },
+    {
+      "object_id": "image-sit",
+      "pos": [
+        700,
+        470
+      ],
+      "target": "sit",
+      "pair_id": [
+        "word-sit-image"
+      ],
+      "image": "lang/english/images/sit.png",
+      "audio": "lang/english/audios/actions/sit.mp3"
+    },
+    {
+      "object_id": "image-pin",
+      "pos": [
+        980,
+        470
+      ],
+      "target": "pin",
+      "pair_id": [
+        "word-pin-image"
+      ],
+      "image": "lang/english/images/pin.png",
+      "audio": "lang/english/audios/other/pin.mp3"
+    },
+    {
+      "object_id": "image-mop",
+      "pos": [
+        700,
+        180
+      ],
+      "target": "mop",
+      "pair_id": [
+        "word-mop-image"
+      ],
+      "image": "lang/english/images/mop.png",
+      "audio": "lang/english/audios/other/mop.mp3"
+    }
+  ]
+}

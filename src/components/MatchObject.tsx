@@ -50,14 +50,8 @@ export function MatchObject({
       ? [item, merged]
       : [merged, item]
     : null;
-  const itemWidth = boardObjectWidth(
-    item,
-    objects,
-    scale,
-    maxObjectSize,
-    pxPerUnit,
-  );
   const itemHeight = boardObjectSize(scale, maxObjectSize);
+  const itemWidth = boardObjectWidth(item, objects, scale, maxObjectSize, pxPerUnit);
   const pairWidths = pair?.map((part) =>
     boardObjectWidth(part, objects, scale, maxObjectSize, pxPerUnit),
   );
@@ -93,7 +87,7 @@ export function MatchObject({
         top: `${(item.y / BOARD_HEIGHT) * 100}%`,
         ...({
           "--object-width": `${itemWidth}px`,
-          "--word-font-size": `${wordFontSize(itemWidth, item.target.length, itemHeight)}px`,
+          "--word-font-size": `${wordFontSize(itemWidth, item.target, itemHeight)}px`,
           ...(pair && pairWidths
             ? {
                 "--combined-width": `${combinedWidth}px`,
@@ -131,7 +125,7 @@ export function MatchObject({
                     {
                       "--word-font-size": `${wordFontSize(
                         pairWidths?.[index] ?? itemHeight,
-                        part.target.length,
+                        part.target,
                         itemHeight,
                       )}px`,
                     } as CSSProperties
