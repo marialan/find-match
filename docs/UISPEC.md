@@ -3,8 +3,8 @@
 |                  |                                                   |
 | ---------------- | ------------------------------------------------- |
 | **Title**        | Find The Two That Match — UI Specification         |
-| **Status**       | Active — approved top-header trial controls and responsive layout |
-| **Version**      | 0.13.0                                            |
+| **Status**       | Active — approved behavior and responsive typography |
+| **Version**      | 0.12.0                                            |
 | **Last updated** | 2026-11-02                                        |
 | **Owner/Author** | Maria Lande (with GitHub Copilot)                 |
 
@@ -114,13 +114,8 @@ Two distinct celebrations exist (DEVSPEC Module 5):
 - The board shows a **next-trial control** (forward-arrow icon) only once the
   current trial is complete and a following trial exists in the index. It
   opens that next trial.
-- Back, reset, and the conditional next-trial control sit in the top header
-  alongside the title and progress indicator and remain icon-only. On narrow
-  screens the title and progress may share a row above the controls; controls
-  never overlap or leave the viewport.
-- The Match Board Screen has no footer, leaving the remaining shell height
-  available to the play area. Trial Selector page navigation stays at the
-  bottom as specified in §1.5.
+- Both controls sit in the board footer alongside the existing reset control
+  and are icon-only, consistent with the textless design goal.
 
 ## 2. States
 
@@ -303,7 +298,6 @@ Feature: Matching two equivalent objects
 
 ## Changelog
 
-2026-11-02 — GitHub Copilot — Moved approved trial controls from the footer to a responsive top header to expand the play area while retaining bottom selector pagination.
 2026-11-02 — GitHub Copilot — Specified shared square card bases, larger preferred text, single-line word-card expansion before constrained font reduction, full-width boards, and bounded crowded-position reflow.
 2026-11-02 — GitHub Copilot — Added approved 3–4-word English boards with speaker-only partners for words without real pictures and one speaker plus one picture appearance for pictured words.
 2026-11-02 — Maria Lande (with GitHub Copilot) — Specified white image surfaces and undistorted contain behavior for standalone and combined image cards.

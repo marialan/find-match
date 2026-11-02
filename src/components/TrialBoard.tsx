@@ -61,7 +61,7 @@ export function TrialBoard({
 
   return (
     <main className="game-shell">
-      <header className="game-header trial-header">
+      <header className="game-header">
         <div className="brand-lockup">
           <strong>FIND THE MATCH</strong>
         </div>
@@ -72,41 +72,6 @@ export function TrialBoard({
           <span className="progress-dot" />
           {solvedCount} / {objects.length / 2}
         </div>
-        <nav className="trial-controls" aria-label="Trial controls">
-          <button
-            className="icon-button"
-            type="button"
-            onClick={onBack}
-            aria-label="Back to trial selector"
-            title="Back to trial selector"
-          >
-            ↩
-          </button>
-          <button
-            className="icon-button"
-            type="button"
-            onClick={resetTrial}
-            aria-label="Reset trial"
-            title="Reset trial"
-          >
-            ↻
-          </button>
-          {onNext &&
-          objects.length > 0 &&
-          objects.every((item) => item.solved) ? (
-            <button
-              className="icon-button is-next"
-              type="button"
-              onClick={onNext}
-              aria-label="Next trial"
-              title="Next trial"
-            >
-              →
-            </button>
-          ) : (
-            <span className="icon-button-placeholder" aria-hidden="true" />
-          )}
-        </nav>
       </header>
       <section className="play-area" ref={playAreaRef}>
         <div
@@ -170,6 +135,43 @@ export function TrialBoard({
           )}
         </div>
       </section>
+      <footer className="game-footer">
+        <button
+          className="icon-button"
+          type="button"
+          onClick={onBack}
+          aria-label="Back to trial selector"
+          title="Back to trial selector"
+        >
+          ↩
+        </button>
+        <span className="footer-spark">✦</span>
+        <button
+          className="icon-button"
+          type="button"
+          onClick={resetTrial}
+          aria-label="Reset trial"
+          title="Reset trial"
+        >
+          ↻
+        </button>
+        <span className="footer-spark">✦</span>
+        {onNext &&
+        objects.length > 0 &&
+        objects.every((item) => item.solved) ? (
+          <button
+            className="icon-button is-next"
+            type="button"
+            onClick={onNext}
+            aria-label="Next trial"
+            title="Next trial"
+          >
+            →
+          </button>
+        ) : (
+          <span className="icon-button-placeholder" aria-hidden="true" />
+        )}
+      </footer>
     </main>
   );
 }

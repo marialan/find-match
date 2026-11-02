@@ -4,18 +4,6 @@ import path from 'node:path'
 
 const cssPath = path.join(process.cwd(), 'src', 'App.css')
 const css = fs.readFileSync(cssPath, 'utf8')
-const trialBoard = fs.readFileSync(path.join(process.cwd(), 'src', 'components', 'TrialBoard.tsx'), 'utf8')
-const selector = fs.readFileSync(path.join(process.cwd(), 'src', 'components', 'TrialSelector.tsx'), 'utf8')
-const trialHeader = trialBoard.match(/<header\b[\s\S]*?<\/header>/)?.[0]
-assert.ok(trialHeader, 'trial header is missing')
-for (const label of ['Back to trial selector', 'Reset trial', 'Next trial']) {
-  assert.ok(trialHeader.includes(`aria-label="${label}"`), `${label} must be in the trial header`)
-}
-assert.doesNotMatch(trialBoard, /<footer\b/)
-assert.ok(trialBoard.indexOf('</header>') < trialBoard.indexOf('<section className="play-area"'))
-assert.match(css, /\.trial-header \{[^}]*grid-template-columns: minmax\(0, 1fr\) auto auto;/)
-assert.match(css, /@media \(max-width: 520px\) \{[\s\S]*?\.trial-controls \{[^}]*grid-column: 1 \/ -1;/)
-assert.match(selector, /<\/section>[\s\S]*<footer className="game-footer">[\s\S]*aria-label="Previous page"[\s\S]*aria-label="Next page"/)
 // Containment must trigger on short-height (landscape phone) viewports too, not just narrow width.
 const containment = css.match(/@media \(max-width: 700px\), \(max-height: 500px\) \{([\s\S]*?)\n\}/)?.[1]
 const mobile = css.match(/@media \(max-width: 700px\) \{([\s\S]*)\n\}\s*$/)?.[1]
@@ -71,6 +59,5 @@ assert.match(reduced, /\.is-celebrating \{[\s\S]*animation: match-glow/)
 assert.match(reduced, /\.match-sparkles \{[\s\S]*display: none;/)
 
 console.log('mobile layout containment: ok')
-console.log('trial header controls and selector footer: ok')
 console.log('proportional object sizing: ok')
 console.log('combined tile sizing and reduced motion: ok')

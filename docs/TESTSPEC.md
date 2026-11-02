@@ -3,8 +3,8 @@
 |                  |                                                     |
 | ---------------- | --------------------------------------------------- |
 | **Title**        | Find The Two That Match — Test Specification         |
-| **Status**       | Active — approved verification of top-header trial controls |
-| **Version**      | 0.15.0                                              |
+| **Status**       | Active — approved verification and responsive typography |
+| **Version**      | 0.14.0                                              |
 | **Last updated** | 2026-11-02                                          |
 | **Owner/Author** | Maria Lande (with GitHub Copilot)                   |
 
@@ -277,11 +277,6 @@ input:
   trial, assert the green checkmark tile, the back control returns to the
   selector with progress intact, and the next-trial control appears only on
   completion and never on the last indexed trial.
-- UI-TC-16: At desktop and all UI-TC-8 viewport sizes, back/reset and the
-  conditional next-trial control are contained in the top header above the
-  board without overlap. The trial screen has no footer and the play area
-  fills the remaining shell height. Verify reset, back, and next still work;
-  the selector's previous/next-page navigation remains below its tile panel.
 
 ## 4. Dry-run protocol (offline verification)
 
@@ -339,7 +334,6 @@ above, every relevant UISPEC Gherkin scenario passes, and the dry-run protocol
   visual assertion.
 
 ## Changelog
-2026-11-02 — GitHub Copilot — Added UI-TC-16 for responsive top-header controls, footer-free board height, preserved reset/back/next behavior, and bottom selector pagination.
 2026-11-02 — GitHub Copilot — Added common-base and single-line typography checks, expanded partial/restored viewport coverage, specified after-drop displacement and continued dragging after mismatch, and required cleanup of browser animation overrides.
 2026-11-02 — GitHub Copilot — Added TC-7.4 for independently verified recorded vocabulary, exact conditional media pairings, minimal 3–4-pair word trials, unchanged letter trials, and gameplay/layout regression coverage.
 2026-11-02 — Maria Lande (with GitHub Copilot) — Updated image rendering checks for white surfaces and undistorted contain behavior.
