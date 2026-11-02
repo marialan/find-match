@@ -27,6 +27,16 @@
   margin: 0;
   flex: 0 0 auto;
 }
+.trial-header {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto auto;
+  gap: 12px;
+}
+.trial-controls {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
 .brand-lockup {
   display: flex;
   align-items: center;
@@ -178,6 +188,17 @@
   line-height: 1;
 }
 @media (max-width: 520px) {
+  .trial-header {
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 4px 8px;
+  }
+  .trial-header .progress-pill {
+    padding: 4px 10px;
+  }
+  .trial-controls {
+    grid-column: 1 / -1;
+    justify-content: flex-end;
+  }
   .trial-grid {
     --columns: 3;
     --rows: 4;
@@ -501,8 +522,7 @@
   color: #718078;
   font-size: 13px;
 }
-.sparkle,
-.footer-spark {
+.sparkle {
   color: #e6ac46;
 }
 .game-footer {
