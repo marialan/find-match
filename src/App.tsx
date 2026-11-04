@@ -5,6 +5,7 @@ import {
   nextTrialNumber,
   trialIndexPath,
   trialNumberFromSearch,
+  TRIALS_PER_PAGE,
 } from "./game.ts";
 import type { LanguagePack } from "./game.ts";
 import { TrialBoard } from "./components/TrialBoard.tsx";
@@ -31,6 +32,7 @@ function App() {
   const [selected, setSelected] = useState<number | null>(() =>
     trialNumberFromSearch(window.location.search),
   );
+  const [selectorPage, setSelectorPage] = useState(0);
 
   useEffect(() => {
     let cancelled = false;
@@ -82,6 +84,8 @@ function App() {
       <TrialSelector
         trials={trials}
         langCode={languagePack.code}
+        page={selectorPage}
+        onPageChange={setSelectorPage}
         onSelect={select}
       />
     );
@@ -92,7 +96,12 @@ function App() {
       key={selected}
       trialNum={selected}
       languagePack={languagePack}
-      onBack={() => select(null)}
+      onBack={() => {
+        setSelectorPage(
+          Math.max(0, Math.floor(trials.indexOf(selected) / TRIALS_PER_PAGE)),
+        );
+        select(null);
+      }}
       onNext={next === null ? null : () => select(next)}
     />
   );

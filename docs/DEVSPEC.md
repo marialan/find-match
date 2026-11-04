@@ -396,6 +396,9 @@ trials without editing the URL.
 - From the board, a back control returns to the selector, and a next-trial
   control appears once the trial is complete and a following trial exists in
   the index.
+- Returning from a board opens the selector page containing the current trial
+  in the sorted index, including after direct launch, reload, or next-trial
+  navigation. A selector-only launch starts on the first page.
 - Keep the selected trial reflected in the `trial` query parameter so a
   reload resumes the same trial, and clear it when returning to the selector.
 

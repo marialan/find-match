@@ -231,6 +231,10 @@
   the last indexed trial has none.
 - TC-11.4: Selecting a trial sets the `trial` query parameter and returning to
   the selector clears it, with no network request in either direction.
+  Returning selects the page containing the current trial by its sorted-index
+  position, not its trial number. Verify page-2 selection and return (trial 20
+  in the English pack), direct launch and reload, next-trial navigation across
+  a page boundary, and return from a first-page trial.
 - TC-11.5: At every viewport size used by UI-TC-8 (including 320×568,
   360×640, 414×896, 812×375, and 568×320), all 12 tiles of a full selector
   page render inside the selector panel with no page-level or panel scroll.
@@ -277,6 +281,8 @@ input:
   trial, assert the green checkmark tile, the back control returns to the
   selector with progress intact, and the next-trial control appears only on
   completion and never on the last indexed trial.
+  Verify that returning from trial 20 shows page 2 with trial 20 visible,
+  including after a direct launch or reload; returning from trial 1 shows page 1.
 
 ## 4. Dry-run protocol (offline verification)
 

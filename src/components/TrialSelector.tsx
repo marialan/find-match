@@ -1,4 +1,3 @@
-import { useState } from "react";
 import {
   isTrialCompleted,
   pageCount,
@@ -8,15 +7,18 @@ import {
 type TrialSelectorProps = {
   trials: number[];
   langCode: string;
+  page: number;
+  onPageChange: (page: number) => void;
   onSelect: (trialNum: number) => void;
 };
 
 export function TrialSelector({
   trials,
   langCode,
+  page,
+  onPageChange,
   onSelect,
 }: TrialSelectorProps) {
-  const [page, setPage] = useState(0);
   const pages = pageCount(trials.length);
   const visible = trialsForPage(trials, page);
   const completedCount = trials.filter((trialNum) =>
@@ -66,7 +68,7 @@ export function TrialSelector({
           <button
             className="icon-button"
             type="button"
-            onClick={() => setPage((current) => Math.max(0, current - 1))}
+            onClick={() => onPageChange(Math.max(0, page - 1))}
             disabled={page === 0}
             aria-label="Previous page"
             title="Previous page"
@@ -80,7 +82,7 @@ export function TrialSelector({
             className="icon-button"
             type="button"
             onClick={() =>
-              setPage((current) => Math.min(pages - 1, current + 1))
+              onPageChange(Math.min(pages - 1, page + 1))
             }
             disabled={page === pages - 1}
             aria-label="Next page"

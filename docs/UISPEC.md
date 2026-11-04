@@ -111,6 +111,8 @@ Two distinct celebrations exist (DEVSPEC Module 5):
 - The Match Board Screen shows a **back control** (return-arrow icon) that
   returns to the Trial Selector Screen. It is available at all times, has the
   accessible name "Back to trial selector", and discards no progress.
+  The selector opens on the page containing the trial just played (for example,
+  trial 20 returns to page 2 in a consecutively numbered pack).
 - The board shows a **next-trial control** (forward-arrow icon) only once the
   current trial is complete and a following trial exists in the index. It
   opens that next trial.
@@ -279,6 +281,7 @@ Feature: Matching two equivalent objects
     Given a trial is being played
     When the learner taps the back control
     Then the Trial Selector Screen is shown
+    And the page containing the just-played trial is selected
     And the trial's solved pairs are still solved when it is reopened
 
   Scenario: Advancing to the next trial
