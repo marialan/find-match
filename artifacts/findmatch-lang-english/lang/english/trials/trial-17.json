@@ -1,0 +1,107 @@
+{
+  "trial_num": 17,
+  "left": [
+    {
+      "object_id": "word-sat-audio",
+      "pos": [
+        140,
+        180
+      ],
+      "target": "sat",
+      "pair_id": [
+        "audio-sat"
+      ],
+      "audio": "lang/english/audios/actions/sat.mp3"
+    },
+    {
+      "object_id": "word-tip-audio",
+      "pos": [
+        420,
+        180
+      ],
+      "target": "tip",
+      "pair_id": [
+        "audio-tip"
+      ],
+      "audio": "lang/english/audios/other/tip.mp3"
+    },
+    {
+      "object_id": "word-dig-audio",
+      "pos": [
+        140,
+        470
+      ],
+      "target": "dig",
+      "pair_id": [
+        "audio-dig"
+      ],
+      "audio": "lang/english/audios/actions/dig.mp3"
+    },
+    {
+      "object_id": "word-pot-audio",
+      "pos": [
+        420,
+        470
+      ],
+      "target": "pot",
+      "pair_id": [
+        "audio-pot"
+      ],
+      "audio": "lang/english/audios/other/pot.mp3"
+    }
+  ],
+  "right": [
+    {
+      "object_id": "audio-sat",
+      "pos": [
+        980,
+        180
+      ],
+      "target": "sat",
+      "pair_id": [
+        "word-sat-audio"
+      ],
+      "type": "audio",
+      "audio": "lang/english/audios/actions/sat.mp3"
+    },
+    {
+      "object_id": "audio-tip",
+      "pos": [
+        700,
+        470
+      ],
+      "target": "tip",
+      "pair_id": [
+        "word-tip-audio"
+      ],
+      "type": "audio",
+      "audio": "lang/english/audios/other/tip.mp3"
+    },
+    {
+      "object_id": "audio-dig",
+      "pos": [
+        980,
+        470
+      ],
+      "target": "dig",
+      "pair_id": [
+        "word-dig-audio"
+      ],
+      "type": "audio",
+      "audio": "lang/english/audios/actions/dig.mp3"
+    },
+    {
+      "object_id": "audio-pot",
+      "pos": [
+        700,
+        180
+      ],
+      "target": "pot",
+      "pair_id": [
+        "word-pot-audio"
+      ],
+      "type": "audio",
+      "audio": "lang/english/audios/other/pot.mp3"
+    }
+  ]
+}

@@ -1,0 +1,107 @@
+{
+  "trial_num": 22,
+  "left": [
+    {
+      "object_id": "word-bird-audio",
+      "pos": [
+        140,
+        180
+      ],
+      "target": "bird",
+      "pair_id": [
+        "audio-bird"
+      ],
+      "audio": "lang/english/audios/animals/bird.mp3"
+    },
+    {
+      "object_id": "word-house-audio",
+      "pos": [
+        420,
+        180
+      ],
+      "target": "house",
+      "pair_id": [
+        "audio-house"
+      ],
+      "audio": "lang/english/audios/other/house.mp3"
+    },
+    {
+      "object_id": "word-cow-audio",
+      "pos": [
+        140,
+        470
+      ],
+      "target": "cow",
+      "pair_id": [
+        "audio-cow"
+      ],
+      "audio": "lang/english/audios/animals/cow.mp3"
+    },
+    {
+      "object_id": "word-elephant-audio",
+      "pos": [
+        420,
+        470
+      ],
+      "target": "elephant",
+      "pair_id": [
+        "audio-elephant"
+      ],
+      "audio": "lang/english/audios/animals/elephant.mp3"
+    }
+  ],
+  "right": [
+    {
+      "object_id": "audio-bird",
+      "pos": [
+        980,
+        180
+      ],
+      "target": "bird",
+      "pair_id": [
+        "word-bird-audio"
+      ],
+      "type": "audio",
+      "audio": "lang/english/audios/animals/bird.mp3"
+    },
+    {
+      "object_id": "audio-house",
+      "pos": [
+        700,
+        470
+      ],
+      "target": "house",
+      "pair_id": [
+        "word-house-audio"
+      ],
+      "type": "audio",
+      "audio": "lang/english/audios/other/house.mp3"
+    },
+    {
+      "object_id": "audio-cow",
+      "pos": [
+        980,
+        470
+      ],
+      "target": "cow",
+      "pair_id": [
+        "word-cow-audio"
+      ],
+      "type": "audio",
+      "audio": "lang/english/audios/animals/cow.mp3"
+    },
+    {
+      "object_id": "audio-elephant",
+      "pos": [
+        700,
+        180
+      ],
+      "target": "elephant",
+      "pair_id": [
+        "word-elephant-audio"
+      ],
+      "type": "audio",
+      "audio": "lang/english/audios/animals/elephant.mp3"
+    }
+  ]
+}

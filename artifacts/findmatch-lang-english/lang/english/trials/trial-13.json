@@ -1,0 +1,107 @@
+{
+  "trial_num": 13,
+  "left": [
+    {
+      "object_id": "word-cup-image",
+      "pos": [
+        140,
+        180
+      ],
+      "target": "cup",
+      "pair_id": [
+        "image-cup"
+      ],
+      "audio": "lang/english/audios/other/cup.mp3"
+    },
+    {
+      "object_id": "word-net-image",
+      "pos": [
+        420,
+        180
+      ],
+      "target": "net",
+      "pair_id": [
+        "image-net"
+      ],
+      "audio": "lang/english/audios/other/net.mp3"
+    },
+    {
+      "object_id": "word-red-image",
+      "pos": [
+        140,
+        470
+      ],
+      "target": "red",
+      "pair_id": [
+        "image-red"
+      ],
+      "audio": "lang/english/audios/other/red.mp3"
+    },
+    {
+      "object_id": "word-hen-image",
+      "pos": [
+        420,
+        470
+      ],
+      "target": "hen",
+      "pair_id": [
+        "image-hen"
+      ],
+      "audio": "lang/english/audios/animals/hen.mp3"
+    }
+  ],
+  "right": [
+    {
+      "object_id": "image-cup",
+      "pos": [
+        980,
+        180
+      ],
+      "target": "cup",
+      "pair_id": [
+        "word-cup-image"
+      ],
+      "image": "lang/english/images/cup.png",
+      "audio": "lang/english/audios/other/cup.mp3"
+    },
+    {
+      "object_id": "image-net",
+      "pos": [
+        700,
+        470
+      ],
+      "target": "net",
+      "pair_id": [
+        "word-net-image"
+      ],
+      "image": "lang/english/images/net.png",
+      "audio": "lang/english/audios/other/net.mp3"
+    },
+    {
+      "object_id": "image-red",
+      "pos": [
+        980,
+        470
+      ],
+      "target": "red",
+      "pair_id": [
+        "word-red-image"
+      ],
+      "image": "lang/english/images/red.svg",
+      "audio": "lang/english/audios/other/red.mp3"
+    },
+    {
+      "object_id": "image-hen",
+      "pos": [
+        700,
+        180
+      ],
+      "target": "hen",
+      "pair_id": [
+        "word-hen-image"
+      ],
+      "image": "lang/english/images/hen.png",
+      "audio": "lang/english/audios/animals/hen.mp3"
+    }
+  ]
+}

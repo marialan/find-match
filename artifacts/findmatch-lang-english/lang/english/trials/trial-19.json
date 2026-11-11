@@ -1,0 +1,107 @@
+{
+  "trial_num": 19,
+  "left": [
+    {
+      "object_id": "word-bed-audio",
+      "pos": [
+        140,
+        180
+      ],
+      "target": "bed",
+      "pair_id": [
+        "audio-bed"
+      ],
+      "audio": "lang/english/audios/other/bed.mp3"
+    },
+    {
+      "object_id": "word-fan-audio",
+      "pos": [
+        420,
+        180
+      ],
+      "target": "fan",
+      "pair_id": [
+        "audio-fan"
+      ],
+      "audio": "lang/english/audios/other/fan.mp3"
+    },
+    {
+      "object_id": "word-dog-audio",
+      "pos": [
+        140,
+        470
+      ],
+      "target": "dog",
+      "pair_id": [
+        "audio-dog"
+      ],
+      "audio": "lang/english/audios/animals/dog.mp3"
+    },
+    {
+      "object_id": "word-lip-audio",
+      "pos": [
+        420,
+        470
+      ],
+      "target": "lip",
+      "pair_id": [
+        "audio-lip"
+      ],
+      "audio": "lang/english/audios/other/lip.mp3"
+    }
+  ],
+  "right": [
+    {
+      "object_id": "audio-bed",
+      "pos": [
+        980,
+        180
+      ],
+      "target": "bed",
+      "pair_id": [
+        "word-bed-audio"
+      ],
+      "type": "audio",
+      "audio": "lang/english/audios/other/bed.mp3"
+    },
+    {
+      "object_id": "audio-fan",
+      "pos": [
+        700,
+        470
+      ],
+      "target": "fan",
+      "pair_id": [
+        "word-fan-audio"
+      ],
+      "type": "audio",
+      "audio": "lang/english/audios/other/fan.mp3"
+    },
+    {
+      "object_id": "audio-dog",
+      "pos": [
+        980,
+        470
+      ],
+      "target": "dog",
+      "pair_id": [
+        "word-dog-audio"
+      ],
+      "type": "audio",
+      "audio": "lang/english/audios/animals/dog.mp3"
+    },
+    {
+      "object_id": "audio-lip",
+      "pos": [
+        700,
+        180
+      ],
+      "target": "lip",
+      "pair_id": [
+        "word-lip-audio"
+      ],
+      "type": "audio",
+      "audio": "lang/english/audios/other/lip.mp3"
+    }
+  ]
+}

@@ -1,0 +1,107 @@
+{
+  "trial_num": 14,
+  "left": [
+    {
+      "object_id": "word-cat-audio",
+      "pos": [
+        140,
+        180
+      ],
+      "target": "cat",
+      "pair_id": [
+        "audio-cat"
+      ],
+      "audio": "lang/english/audios/animals/cat.mp3"
+    },
+    {
+      "object_id": "word-bat-audio",
+      "pos": [
+        420,
+        180
+      ],
+      "target": "bat",
+      "pair_id": [
+        "audio-bat"
+      ],
+      "audio": "lang/english/audios/animals/bat.mp3"
+    },
+    {
+      "object_id": "word-hat-audio",
+      "pos": [
+        140,
+        470
+      ],
+      "target": "hat",
+      "pair_id": [
+        "audio-hat"
+      ],
+      "audio": "lang/english/audios/clothing/hat.mp3"
+    },
+    {
+      "object_id": "word-mat-audio",
+      "pos": [
+        420,
+        470
+      ],
+      "target": "mat",
+      "pair_id": [
+        "audio-mat"
+      ],
+      "audio": "lang/english/audios/other/mat.mp3"
+    }
+  ],
+  "right": [
+    {
+      "object_id": "audio-cat",
+      "pos": [
+        980,
+        180
+      ],
+      "target": "cat",
+      "pair_id": [
+        "word-cat-audio"
+      ],
+      "type": "audio",
+      "audio": "lang/english/audios/animals/cat.mp3"
+    },
+    {
+      "object_id": "audio-bat",
+      "pos": [
+        700,
+        470
+      ],
+      "target": "bat",
+      "pair_id": [
+        "word-bat-audio"
+      ],
+      "type": "audio",
+      "audio": "lang/english/audios/animals/bat.mp3"
+    },
+    {
+      "object_id": "audio-hat",
+      "pos": [
+        980,
+        470
+      ],
+      "target": "hat",
+      "pair_id": [
+        "word-hat-audio"
+      ],
+      "type": "audio",
+      "audio": "lang/english/audios/clothing/hat.mp3"
+    },
+    {
+      "object_id": "audio-mat",
+      "pos": [
+        700,
+        180
+      ],
+      "target": "mat",
+      "pair_id": [
+        "word-mat-audio"
+      ],
+      "type": "audio",
+      "audio": "lang/english/audios/other/mat.mp3"
+    }
+  ]
+}

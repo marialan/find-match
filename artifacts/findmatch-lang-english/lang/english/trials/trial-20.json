@@ -1,0 +1,107 @@
+{
+  "trial_num": 20,
+  "left": [
+    {
+      "object_id": "word-run-audio",
+      "pos": [
+        140,
+        180
+      ],
+      "target": "run",
+      "pair_id": [
+        "audio-run"
+      ],
+      "audio": "lang/english/audios/actions/run.mp3"
+    },
+    {
+      "object_id": "word-jam-audio",
+      "pos": [
+        420,
+        180
+      ],
+      "target": "jam",
+      "pair_id": [
+        "audio-jam"
+      ],
+      "audio": "lang/english/audios/other/jam.mp3"
+    },
+    {
+      "object_id": "word-top-audio",
+      "pos": [
+        140,
+        470
+      ],
+      "target": "top",
+      "pair_id": [
+        "audio-top"
+      ],
+      "audio": "lang/english/audios/other/top.mp3"
+    },
+    {
+      "object_id": "word-clap-audio",
+      "pos": [
+        420,
+        470
+      ],
+      "target": "clap",
+      "pair_id": [
+        "audio-clap"
+      ],
+      "audio": "lang/english/audios/actions/clap.mp3"
+    }
+  ],
+  "right": [
+    {
+      "object_id": "audio-run",
+      "pos": [
+        980,
+        180
+      ],
+      "target": "run",
+      "pair_id": [
+        "word-run-audio"
+      ],
+      "type": "audio",
+      "audio": "lang/english/audios/actions/run.mp3"
+    },
+    {
+      "object_id": "audio-jam",
+      "pos": [
+        700,
+        470
+      ],
+      "target": "jam",
+      "pair_id": [
+        "word-jam-audio"
+      ],
+      "type": "audio",
+      "audio": "lang/english/audios/other/jam.mp3"
+    },
+    {
+      "object_id": "audio-top",
+      "pos": [
+        980,
+        470
+      ],
+      "target": "top",
+      "pair_id": [
+        "word-top-audio"
+      ],
+      "type": "audio",
+      "audio": "lang/english/audios/other/top.mp3"
+    },
+    {
+      "object_id": "audio-clap",
+      "pos": [
+        700,
+        180
+      ],
+      "target": "clap",
+      "pair_id": [
+        "word-clap-audio"
+      ],
+      "type": "audio",
+      "audio": "lang/english/audios/actions/clap.mp3"
+    }
+  ]
+}
