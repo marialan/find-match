@@ -11,7 +11,7 @@
       "pair_id": [
         "image-map"
       ],
-      "audio": "lang/english/audios/other/map.mp3"
+      "audio": "lang/english/audios/map.opus"
     },
     {
       "object_id": "word-sit-image",
@@ -23,7 +23,7 @@
       "pair_id": [
         "image-sit"
       ],
-      "audio": "lang/english/audios/actions/sit.mp3"
+      "audio": "lang/english/audios/sit.opus"
     },
     {
       "object_id": "word-pin-image",
@@ -35,7 +35,7 @@
       "pair_id": [
         "image-pin"
       ],
-      "audio": "lang/english/audios/other/pin.mp3"
+      "audio": "lang/english/audios/pin.opus"
     },
     {
       "object_id": "word-mop-image",
@@ -47,7 +47,7 @@
       "pair_id": [
         "image-mop"
       ],
-      "audio": "lang/english/audios/other/mop.mp3"
+      "audio": "lang/english/audios/mop.opus"
     }
   ],
   "right": [
@@ -62,7 +62,7 @@
         "word-map-image"
       ],
       "image": "lang/english/images/map.png",
-      "audio": "lang/english/audios/other/map.mp3"
+      "audio": "lang/english/audios/map.opus"
     },
     {
       "object_id": "image-sit",
@@ -75,7 +75,7 @@
         "word-sit-image"
       ],
       "image": "lang/english/images/sit.png",
-      "audio": "lang/english/audios/actions/sit.mp3"
+      "audio": "lang/english/audios/sit.opus"
     },
     {
       "object_id": "image-pin",
@@ -88,7 +88,7 @@
         "word-pin-image"
       ],
       "image": "lang/english/images/pin.png",
-      "audio": "lang/english/audios/other/pin.mp3"
+      "audio": "lang/english/audios/pin.opus"
     },
     {
       "object_id": "image-mop",
@@ -101,7 +101,8 @@
         "word-mop-image"
       ],
       "image": "lang/english/images/mop.png",
-      "audio": "lang/english/audios/other/mop.mp3"
+      "audio": "lang/english/audios/mop.opus"
     }
   ]
 }
+

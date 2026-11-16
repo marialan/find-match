@@ -11,7 +11,7 @@
       "pair_id": [
         "audio-run"
       ],
-      "audio": "lang/english/audios/actions/run.mp3"
+      "audio": "lang/english/audios/run.opus"
     },
     {
       "object_id": "word-jam-audio",
@@ -23,7 +23,7 @@
       "pair_id": [
         "audio-jam"
       ],
-      "audio": "lang/english/audios/other/jam.mp3"
+      "audio": "lang/english/audios/jam.opus"
     },
     {
       "object_id": "word-top-audio",
@@ -35,7 +35,7 @@
       "pair_id": [
         "audio-top"
       ],
-      "audio": "lang/english/audios/other/top.mp3"
+      "audio": "lang/english/audios/top.opus"
     },
     {
       "object_id": "word-clap-audio",
@@ -47,7 +47,7 @@
       "pair_id": [
         "audio-clap"
       ],
-      "audio": "lang/english/audios/actions/clap.mp3"
+      "audio": "lang/english/audios/clap.opus"
     }
   ],
   "right": [
@@ -62,7 +62,7 @@
         "word-run-audio"
       ],
       "type": "audio",
-      "audio": "lang/english/audios/actions/run.mp3"
+      "audio": "lang/english/audios/run.opus"
     },
     {
       "object_id": "audio-jam",
@@ -75,7 +75,7 @@
         "word-jam-audio"
       ],
       "type": "audio",
-      "audio": "lang/english/audios/other/jam.mp3"
+      "audio": "lang/english/audios/jam.opus"
     },
     {
       "object_id": "audio-top",
@@ -88,7 +88,7 @@
         "word-top-audio"
       ],
       "type": "audio",
-      "audio": "lang/english/audios/other/top.mp3"
+      "audio": "lang/english/audios/top.opus"
     },
     {
       "object_id": "audio-clap",
@@ -101,7 +101,8 @@
         "word-clap-audio"
       ],
       "type": "audio",
-      "audio": "lang/english/audios/actions/clap.mp3"
+      "audio": "lang/english/audios/clap.opus"
     }
   ]
 }
+

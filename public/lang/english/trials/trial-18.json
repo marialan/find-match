@@ -11,7 +11,7 @@
       "pair_id": [
         "audio-hot"
       ],
-      "audio": "lang/english/audios/other/hot.mp3"
+      "audio": "lang/english/audios/hot.opus"
     },
     {
       "object_id": "word-sun-audio",
@@ -23,7 +23,7 @@
       "pair_id": [
         "audio-sun"
       ],
-      "audio": "lang/english/audios/nature/sun.mp3"
+      "audio": "lang/english/audios/sun.opus"
     },
     {
       "object_id": "word-bug-audio",
@@ -35,7 +35,7 @@
       "pair_id": [
         "audio-bug"
       ],
-      "audio": "lang/english/audios/animals/bug.mp3"
+      "audio": "lang/english/audios/bug.opus"
     },
     {
       "object_id": "word-pen-audio",
@@ -47,7 +47,7 @@
       "pair_id": [
         "audio-pen"
       ],
-      "audio": "lang/english/audios/other/pen.mp3"
+      "audio": "lang/english/audios/pen.opus"
     }
   ],
   "right": [
@@ -62,7 +62,7 @@
         "word-hot-audio"
       ],
       "type": "audio",
-      "audio": "lang/english/audios/other/hot.mp3"
+      "audio": "lang/english/audios/hot.opus"
     },
     {
       "object_id": "audio-sun",
@@ -75,7 +75,7 @@
         "word-sun-audio"
       ],
       "type": "audio",
-      "audio": "lang/english/audios/nature/sun.mp3"
+      "audio": "lang/english/audios/sun.opus"
     },
     {
       "object_id": "audio-bug",
@@ -88,7 +88,7 @@
         "word-bug-audio"
       ],
       "type": "audio",
-      "audio": "lang/english/audios/animals/bug.mp3"
+      "audio": "lang/english/audios/bug.opus"
     },
     {
       "object_id": "audio-pen",
@@ -101,7 +101,8 @@
         "word-pen-audio"
       ],
       "type": "audio",
-      "audio": "lang/english/audios/other/pen.mp3"
+      "audio": "lang/english/audios/pen.opus"
     }
   ]
 }
+

@@ -11,7 +11,7 @@
       "pair_id": [
         "image-cup"
       ],
-      "audio": "lang/english/audios/other/cup.mp3"
+      "audio": "lang/english/audios/cup.opus"
     },
     {
       "object_id": "word-net-image",
@@ -23,7 +23,7 @@
       "pair_id": [
         "image-net"
       ],
-      "audio": "lang/english/audios/other/net.mp3"
+      "audio": "lang/english/audios/net.opus"
     },
     {
       "object_id": "word-red-image",
@@ -35,7 +35,7 @@
       "pair_id": [
         "image-red"
       ],
-      "audio": "lang/english/audios/other/red.mp3"
+      "audio": "lang/english/audios/red.opus"
     },
     {
       "object_id": "word-hen-image",
@@ -47,7 +47,7 @@
       "pair_id": [
         "image-hen"
       ],
-      "audio": "lang/english/audios/animals/hen.mp3"
+      "audio": "lang/english/audios/hen.opus"
     }
   ],
   "right": [
@@ -62,7 +62,7 @@
         "word-cup-image"
       ],
       "image": "lang/english/images/cup.png",
-      "audio": "lang/english/audios/other/cup.mp3"
+      "audio": "lang/english/audios/cup.opus"
     },
     {
       "object_id": "image-net",
@@ -75,7 +75,7 @@
         "word-net-image"
       ],
       "image": "lang/english/images/net.png",
-      "audio": "lang/english/audios/other/net.mp3"
+      "audio": "lang/english/audios/net.opus"
     },
     {
       "object_id": "image-red",
@@ -88,7 +88,7 @@
         "word-red-image"
       ],
       "image": "lang/english/images/red.svg",
-      "audio": "lang/english/audios/other/red.mp3"
+      "audio": "lang/english/audios/red.opus"
     },
     {
       "object_id": "image-hen",
@@ -101,7 +101,8 @@
         "word-hen-image"
       ],
       "image": "lang/english/images/hen.png",
-      "audio": "lang/english/audios/animals/hen.mp3"
+      "audio": "lang/english/audios/hen.opus"
     }
   ]
 }
+

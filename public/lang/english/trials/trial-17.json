@@ -11,7 +11,7 @@
       "pair_id": [
         "audio-sat"
       ],
-      "audio": "lang/english/audios/actions/sat.mp3"
+      "audio": "lang/english/audios/sat.opus"
     },
     {
       "object_id": "word-tip-audio",
@@ -23,7 +23,7 @@
       "pair_id": [
         "audio-tip"
       ],
-      "audio": "lang/english/audios/other/tip.mp3"
+      "audio": "lang/english/audios/tip.opus"
     },
     {
       "object_id": "word-dig-audio",
@@ -35,7 +35,7 @@
       "pair_id": [
         "audio-dig"
       ],
-      "audio": "lang/english/audios/actions/dig.mp3"
+      "audio": "lang/english/audios/dig.opus"
     },
     {
       "object_id": "word-pot-audio",
@@ -47,7 +47,7 @@
       "pair_id": [
         "audio-pot"
       ],
-      "audio": "lang/english/audios/other/pot.mp3"
+      "audio": "lang/english/audios/pot.opus"
     }
   ],
   "right": [
@@ -62,7 +62,7 @@
         "word-sat-audio"
       ],
       "type": "audio",
-      "audio": "lang/english/audios/actions/sat.mp3"
+      "audio": "lang/english/audios/sat.opus"
     },
     {
       "object_id": "audio-tip",
@@ -75,7 +75,7 @@
         "word-tip-audio"
       ],
       "type": "audio",
-      "audio": "lang/english/audios/other/tip.mp3"
+      "audio": "lang/english/audios/tip.opus"
     },
     {
       "object_id": "audio-dig",
@@ -88,7 +88,7 @@
         "word-dig-audio"
       ],
       "type": "audio",
-      "audio": "lang/english/audios/actions/dig.mp3"
+      "audio": "lang/english/audios/dig.opus"
     },
     {
       "object_id": "audio-pot",
@@ -101,7 +101,8 @@
         "word-pot-audio"
       ],
       "type": "audio",
-      "audio": "lang/english/audios/other/pot.mp3"
+      "audio": "lang/english/audios/pot.opus"
     }
   ]
 }
+

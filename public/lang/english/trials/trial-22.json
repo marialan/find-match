@@ -11,7 +11,7 @@
       "pair_id": [
         "audio-bird"
       ],
-      "audio": "lang/english/audios/animals/bird.mp3"
+      "audio": "lang/english/audios/bird.opus"
     },
     {
       "object_id": "word-house-audio",
@@ -23,7 +23,7 @@
       "pair_id": [
         "audio-house"
       ],
-      "audio": "lang/english/audios/other/house.mp3"
+      "audio": "lang/english/audios/house.opus"
     },
     {
       "object_id": "word-cow-audio",
@@ -35,7 +35,7 @@
       "pair_id": [
         "audio-cow"
       ],
-      "audio": "lang/english/audios/animals/cow.mp3"
+      "audio": "lang/english/audios/cow.opus"
     },
     {
       "object_id": "word-elephant-audio",
@@ -47,7 +47,7 @@
       "pair_id": [
         "audio-elephant"
       ],
-      "audio": "lang/english/audios/animals/elephant.mp3"
+      "audio": "lang/english/audios/elephant.opus"
     }
   ],
   "right": [
@@ -62,7 +62,7 @@
         "word-bird-audio"
       ],
       "type": "audio",
-      "audio": "lang/english/audios/animals/bird.mp3"
+      "audio": "lang/english/audios/bird.opus"
     },
     {
       "object_id": "audio-house",
@@ -75,7 +75,7 @@
         "word-house-audio"
       ],
       "type": "audio",
-      "audio": "lang/english/audios/other/house.mp3"
+      "audio": "lang/english/audios/house.opus"
     },
     {
       "object_id": "audio-cow",
@@ -88,7 +88,7 @@
         "word-cow-audio"
       ],
       "type": "audio",
-      "audio": "lang/english/audios/animals/cow.mp3"
+      "audio": "lang/english/audios/cow.opus"
     },
     {
       "object_id": "audio-elephant",
@@ -101,7 +101,8 @@
         "word-elephant-audio"
       ],
       "type": "audio",
-      "audio": "lang/english/audios/animals/elephant.mp3"
+      "audio": "lang/english/audios/elephant.opus"
     }
   ]
 }
+

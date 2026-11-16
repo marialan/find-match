@@ -148,8 +148,8 @@ for (const trialNum of shippedIndex.trials) {
   for (const item of [...shipped.left, ...shipped.right]) {
     if (trialNum <= 10) {
       const letter = item.target.toUpperCase()
-      const filename = `${letter}.mp3`
-      assert.equal(item.audio, `lang/english/audios/letters/${filename}`)
+      const filename = `${letter}.opus`
+      assert.equal(item.audio, `lang/english/audios/${filename}`)
     }
     for (const asset of [item.image, item.audio].filter(Boolean)) {
       assert.ok(fs.existsSync(path.join(root, 'public', asset)), `Missing ${asset} in trial-${trialNum}.json`)
@@ -164,9 +164,9 @@ const wordLevels = new Map(
 // TC-7.4: Derive expected vocabulary from authored words and actual media,
 // independently of the shipped trials so omissions cannot pass unnoticed.
 const englishRoot = path.join(root, 'public', 'lang', 'english')
-const recordedWords = new Map(fs.readdirSync(path.join(englishRoot, 'audios'), { recursive: true })
-  .filter((file) => !file.startsWith('letters') && file.endsWith('.mp3'))
-  .map((file) => [path.basename(file, '.mp3'), `lang/english/audios/${file.split(path.sep).join('/')}`]))
+const recordedWords = new Map(fs.readdirSync(path.join(englishRoot, 'audios'), { recursive: false })
+  .filter((file) => file.endsWith('.opus'))
+  .map((file) => [path.basename(file, '.opus'), `lang/english/audios/${file}`]))
 const realImages = new Map(fs.readdirSync(path.join(englishRoot, 'images'), { withFileTypes: true })
   .filter((entry) => entry.isFile())
   .map((entry) => [path.parse(entry.name).name, `lang/english/images/${entry.name}`]))

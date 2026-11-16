@@ -11,7 +11,7 @@
       "pair_id": [
         "audio-cat"
       ],
-      "audio": "lang/english/audios/animals/cat.mp3"
+      "audio": "lang/english/audios/cat.opus"
     },
     {
       "object_id": "word-bat-audio",
@@ -23,7 +23,7 @@
       "pair_id": [
         "audio-bat"
       ],
-      "audio": "lang/english/audios/animals/bat.mp3"
+      "audio": "lang/english/audios/bat.opus"
     },
     {
       "object_id": "word-hat-audio",
@@ -35,7 +35,7 @@
       "pair_id": [
         "audio-hat"
       ],
-      "audio": "lang/english/audios/clothing/hat.mp3"
+      "audio": "lang/english/audios/hat.opus"
     },
     {
       "object_id": "word-mat-audio",
@@ -47,7 +47,7 @@
       "pair_id": [
         "audio-mat"
       ],
-      "audio": "lang/english/audios/other/mat.mp3"
+      "audio": "lang/english/audios/mat.opus"
     }
   ],
   "right": [
@@ -62,7 +62,7 @@
         "word-cat-audio"
       ],
       "type": "audio",
-      "audio": "lang/english/audios/animals/cat.mp3"
+      "audio": "lang/english/audios/cat.opus"
     },
     {
       "object_id": "audio-bat",
@@ -75,7 +75,7 @@
         "word-bat-audio"
       ],
       "type": "audio",
-      "audio": "lang/english/audios/animals/bat.mp3"
+      "audio": "lang/english/audios/bat.opus"
     },
     {
       "object_id": "audio-hat",
@@ -88,7 +88,7 @@
         "word-hat-audio"
       ],
       "type": "audio",
-      "audio": "lang/english/audios/clothing/hat.mp3"
+      "audio": "lang/english/audios/hat.opus"
     },
     {
       "object_id": "audio-mat",
@@ -101,7 +101,8 @@
         "word-mat-audio"
       ],
       "type": "audio",
-      "audio": "lang/english/audios/other/mat.mp3"
+      "audio": "lang/english/audios/mat.opus"
     }
   ]
 }
+
