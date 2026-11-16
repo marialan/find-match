@@ -1,4 +1,5 @@
 import type { AnimationEvent, CSSProperties, PointerEvent } from "react";
+import { useEffect, useRef } from "react";
 import {
   BOARD_HEIGHT,
   BOARD_WIDTH,
@@ -8,6 +9,7 @@ import {
   wordFontSize,
 } from "../game.ts";
 import type { BoardObject } from "../game.ts";
+import { observeImage, unobserveImage } from "../game/imageLazyLoad.ts";
 
 const AUDIO_ICON = "🔊";
 
@@ -44,6 +46,20 @@ export function MatchObject({
   onAnimationEnd,
   onClick,
 }: MatchObjectProps) {
+  const imgRefs = useRef<Map<string, HTMLImageElement>>(new Map());
+
+  useEffect(() => {
+    const refs = imgRefs.current;
+    refs.forEach((img) => {
+      observeImage(img);
+    });
+    return () => {
+      refs.forEach((img) => {
+        unobserveImage(img);
+      });
+    };
+  }, []);
+
   const merged = objects.find((other) => other.mergedInto === item.object_id);
   const pair = merged
     ? item.side === "left"
@@ -64,8 +80,11 @@ export function MatchObject({
       return <span className="image-placeholder" aria-hidden="true" />;
     return (
       <img
+        ref={(el) => {
+          if (el) imgRefs.current.set(part.object_id, el);
+        }}
         className="object-image"
-        src={part.image}
+        data-src={part.image}
         alt=""
         draggable={false}
         onError={() => onImageError(part.object_id)}

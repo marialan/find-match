@@ -3,6 +3,8 @@ import type { Trial, TrialObject } from "./types.ts";
 
 let audioContext: AudioContext | null = null;
 const audioBuffers = new Map<string, AudioBuffer>();
+const audioLoadingPromises = new Map<string, Promise<AudioBuffer>>();
+const attemptedPaths = new Set<string>();
 
 function getAudioContext(): AudioContext | null {
   try {
@@ -17,27 +19,52 @@ function getAudioContext(): AudioContext | null {
   }
 }
 
+async function loadAudioFile(path: string): Promise<AudioBuffer> {
+  const context = getAudioContext();
+  if (!context) throw new Error("AudioContext not available");
+  const cached = audioBuffers.get(path);
+  if (cached) return cached;
+
+  const existingPromise = audioLoadingPromises.get(path);
+  if (existingPromise) return existingPromise;
+
+  const loadPromise = (async () => {
+    try {
+      const buffer = await context.decodeAudioData(await loadBinary(path));
+      audioBuffers.set(path, buffer);
+      return buffer;
+    } finally {
+      audioLoadingPromises.delete(path);
+    }
+  })();
+
+  audioLoadingPromises.set(path, loadPromise);
+  return loadPromise;
+}
+
 export async function preloadAudio(trial: Trial): Promise<void> {
   try {
     window.speechSynthesis?.getVoices();
   } catch {
     // Speech synthesis is optional.
   }
-  const context = getAudioContext();
-  if (!context) return;
+
   const paths = new Set(
     [...trial.left, ...trial.right].flatMap((item) =>
       item.audio ? [item.audio] : [],
     ),
   );
-  await Promise.allSettled(
-    [...paths].map(async (path) => {
-      audioBuffers.set(
-        path,
-        await context.decodeAudioData(await loadBinary(path)),
-      );
-    }),
-  );
+
+  const MAX_CONCURRENT_LOADS = 3;
+  const pathArray = [...paths];
+
+  for (let i = 0; i < pathArray.length; i += MAX_CONCURRENT_LOADS) {
+    const batch = pathArray.slice(i, i + MAX_CONCURRENT_LOADS);
+    await Promise.allSettled(batch.map((path) => {
+      attemptedPaths.add(path);
+      return loadAudioFile(path);
+    }));
+  }
 }
 
 function speak(text: string, speechLocale: string): boolean {

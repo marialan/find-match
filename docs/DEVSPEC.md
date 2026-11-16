@@ -3,9 +3,9 @@
 |                  |                                                         |
 | ---------------- | ------------------------------------------------------- |
 | **Title**        | Find The Two That Match — Development Specification     |
-| **Status**       | Active — approved behavior and responsive typography     |
-| **Version**      | 0.14.0                                                  |
-| **Last updated** | 2026-11-02                                              |
+| **Status**       | Active — approved behavior, responsive typography, and performance optimizations |
+| **Version**      | 0.15.0                                                  |
+| **Last updated** | 2026-11-13                                              |
 | **Owner/Author** | Maria Lande (with GitHub Copilot)                       |
 
 > This DEVSPEC is derived solely from `docs/Find-The-Two-That-Match-Spec-Brief.md`
@@ -490,6 +490,32 @@ Functional tree (by purpose) mapped to an artifact-lifecycle classification:
 - Must NOT depend on Service Workers, Cache Storage API, or any network SDK at
   runtime.
 
+## 10.1 Performance Optimizations — Asset Loading
+
+The application implements progressive asset loading to optimize performance on mobile and low-bandwidth networks:
+
+### Audio Loading (Module 5)
+- Audio files are preloaded in batches (max 3 concurrent downloads) to avoid connection exhaustion
+- Deduplication prevents reloading the same audio file multiple times
+- On-demand loading: If audio is played before preload completes, it loads and plays immediately
+- Uses `Promise.allSettled` to ensure missing/corrupt audio doesn't block trial startup
+
+### Image Loading (Module 2)
+- Lazy loading with Intersection Observer: Images load only when they come into view
+- 50px margin for preloading before visibility
+- Reduces initial load time significantly for trials with many images
+- Fallback to placeholder when image fails to load (existing behavior preserved)
+
+### Browser/Device Optimization
+- Uses `XMLHttpRequest` for reliable binary downloads (no `fetch()` for `file://` compatibility)
+- Deferred font loading doesn't block interactivity
+- Progressive rendering: Board appears immediately, assets fill in as they load
+
+### Recommended File Format Optimization
+- Audio: Convert MP3 → Opus at 48kbps (60-70% size reduction)
+- Images: Convert PNG → WebP at quality 80 (25-35% size reduction)
+- See `docs/OPTIMIZATION_GUIDE.md` for tools and scripts
+
 ## 11. Runbook (from a clean machine)
 
 1. Install project dependencies.
@@ -568,6 +594,7 @@ Functional tree (by purpose) mapped to an artifact-lifecycle classification:
 
 ## 16. Changelog
 
+2026-11-13 — GitHub Copilot — Added performance optimizations: batched audio preloading (max 3 concurrent), lazy image loading with Intersection Observer, on-demand audio fallback, and file format optimization guidance (Opus audio, WebP images) with conversion tools and comprehensive OPTIMIZATION_GUIDE.md.
 2026-11-02 — GitHub Copilot — Unified card base sizing and larger preferred typography across object types, specified measured single-line word expansion with constrained font reduction, removed the board width cap, and clarified crowded-board reflow.
 2026-11-02 — GitHub Copilot — Added English content rules for recorded vocabulary, exact audio/picture pair coverage, compact 3–4-pair boards, and obsolete-trial removal without changing runtime media fallbacks.
 2026-10-14 — Maria Lande (with GitHub Copilot) — Resolved OQ-6 by setting the registered engine slug and `sub_app_id` to `findmatch` and using it for package artifact names.

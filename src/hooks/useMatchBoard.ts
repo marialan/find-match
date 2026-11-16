@@ -21,6 +21,7 @@ import {
   writeTrialTotal,
 } from "../game.ts";
 import type { BoardObject, LanguagePack, LayoutMetrics, Trial } from "../game.ts";
+import { initImageLazyLoad } from "../game/imageLazyLoad.ts";
 
 const TAP_MOVE_TOLERANCE_PX = 10;
 
@@ -89,6 +90,7 @@ export function useMatchBoard({ trialNum, languagePack }: UseMatchBoardOptions) 
   }, [trial]);
 
   useEffect(() => {
+    initImageLazyLoad();
     loadTrial(trialPath(languagePack.code, trialNum), languagePack.code)
       .then(async (loaded) => {
         await preloadAudio(loaded);
