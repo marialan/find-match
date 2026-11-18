@@ -67,14 +67,17 @@ export function MatchObject({
     const sources = getImageSources(part.image);
     return (
       <picture>
-        {sources.webp && (
-          <source srcSet={sources.webp} type="image/webp" />
+        {sources.webp && sources.webpSrcSet && (
+          <source srcSet={sources.webpSrcSet} type="image/webp" sizes="(max-width: 480px) 60px, (max-width: 768px) 100px, (max-width: 1024px) 140px, 176px" />
         )}
         <img
           className="object-image"
           src={sources.png || part.image}
+          srcSet={sources.pngSrcSet || undefined}
+          sizes="(max-width: 480px) 60px, (max-width: 768px) 100px, (max-width: 1024px) 140px, 176px"
           alt=""
           draggable={false}
+          loading="lazy"
           onError={() => onImageError(part.object_id)}
         />
       </picture>
