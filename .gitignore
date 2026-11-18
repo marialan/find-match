@@ -15,6 +15,9 @@ dist-ssr
 # Unused assets
 unused-assets
 
+# Setup and documentation (local reference only)
+WEBP_SETUP_SUMMARY.md
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json
