@@ -169,6 +169,14 @@ const recordedWords = new Map(fs.readdirSync(path.join(englishRoot, 'audios'), {
   .map((file) => [path.basename(file, '.mp3'), `lang/english/audios/${file.split(path.sep).join('/')}`]))
 const realImages = new Map(fs.readdirSync(path.join(englishRoot, 'images'), { withFileTypes: true })
   .filter((entry) => entry.isFile())
+  .sort((a, b) => {
+    // Sort so .webp files come BEFORE other formats (so they're processed first and later files overwrite)
+    const aIsWebp = a.name.endsWith('.webp');
+    const bIsWebp = b.name.endsWith('.webp');
+    if (aIsWebp && !bIsWebp) return -1;
+    if (!aIsWebp && bIsWebp) return 1;
+    return a.name.localeCompare(b.name);
+  })
   .map((entry) => [path.parse(entry.name).name, `lang/english/images/${entry.name}`]))
 const expectedWords = [...new Set([...wordLevels.keys(), 'bat', 'hat'])]
   .filter((word) => recordedWords.has(word))
