@@ -11,7 +11,7 @@
       "pair_id": [
         "image-cat"
       ],
-      "audio": "lang/english/audios/animals/cat.mp3"
+      "audio": "lang/english/audios/cat.mp3"
     },
     {
       "object_id": "word-bat-image",
@@ -23,7 +23,7 @@
       "pair_id": [
         "image-bat"
       ],
-      "audio": "lang/english/audios/animals/bat.mp3"
+      "audio": "lang/english/audios/bat.mp3"
     },
     {
       "object_id": "word-hat-image",
@@ -35,7 +35,7 @@
       "pair_id": [
         "image-hat"
       ],
-      "audio": "lang/english/audios/clothing/hat.mp3"
+      "audio": "lang/english/audios/hat.mp3"
     },
     {
       "object_id": "word-mat-image",
@@ -47,7 +47,7 @@
       "pair_id": [
         "image-mat"
       ],
-      "audio": "lang/english/audios/other/mat.mp3"
+      "audio": "lang/english/audios/mat.mp3"
     }
   ],
   "right": [
@@ -62,7 +62,7 @@
         "word-cat-image"
       ],
       "image": "lang/english/images/cat.png",
-      "audio": "lang/english/audios/animals/cat.mp3"
+      "audio": "lang/english/audios/cat.mp3"
     },
     {
       "object_id": "image-bat",
@@ -75,7 +75,7 @@
         "word-bat-image"
       ],
       "image": "lang/english/images/bat.png",
-      "audio": "lang/english/audios/animals/bat.mp3"
+      "audio": "lang/english/audios/bat.mp3"
     },
     {
       "object_id": "image-hat",
@@ -88,7 +88,7 @@
         "word-hat-image"
       ],
       "image": "lang/english/images/hat.png",
-      "audio": "lang/english/audios/clothing/hat.mp3"
+      "audio": "lang/english/audios/hat.mp3"
     },
     {
       "object_id": "image-mat",
@@ -101,7 +101,8 @@
         "word-mat-image"
       ],
       "image": "lang/english/images/mat.png",
-      "audio": "lang/english/audios/other/mat.mp3"
+      "audio": "lang/english/audios/mat.mp3"
     }
   ]
 }
+

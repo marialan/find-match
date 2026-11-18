@@ -11,7 +11,7 @@
       "pair_id": [
         "audio-jump"
       ],
-      "audio": "lang/english/audios/actions/jump.mp3"
+      "audio": "lang/english/audios/jump.mp3"
     },
     {
       "object_id": "word-fish-audio",
@@ -23,7 +23,7 @@
       "pair_id": [
         "audio-fish"
       ],
-      "audio": "lang/english/audios/animals/fish.mp3"
+      "audio": "lang/english/audios/fish.mp3"
     },
     {
       "object_id": "word-wave-audio",
@@ -35,7 +35,7 @@
       "pair_id": [
         "audio-wave"
       ],
-      "audio": "lang/english/audios/actions/wave.mp3"
+      "audio": "lang/english/audios/wave.mp3"
     },
     {
       "object_id": "word-tree-audio",
@@ -47,7 +47,7 @@
       "pair_id": [
         "audio-tree"
       ],
-      "audio": "lang/english/audios/nature/tree.mp3"
+      "audio": "lang/english/audios/tree.mp3"
     }
   ],
   "right": [
@@ -62,7 +62,7 @@
         "word-jump-audio"
       ],
       "type": "audio",
-      "audio": "lang/english/audios/actions/jump.mp3"
+      "audio": "lang/english/audios/jump.mp3"
     },
     {
       "object_id": "audio-fish",
@@ -75,7 +75,7 @@
         "word-fish-audio"
       ],
       "type": "audio",
-      "audio": "lang/english/audios/animals/fish.mp3"
+      "audio": "lang/english/audios/fish.mp3"
     },
     {
       "object_id": "audio-wave",
@@ -88,7 +88,7 @@
         "word-wave-audio"
       ],
       "type": "audio",
-      "audio": "lang/english/audios/actions/wave.mp3"
+      "audio": "lang/english/audios/wave.mp3"
     },
     {
       "object_id": "audio-tree",
@@ -101,7 +101,8 @@
         "word-tree-audio"
       ],
       "type": "audio",
-      "audio": "lang/english/audios/nature/tree.mp3"
+      "audio": "lang/english/audios/tree.mp3"
     }
   ]
 }
+

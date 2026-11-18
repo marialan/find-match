@@ -11,7 +11,7 @@
       "pair_id": [
         "audio-cup"
       ],
-      "audio": "lang/english/audios/other/cup.mp3"
+      "audio": "lang/english/audios/cup.mp3"
     },
     {
       "object_id": "word-net-audio",
@@ -23,7 +23,7 @@
       "pair_id": [
         "audio-net"
       ],
-      "audio": "lang/english/audios/other/net.mp3"
+      "audio": "lang/english/audios/net.mp3"
     },
     {
       "object_id": "word-red-audio",
@@ -35,7 +35,7 @@
       "pair_id": [
         "audio-red"
       ],
-      "audio": "lang/english/audios/other/red.mp3"
+      "audio": "lang/english/audios/red.mp3"
     },
     {
       "object_id": "word-hen-audio",
@@ -47,7 +47,7 @@
       "pair_id": [
         "audio-hen"
       ],
-      "audio": "lang/english/audios/animals/hen.mp3"
+      "audio": "lang/english/audios/hen.mp3"
     }
   ],
   "right": [
@@ -62,7 +62,7 @@
         "word-cup-audio"
       ],
       "type": "audio",
-      "audio": "lang/english/audios/other/cup.mp3"
+      "audio": "lang/english/audios/cup.mp3"
     },
     {
       "object_id": "audio-net",
@@ -75,7 +75,7 @@
         "word-net-audio"
       ],
       "type": "audio",
-      "audio": "lang/english/audios/other/net.mp3"
+      "audio": "lang/english/audios/net.mp3"
     },
     {
       "object_id": "audio-red",
@@ -88,7 +88,7 @@
         "word-red-audio"
       ],
       "type": "audio",
-      "audio": "lang/english/audios/other/red.mp3"
+      "audio": "lang/english/audios/red.mp3"
     },
     {
       "object_id": "audio-hen",
@@ -101,7 +101,8 @@
         "word-hen-audio"
       ],
       "type": "audio",
-      "audio": "lang/english/audios/animals/hen.mp3"
+      "audio": "lang/english/audios/hen.mp3"
     }
   ]
 }
+

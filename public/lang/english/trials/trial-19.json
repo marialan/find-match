@@ -11,7 +11,7 @@
       "pair_id": [
         "audio-bed"
       ],
-      "audio": "lang/english/audios/other/bed.mp3"
+      "audio": "lang/english/audios/bed.mp3"
     },
     {
       "object_id": "word-fan-audio",
@@ -23,7 +23,7 @@
       "pair_id": [
         "audio-fan"
       ],
-      "audio": "lang/english/audios/other/fan.mp3"
+      "audio": "lang/english/audios/fan.mp3"
     },
     {
       "object_id": "word-dog-audio",
@@ -35,7 +35,7 @@
       "pair_id": [
         "audio-dog"
       ],
-      "audio": "lang/english/audios/animals/dog.mp3"
+      "audio": "lang/english/audios/dog.mp3"
     },
     {
       "object_id": "word-lip-audio",
@@ -47,7 +47,7 @@
       "pair_id": [
         "audio-lip"
       ],
-      "audio": "lang/english/audios/other/lip.mp3"
+      "audio": "lang/english/audios/lip.mp3"
     }
   ],
   "right": [
@@ -62,7 +62,7 @@
         "word-bed-audio"
       ],
       "type": "audio",
-      "audio": "lang/english/audios/other/bed.mp3"
+      "audio": "lang/english/audios/bed.mp3"
     },
     {
       "object_id": "audio-fan",
@@ -75,7 +75,7 @@
         "word-fan-audio"
       ],
       "type": "audio",
-      "audio": "lang/english/audios/other/fan.mp3"
+      "audio": "lang/english/audios/fan.mp3"
     },
     {
       "object_id": "audio-dog",
@@ -88,7 +88,7 @@
         "word-dog-audio"
       ],
       "type": "audio",
-      "audio": "lang/english/audios/animals/dog.mp3"
+      "audio": "lang/english/audios/dog.mp3"
     },
     {
       "object_id": "audio-lip",
@@ -101,7 +101,8 @@
         "word-lip-audio"
       ],
       "type": "audio",
-      "audio": "lang/english/audios/other/lip.mp3"
+      "audio": "lang/english/audios/lip.mp3"
     }
   ]
 }
+

@@ -12,6 +12,9 @@ dist
 dist-ssr
 *.local
 
+# Unused assets
+unused-assets
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json
