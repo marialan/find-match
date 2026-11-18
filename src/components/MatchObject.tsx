@@ -8,6 +8,7 @@ import {
   wordFontSize,
 } from "../game.ts";
 import type { BoardObject } from "../game.ts";
+import { getImageSources } from "../game/webp-fallback.ts";
 
 const AUDIO_ICON = "🔊";
 
@@ -62,14 +63,21 @@ export function MatchObject({
     if (!part.image) return <span className="word-target">{part.target}</span>;
     if (missingImages.has(part.object_id))
       return <span className="image-placeholder" aria-hidden="true" />;
+    
+    const sources = getImageSources(part.image);
     return (
-      <img
-        className="object-image"
-        src={part.image}
-        alt=""
-        draggable={false}
-        onError={() => onImageError(part.object_id)}
-      />
+      <picture>
+        {sources.webp && (
+          <source srcSet={sources.webp} type="image/webp" />
+        )}
+        <img
+          className="object-image"
+          src={sources.png || part.image}
+          alt=""
+          draggable={false}
+          onError={() => onImageError(part.object_id)}
+        />
+      </picture>
     );
   }
 
